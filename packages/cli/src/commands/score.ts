@@ -1,4 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
+import chalk from 'chalk'
 import ora from 'ora'
 import {McpClient} from '../mcp/client.js'
 import {runEval} from '../eval/harness.js'
@@ -6,6 +7,7 @@ import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
 import {printTrustScore} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
+import {supabase} from '../lib/supabase.js'
 
 export default class Score extends Command {
   static override description =
@@ -75,5 +77,23 @@ export default class Score extends Command {
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, flags['json-path'])
     this.log(`JSON report written → ${flags['json-path']}`)
+
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+      const {error: dbError} = await supabase.from('eval_results').insert({
+        server_url: args.url,
+        trust_score: trust.score,
+        pass_count: trust.passedPrompts,
+        fail_count: trust.totalPrompts - trust.passedPrompts,
+        latency_p50: trust.p50LatencyMs,
+        top_failures: trust.errorsByFailureMode,
+        probe_results: results,
+      })
+
+      if (dbError) {
+        this.log(chalk.dim(`Warning: failed to save to dashboard: ${dbError.message}`))
+      } else {
+        this.log(chalk.dim('✓ Saved to Vouqis dashboard'))
+      }
+    }
   }
 }

@@ -92,6 +92,8 @@ The score is a weighted average of three signals:
 | Variable | Required | Description |
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key — free at openrouter.ai, no credit card required |
+| `SUPABASE_URL` | No | Supabase project URL — enables saving results to the Vouqis dashboard |
+| `SUPABASE_ANON_KEY` | No | Supabase anon key — required when `SUPABASE_URL` is set |
 
 ## Roadmap
 
