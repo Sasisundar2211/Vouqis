@@ -4,5 +4,5 @@ dist/
 .env.local
 *.log
 .DS_Store
-.claude
+.claude/
 Claude.md

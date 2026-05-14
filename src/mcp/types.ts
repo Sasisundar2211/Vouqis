@@ -4,15 +4,18 @@ export interface McpTool {
   inputSchema: Record<string, unknown>
 }
 
-export interface McpToolCall {
-  toolName: string
-  input: Record<string, unknown>
-  output: unknown
-  durationMs: number
-  error?: string
+export interface McpContentItem {
+  type: string
+  text?: string
+  [key: string]: unknown
 }
 
-export interface McpServerInfo {
-  url: string
-  tools: McpTool[]
+export interface McpToolCallResult {
+  content: McpContentItem[]
+  isError?: boolean
+}
+
+export interface McpRawProbeResult {
+  status: number
+  body: unknown
 }

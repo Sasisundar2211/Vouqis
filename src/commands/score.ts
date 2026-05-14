@@ -1,4 +1,11 @@
 import {Args, Command, Flags} from '@oclif/core'
+import ora from 'ora'
+import {McpClient} from '../mcp/client.js'
+import {runEval} from '../eval/harness.js'
+import {DEFAULT_PROMPTS} from '../eval/prompts.js'
+import {computeTrustScore} from '../eval/scoring.js'
+import {printTrustScore} from '../output/terminal.js'
+import {buildJsonReport, writeJsonReport} from '../output/json.js'
 
 export default class Score extends Command {
   static override description =
@@ -6,7 +13,6 @@ export default class Score extends Command {
 
   static override examples = [
     '<%= config.bin %> score https://your-mcp-server.example.com',
-    '<%= config.bin %> score https://your-mcp-server.example.com --output json',
   ]
 
   static override args = {
@@ -17,14 +23,8 @@ export default class Score extends Command {
   }
 
   static override flags = {
-    output: Flags.string({
-      char: 'o',
-      description: 'Output format',
-      default: 'terminal',
-      options: ['terminal', 'json'],
-    }),
     'json-path': Flags.string({
-      description: 'File path to write JSON report (implies --output json)',
+      description: 'File path to write JSON report',
       default: './vouqis-report.json',
     }),
   }
@@ -32,16 +32,48 @@ export default class Score extends Command {
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Score)
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.OPENROUTER_API_KEY) {
       this.error(
-        'ANTHROPIC_API_KEY environment variable is not set.\n' +
-          'Export it before running: export ANTHROPIC_API_KEY=sk-ant-...',
+        'OPENROUTER_API_KEY is not set.\nExport it first: export OPENROUTER_API_KEY=sk-or-...',
       )
     }
 
-    this.log(`Scoring MCP server: ${args.url}`)
-    this.log(`Output format: ${flags.output}`)
-    this.log('')
-    this.log('Full eval harness coming in v0.1 — scaffold verified.')
+    const spinner = ora('Connecting to MCP server…').start()
+    const client = new McpClient(args.url)
+
+    let tools: Awaited<ReturnType<McpClient['connect']>>
+    try {
+      tools = await client.connect()
+      spinner.succeed(`Connected — ${tools.length} tool${tools.length === 1 ? '' : 's'} found`)
+    } catch (err: unknown) {
+      spinner.fail('Could not connect to MCP server')
+      this.error(err instanceof Error ? err.message : String(err))
+    }
+
+    let completed = 0
+    spinner.start(`Running probes… 0 / ${DEFAULT_PROMPTS.length}`)
+
+    const results = await runEval({
+      openrouterApiKey: process.env.OPENROUTER_API_KEY,
+      mcpClient: client,
+      tools,
+      prompts: DEFAULT_PROMPTS,
+      onProgress: (r) => {
+        completed++
+        const status = r.passed ? '✓' : '✗'
+        spinner.text = `Running probes… ${completed} / ${DEFAULT_PROMPTS.length}  (${status} ${r.promptId})`
+      },
+    })
+
+    spinner.succeed(`All ${DEFAULT_PROMPTS.length} probes complete`)
+
+    await client.disconnect()
+
+    const trust = computeTrustScore(results)
+    printTrustScore(args.url, trust, results)
+
+    const report = buildJsonReport(args.url, trust, results)
+    writeJsonReport(report, flags['json-path'])
+    this.log(`JSON report written → ${flags['json-path']}`)
   }
 }

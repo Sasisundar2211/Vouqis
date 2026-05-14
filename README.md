@@ -5,9 +5,10 @@
 Vouqis scores, monitors, and replays Model Context Protocol (MCP) server interactions so your AI agents stop failing in production. Run a 50-prompt eval suite against any MCP server, get a single trust score from 0 to 100, and see exactly where your tool calls break — in under 90 seconds.
 
 ```bash
-npm install -g @vouqis/cli
-export ANTHROPIC_API_KEY=sk-ant-...
-vouqis score https://your-mcp-server.example.com
+npm install -g @sasisundar2211/vouqis-cli
+export OPENROUTER_API_KEY="sk-or-your-key"
+# Free key at openrouter.ai — no credit card required
+vouqis score https://your-mcp-server-url
 ```
 
 ```
@@ -29,10 +30,39 @@ Vouqis Trust Score Report
 ## Installation
 
 ```bash
-npm install -g @vouqis/cli
+npm install -g @sasisundar2211/vouqis-cli
+export OPENROUTER_API_KEY="sk-or-your-key"
+# Free key at openrouter.ai — no credit card required
+vouqis score https://your-mcp-server-url
 ```
 
 Node.js 20 or later required.
+
+## Example Output
+
+```
+✔ Connected — 5 tools found
+✔ All 10 probes complete
+
+Vouqis Trust Score Report
+────────────────────────────────────────────────────
+  Server:      http://127.0.0.1:3001/mcp
+  Score:       54 / 100  ███████████░░░░░░░░░
+  Pass rate:   60.0%  (6/10 prompts)
+  P50 latency: 5004ms
+
+  Top failures:
+    ✗ [tmo-01] slow_add → slow_add: Probe timed out after 5000ms [slow-timeout/slow_add]
+    ✗ [tmo-02] slow_add → slow_add: Probe timed out after 5000ms [slow-timeout/slow_add]
+    ✗ [nul-01] broken_schema → broken_schema: returned null or empty content — {"content":[]}
+
+  Failures by mode:
+    ✗ timeout: 2 failures
+    ✗ null-response: 2 failures
+────────────────────────────────────────────────────
+
+JSON report written → ./vouqis-report.json
+```
 
 ## Usage
 
@@ -61,7 +91,7 @@ The score is a weighted average of three signals:
 
 | Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key used as the foundation model for evals |
+| `OPENROUTER_API_KEY` | Yes | OpenRouter API key — free at openrouter.ai, no credit card required |
 
 ## Roadmap
 

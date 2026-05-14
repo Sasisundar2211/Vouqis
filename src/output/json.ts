@@ -1,6 +1,5 @@
 import {writeFileSync} from 'node:fs'
-import type {TrustScore} from '../eval/scoring.js'
-import type {EvalResult} from '../eval/scoring.js'
+import type {TrustScore, EvalResult} from '../eval/scoring.js'
 
 export interface JsonReport {
   version: string

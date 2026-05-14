@@ -1,6 +1,6 @@
 {
-  "name": "@vouqis/cli",
-  "version": "0.0.1",
+  "name": "@sasisundar2211/vouqis-cli",
+  "version": "0.1.0",
   "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
   "type": "module",
   "author": "Sundar Sasi",
@@ -32,9 +32,10 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.94",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
     "chalk": "^5",
+    "openai": "^4.104.0",
     "ora": "^9"
   },
   "devDependencies": {

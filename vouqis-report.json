@@ -1,0 +1,87 @@
+{
+  "version": "0.0.1",
+  "timestamp": "2026-05-14T07:51:02.639Z",
+  "serverUrl": "https://mcp.exa.ai/mcp",
+  "trustScore": {
+    "score": 92,
+    "passRate": 0.9,
+    "p50LatencyMs": 767,
+    "errorsByFailureMode": {
+      "malformed-jsonrpc": 1
+    },
+    "totalPrompts": 10,
+    "passedPrompts": 9
+  },
+  "results": [
+    {
+      "promptId": "mjr-01",
+      "failureMode": "malformed-jsonrpc",
+      "passed": true,
+      "durationMs": 284,
+      "errorText": "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Invalid JSON-RPC message\"},\"id\":null}"
+    },
+    {
+      "promptId": "mjr-02",
+      "failureMode": "malformed-jsonrpc",
+      "passed": false,
+      "durationMs": 396,
+      "errorText": "Server accepted malformed request (HTTP 202): \"\""
+    },
+    {
+      "promptId": "mrp-01",
+      "failureMode": "missing-params",
+      "passed": true,
+      "durationMs": 281,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "mrp-02",
+      "failureMode": "missing-params",
+      "passed": true,
+      "durationMs": 299,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "tmo-01",
+      "failureMode": "timeout",
+      "passed": true,
+      "durationMs": 818,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "tmo-02",
+      "failureMode": "timeout",
+      "passed": true,
+      "durationMs": 797,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "urs-01",
+      "failureMode": "unexpected-schema",
+      "passed": true,
+      "durationMs": 767,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "urs-02",
+      "failureMode": "unexpected-schema",
+      "passed": true,
+      "durationMs": 827,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "nul-01",
+      "failureMode": "null-response",
+      "passed": true,
+      "durationMs": 842,
+      "toolCalled": "web_search_exa"
+    },
+    {
+      "promptId": "nul-02",
+      "failureMode": "null-response",
+      "passed": true,
+      "durationMs": 787,
+      "toolCalled": "web_search_exa"
+    }
+  ]
+}
