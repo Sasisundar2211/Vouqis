@@ -1,50 +1,5 @@
 {
-  "name": "@vouqis/cli",
-  "version": "0.1.1",
-  "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
-  "type": "module",
-  "author": "Sundar Sasi",
-  "license": "MIT",
-  "homepage": "https://github.com/Sasisundar2211/vouqis",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Sasisundar2211/vouqis.git"
-  },
-  "bin": {
-    "vouqis": "bin/run.js"
-  },
-  "files": [
-    "bin",
-    "dist"
-  ],
-  "oclif": {
-    "bin": "vouqis",
-    "dirname": "vouqis",
-    "commands": {
-      "strategy": "pattern",
-      "target": "dist/commands"
-    }
-  },
-  "scripts": {
-    "build": "tsup",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "prepack": "npm run build"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@oclif/core": "^4",
-    "chalk": "^5",
-    "openai": "^4.104.0",
-    "ora": "^9"
-  },
-  "devDependencies": {
-    "@types/node": "^25",
-    "tsup": "^8",
-    "typescript": "^6",
-    "vitest": "^4"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "name": "vouqis",
+  "private": true,
+  "workspaces": ["packages/*"]
 }

@@ -1,0 +1,37 @@
+{
+  "name": "@vouqis/sdk",
+  "version": "0.0.1",
+  "description": "Vouqis SDK — JSON-RPC trace capture and replay for MCP servers",
+  "type": "module",
+  "author": "Sundar Sasi",
+  "license": "MIT",
+  "homepage": "https://github.com/Sasisundar2211/vouqis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sasisundar2211/vouqis.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25",
+    "tsup": "^8",
+    "typescript": "^6"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

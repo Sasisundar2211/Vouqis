@@ -1,6 +1,6 @@
 {
   "name": "@vouqis/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
   "type": "module",
   "author": "Sundar Sasi",
@@ -8,10 +8,10 @@
   "homepage": "https://github.com/Sasisundar2211/vouqis",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Sasisundar2211/vouqis.git"
+    "url": "git+https://github.com/Sasisundar2211/vouqis.git"
   },
   "bin": {
-    "vouqis": "./bin/run.js"
+    "vouqis": "bin/run.js"
   },
   "files": [
     "bin",
