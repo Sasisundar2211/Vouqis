@@ -5,7 +5,7 @@
 Vouqis scores, monitors, and replays Model Context Protocol (MCP) server interactions so your AI agents stop failing in production. Run a 50-prompt eval suite against any MCP server, get a single trust score from 0 to 100, and see exactly where your tool calls break — in under 90 seconds.
 
 ```bash
-npm install -g @sasisundar2211/vouqis-cli
+npm install -g @vouqis/cli
 export OPENROUTER_API_KEY="sk-or-your-key"
 # Free key at openrouter.ai — no credit card required
 vouqis score https://your-mcp-server-url
@@ -30,7 +30,7 @@ Vouqis Trust Score Report
 ## Installation
 
 ```bash
-npm install -g @sasisundar2211/vouqis-cli
+npm install -g @vouqis/cli
 export OPENROUTER_API_KEY="sk-or-your-key"
 # Free key at openrouter.ai — no credit card required
 vouqis score https://your-mcp-server-url
