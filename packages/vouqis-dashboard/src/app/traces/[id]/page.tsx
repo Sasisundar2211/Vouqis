@@ -3,7 +3,7 @@ import {notFound} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
-import {Button} from '@/components/ui/button'
+import {buttonVariants} from '@/components/ui/button'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -61,9 +61,9 @@ export default async function TraceDetailPage({
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-start gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/">← Back</Link>
-          </Button>
+          <Link href="/" className={buttonVariants({variant: 'outline', size: 'sm'})}>
+            ← Back
+          </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-semibold tracking-tight font-mono">
               {trace.tool_name}

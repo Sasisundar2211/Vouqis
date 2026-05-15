@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd packages/vouqis-dashboard && npm run build",
+  "outputDirectory": "packages/vouqis-dashboard/.next",
+  "framework": "nextjs",
+  "installCommand": "npm install"
+}
