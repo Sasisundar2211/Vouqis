@@ -4,6 +4,7 @@ import {supabase} from '@/lib/supabase'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
 import {buttonVariants} from '@/components/ui/button'
+import {ReplayButton} from './ReplayButton'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -139,6 +140,9 @@ export default async function TraceDetailPage({
         <Section title="Response">
           <JsonBlock data={trace.response ?? {}} />
         </Section>
+
+        {/* Replay */}
+        <ReplayButton traceId={trace.id} />
       </div>
     </main>
   )
