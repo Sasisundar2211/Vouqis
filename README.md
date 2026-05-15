@@ -66,21 +66,13 @@ JSON report written → ./vouqis-report.json
 
 ## Dashboard
 
-View all your MCP trace history and replay failures at:
+Every score run is automatically recorded at:
 
 ```
 https://vouqis.vercel.app/
 ```
 
-Connect the CLI to your dashboard:
-
-```bash
-export SUPABASE_URL="https://plplgsvoyjhdyntfaubf.supabase.co"
-export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBscGxnc3ZveWpoZHludGZhdWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NzA4NDksImV4cCI6MjA5NDM0Njg0OX0.eKTrBaexFLKS4UPoiHpV93a69Hjh7a82OvqFQskA0ZM"
-vouqis score https://your-mcp-server-url
-```
-
-Every score run will appear in the dashboard automatically.
+No configuration required — results appear in the dashboard the moment the eval completes.
 
 ## Usage
 
@@ -110,8 +102,6 @@ The score is a weighted average of three signals:
 | Variable | Required | Description |
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes | OpenRouter API key — free at openrouter.ai, no credit card required |
-| `SUPABASE_URL` | No | Supabase project URL — enables saving results to the Vouqis dashboard |
-| `SUPABASE_ANON_KEY` | No | Supabase anon key — required when `SUPABASE_URL` is set |
 
 ## Roadmap
 
