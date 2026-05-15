@@ -7,7 +7,7 @@ import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
 import {printHeader, printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
-import {supabase} from '../lib/supabase.js'
+import {getSupabaseClient} from '../lib/supabase.js'
 
 export default class Score extends Command {
   static override description =
@@ -86,7 +86,8 @@ export default class Score extends Command {
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, reportPath)
 
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    const supabase = getSupabaseClient()
+    if (supabase) {
       const {error: dbError} = await supabase.from('eval_results').insert({
         server_url: args.url,
         trust_score: trust.score,
