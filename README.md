@@ -69,14 +69,14 @@ JSON report written → ./vouqis-report.json
 View all your MCP trace history and replay failures at:
 
 ```
-https://vouqis.dev
+https://vouqis.vercel.app/
 ```
 
 Connect the CLI to your dashboard:
 
 ```bash
-export SUPABASE_URL="your-supabase-url"
-export SUPABASE_ANON_KEY="your-anon-key"
+export SUPABASE_URL="https://plplgsvoyjhdyntfaubf.supabase.co"
+export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBscGxnc3ZveWpoZHludGZhdWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NzA4NDksImV4cCI6MjA5NDM0Njg0OX0.eKTrBaexFLKS4UPoiHpV93a69Hjh7a82OvqFQskA0ZM"
 vouqis score https://your-mcp-server-url
 ```
 
