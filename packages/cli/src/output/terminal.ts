@@ -113,6 +113,6 @@ export function printTrustScore(
   console.log('')
   console.log(SEP)
   console.log(`  ${label('report written →')} ${chalk.white(reportPath)}`)
-  console.log(`  ${label('view traces:')}     ${blue('https://vouqis.dev')}`)
+  console.log(`  ${label('view traces:')}     ${blue('https://vouqis.vercel.app')}`)
   console.log('')
 }
