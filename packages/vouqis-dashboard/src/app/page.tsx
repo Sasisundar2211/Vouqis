@@ -1,6 +1,7 @@
 'use client'
 
 import {useEffect, useState, useCallback} from 'react'
+import {useRouter} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
 import {
   Table,
@@ -56,6 +57,7 @@ function SkeletonRow() {
 }
 
 export default function TracesPage() {
+  const router = useRouter()
   const [traces, setTraces] = useState<Trace[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -135,7 +137,11 @@ export default function TracesPage() {
                   </TableRow>
                 ) : (
                   traces.map((trace) => (
-                    <TableRow key={trace.id}>
+                    <TableRow
+                      key={trace.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/traces/${trace.id}`)}
+                    >
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {timeAgo(trace.created_at)}
                       </TableCell>
