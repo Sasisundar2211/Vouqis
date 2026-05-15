@@ -64,6 +64,24 @@ Vouqis Trust Score Report
 JSON report written → ./vouqis-report.json
 ```
 
+## Dashboard
+
+View all your MCP trace history and replay failures at:
+
+```
+https://vouqis.dev
+```
+
+Connect the CLI to your dashboard:
+
+```bash
+export SUPABASE_URL="your-supabase-url"
+export SUPABASE_ANON_KEY="your-anon-key"
+vouqis score https://your-mcp-server-url
+```
+
+Every score run will appear in the dashboard automatically.
+
 ## Usage
 
 ```bash

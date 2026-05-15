@@ -5,7 +5,7 @@ import {McpClient} from '../mcp/client.js'
 import {runEval} from '../eval/harness.js'
 import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
-import {printTrustScore} from '../output/terminal.js'
+import {printHeader, printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
 import {supabase} from '../lib/supabase.js'
 
@@ -40,20 +40,26 @@ export default class Score extends Command {
       )
     }
 
-    const spinner = ora('Connecting to MCP server…').start()
+    printHeader(args.url)
+
+    const spinner = ora('  discovering tools…').start()
     const client = new McpClient(args.url)
 
     let tools: Awaited<ReturnType<McpClient['connect']>>
     try {
       tools = await client.connect()
-      spinner.succeed(`Connected — ${tools.length} tool${tools.length === 1 ? '' : 's'} found`)
+      spinner.stop()
+      printDiscovery(tools.length, DEFAULT_PROMPTS.length)
     } catch (err: unknown) {
       spinner.fail('Could not connect to MCP server')
       this.error(err instanceof Error ? err.message : String(err))
     }
 
     let completed = 0
-    spinner.start(`Running probes… 0 / ${DEFAULT_PROMPTS.length}`)
+    let passed = 0
+    let failed = 0
+
+    spinner.start(formatProgress(0, DEFAULT_PROMPTS.length, 0, 0))
 
     const results = await runEval({
       openrouterApiKey: process.env.OPENROUTER_API_KEY,
@@ -62,21 +68,23 @@ export default class Score extends Command {
       prompts: DEFAULT_PROMPTS,
       onProgress: (r) => {
         completed++
-        const status = r.passed ? '✓' : '✗'
-        spinner.text = `Running probes… ${completed} / ${DEFAULT_PROMPTS.length}  (${status} ${r.promptId})`
+        if (r.passed) passed++
+        else failed++
+        spinner.text = formatProgress(completed, DEFAULT_PROMPTS.length, passed, failed)
       },
     })
 
-    spinner.succeed(`All ${DEFAULT_PROMPTS.length} probes complete`)
+    spinner.stop()
 
     await client.disconnect()
 
     const trust = computeTrustScore(results)
-    printTrustScore(args.url, trust, results)
+    const reportPath = flags['json-path']
+
+    printTrustScore(args.url, trust, results, reportPath)
 
     const report = buildJsonReport(args.url, trust, results)
-    writeJsonReport(report, flags['json-path'])
-    this.log(`JSON report written → ${flags['json-path']}`)
+    writeJsonReport(report, reportPath)
 
     if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
       const {error: dbError} = await supabase.from('eval_results').insert({
