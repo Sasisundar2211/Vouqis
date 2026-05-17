@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
   try {
     const res = await fetch(trace.server_url, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
+      },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
@@ -44,14 +47,24 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(10_000),
     })
 
-    const json = await res.json()
+    let json: Record<string, unknown>
+    const contentType = res.headers.get('content-type') ?? ''
+    if (contentType.includes('text/event-stream')) {
+      // SSE: find the first `data:` line and parse it
+      const text = await res.text()
+      const dataLine = text.split('\n').find((l) => l.startsWith('data:'))
+      json = dataLine ? JSON.parse(dataLine.slice(5).trim()) : {}
+    } else {
+      json = await res.json()
+    }
 
     if (json.error) {
       // JSON-RPC error object
+      const err = json.error
       callError =
-        typeof json.error === 'object' && json.error !== null
-          ? (json.error.message ?? JSON.stringify(json.error))
-          : String(json.error)
+        typeof err === 'object' && err !== null
+          ? ((err as Record<string, unknown>).message ?? JSON.stringify(err)) as string
+          : String(err)
       success = false
     } else {
       response = json.result ?? json
