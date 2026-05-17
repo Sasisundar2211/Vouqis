@@ -4,7 +4,6 @@ import type {TestPrompt} from './prompts.js'
 import type {EvalResult} from './scoring.js'
 
 export interface HarnessOptions {
-  openrouterApiKey: string
   mcpClient: McpClient
   tools: McpTool[]
   prompts: TestPrompt[]

@@ -1,7 +1,6 @@
 import chalk from 'chalk'
 import type {TrustScore, EvalResult} from '../eval/scoring.js'
 
-export const MODEL_ID = 'meta-llama/llama-3.1-8b-instruct:free'
 export const MCP_PROTOCOL = '2025-06-18'
 
 // ── Color palette ─────────────────────────────────────────────────────────────
@@ -23,9 +22,7 @@ function barColor(score: number) {
 export function printHeader(serverUrl: string): void {
   console.log('')
   console.log(
-    chalk.bold.white('VOUQIS') +
-      dim(' ── score ── ') +
-      blue(MODEL_ID),
+    chalk.bold.white('VOUQIS') + dim(' ── score ── '),
   )
   console.log(green('❯') + chalk.white(' vouqis score ') + blue(serverUrl))
   console.log(SEP)
@@ -39,7 +36,7 @@ export function printDiscovery(toolCount: number, totalProbes: number): void {
     `  ${green('✓')} found ${chalk.white(String(toolCount))} tool${toolCount === 1 ? '' : 's'}` +
       ` ${dim('·')} schema valid ${dim('·')} protocol ${dim(MCP_PROTOCOL)}`,
   )
-  console.log(`  Running ${chalk.white(String(totalProbes))} probes against ${blue(MODEL_ID)}`)
+  console.log(`  Running ${chalk.white(String(totalProbes))} deterministic protocol probes`)
   console.log('')
 }
 

@@ -34,12 +34,6 @@ export default class Score extends Command {
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Score)
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      this.error(
-        'OPENROUTER_API_KEY is not set.\nExport it first: export OPENROUTER_API_KEY=sk-or-...',
-      )
-    }
-
     printHeader(args.url)
 
     const spinner = ora('  discovering tools…').start()
@@ -62,7 +56,6 @@ export default class Score extends Command {
     spinner.start(formatProgress(0, DEFAULT_PROMPTS.length, 0, 0))
 
     const results = await runEval({
-      openrouterApiKey: process.env.OPENROUTER_API_KEY,
       mcpClient: client,
       tools,
       prompts: DEFAULT_PROMPTS,

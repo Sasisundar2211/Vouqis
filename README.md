@@ -1,14 +1,12 @@
 # Vouqis
 
-**The trust layer for MCP servers.**
+Score any MCP server before your team integrates it. No SDK installation required. Just a URL.
 
-Vouqis scores, monitors, and replays Model Context Protocol (MCP) server interactions so your AI agents stop failing in production. Run a 50-prompt eval suite against any MCP server, get a single trust score from 0 to 100, and see exactly where your tool calls break — in under 90 seconds.
+Vouqis scores, monitors, and replays Model Context Protocol (MCP) server interactions so your AI agents stop failing in production. Vouqis probes MCP servers directly using five deterministic test types: malformed JSON-RPC requests, missing required parameters, latency measurement, schema validation, and null response detection. No instrumentation required on the server. Point it at any URL.
 
 ```bash
 npm install -g @vouqis/cli
-export OPENROUTER_API_KEY="sk-or-your-key"
-# Free key at openrouter.ai — no credit card required
-vouqis score https://your-mcp-server-url
+vouqis audit https://your-mcp-server-url
 ```
 
 ```
@@ -25,15 +23,13 @@ Vouqis Trust Score Report
 ────────────────────────────────────────────────
 ```
 
-> 17,468 MCP servers run in production. 87% score below the high-trust threshold. 73% of agent outages start at the JSON-RPC layer — the layer where most teams have zero observability. Vouqis fixes that.
+> 17,468 MCP servers run in production. 87% score below the high-trust threshold. Vouqis fixes that.
 
 ## Installation
 
 ```bash
 npm install -g @vouqis/cli
-export OPENROUTER_API_KEY="sk-or-your-key"
-# Free key at openrouter.ai — no credit card required
-vouqis score https://your-mcp-server-url
+vouqis audit https://your-mcp-server-url
 ```
 
 Node.js 20 or later required.
@@ -96,12 +92,6 @@ The score is a weighted average of three signals:
 | Pass rate | 60% | Fraction of prompts where the MCP server responded correctly |
 | P95 latency | 25% | 95th-percentile response time across all tool calls |
 | Error taxonomy | 15% | Penalty for failures spread across multiple error categories |
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `OPENROUTER_API_KEY` | Yes | OpenRouter API key — free at openrouter.ai, no credit card required |
 
 ## Roadmap
 

@@ -1,6 +1,6 @@
 {
   "name": "@vouqis/cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
   "type": "module",
   "author": "Sundar Sasi",
@@ -36,7 +36,6 @@
     "@oclif/core": "^4",
     "@supabase/supabase-js": "^2.105.4",
     "chalk": "^5",
-    "openai": "^4.104.0",
     "ora": "^9"
   },
   "devDependencies": {
