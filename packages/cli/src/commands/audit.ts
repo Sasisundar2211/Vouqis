@@ -11,11 +11,13 @@ import {supabase} from '../lib/supabase.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
 const blue = chalk.hex('#60a5fa')
-const green = chalk.hex('#4ade80')
+
+const APPROVED_THRESHOLD = parseInt(process.env.VOUQIS_APPROVED_THRESHOLD || '80')
+const RISKY_THRESHOLD = parseInt(process.env.VOUQIS_RISKY_THRESHOLD || '50')
 
 function getVerdict(score: number): 'APPROVED' | 'RISKY' | 'DO NOT INTEGRATE' {
-  if (score >= 80) return 'APPROVED'
-  if (score >= 50) return 'RISKY'
+  if (score >= APPROVED_THRESHOLD) return 'APPROVED'
+  if (score >= RISKY_THRESHOLD) return 'RISKY'
   return 'DO NOT INTEGRATE'
 }
 
@@ -66,6 +68,7 @@ export default class Audit extends Command {
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Audit)
+    const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.vercel.app'
 
     printAuditHeader(args.url)
 
@@ -76,7 +79,7 @@ export default class Audit extends Command {
     try {
       tools = await client.connect()
       spinner.stop()
-      printDiscovery(tools.length, DEFAULT_PROMPTS.length)
+      printDiscovery(tools.length, DEFAULT_PROMPTS.length, args.url)
     } catch (err: unknown) {
       spinner.fail('Could not connect to MCP server')
       this.error(err instanceof Error ? err.message : String(err))
@@ -130,10 +133,15 @@ export default class Audit extends Command {
     }
 
     try {
-      const apiBase = process.env.VOUQIS_API_URL ?? 'https://vouqis.vercel.app'
-      const reportRes = await fetch(`${apiBase}/api/reports`, {
+      const apiKey = process.env.VOUQIS_API_KEY
+      const headers: Record<string, string> = {'Content-Type': 'application/json'}
+      if (apiKey) {
+        headers['X-Vouqis-Api-Key'] = apiKey
+      }
+      const reportRes = await fetch(`${dashboardUrl}/api/reports`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
+        signal: AbortSignal.timeout(5000),
         body: JSON.stringify({
           serverUrl: args.url,
           trustScore: trust.score,
@@ -146,12 +154,12 @@ export default class Audit extends Command {
         }),
       })
       if (reportRes.ok) {
-        const {url: reportUrl} = await reportRes.json() as {url: string}
+        const {reportUrl} = await reportRes.json() as {reportUrl: string}
         this.log('')
         this.log(chalk.dim('Shareable report: ') + chalk.cyan(reportUrl))
       }
     } catch {
-      // Non-fatal: dashboard unavailable, CLI still exits normally
+      // Non-fatal. CLI works with or without dashboard.
     }
 
     if (flags['fail-below'] !== undefined && trust.score < flags['fail-below']) {
