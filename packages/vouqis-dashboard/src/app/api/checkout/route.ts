@@ -1,7 +1,10 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {Polar} from '@polar-sh/sdk'
 
-const polar = new Polar({accessToken: process.env.POLAR_ACCESS_TOKEN!})
+const polar = new Polar({
+  accessToken: process.env.POLAR_ACCESS_TOKEN!,
+  server: (process.env.POLAR_SERVER as 'production' | 'sandbox') ?? 'production',
+})
 
 export async function POST(request: NextRequest) {
   let email: string | undefined
