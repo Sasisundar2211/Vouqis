@@ -2,13 +2,17 @@
 
 import {useState} from 'react'
 
-const FEATURES = [
-  'Unlimited audits per day',
-  'Priority queue — results in under 60s',
-  'Private reports (not publicly shareable)',
-  'CI/CD badge embeds',
-  'Slack & webhook alerts on score drops',
-  'Team seats (up to 5)',
+const pro = {reportHistoryDays: 90}
+const free = {reportHistoryDays: 30}
+
+const FEATURES: {label: string; live: boolean}[] = [
+  {label: `${pro.reportHistoryDays}-day report history (vs ${free.reportHistoryDays}-day free)`, live: true},
+  {label: 'Unlimited audit runs', live: true},
+  {label: 'API access for CI/CD pipelines', live: false},
+  {label: '--fail-below flag in GitHub Actions', live: false},
+  {label: 'Private reports (shareable only with team)', live: false},
+  {label: 'Slack alerts on score regression', live: false},
+  {label: 'Priority support', live: false},
 ]
 
 export default function ProPage() {
@@ -61,15 +65,20 @@ export default function ProPage() {
 
         {/* Feature list */}
         <div
-          className="rounded-lg border p-6 space-y-3"
+          className="rounded-lg border p-6"
           style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
         >
-          {FEATURES.map((f) => (
-            <div key={f} className="flex items-start gap-3 text-sm">
-              <span style={{color: '#4ade80'}}>✓</span>
-              <span style={{color: '#cbd5e1'}}>{f}</span>
-            </div>
-          ))}
+          <ul style={{listStyle: 'none', margin: 0, padding: 0, fontSize: 14}}>
+            {FEATURES.map((f) => (
+              <li key={f.label} style={{marginBottom: 12, color: f.live ? '#94a3b8' : '#4b5563'}}>
+                <span style={{color: f.live ? '#4ade80' : '#374151', marginRight: 10}}>✓</span>
+                {f.label}
+                {!f.live && (
+                  <span style={{color: '#374151', fontSize: 11, marginLeft: 8}}>coming soon</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Checkout form */}

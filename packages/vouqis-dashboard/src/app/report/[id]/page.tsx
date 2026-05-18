@@ -1,4 +1,3 @@
-import {notFound} from 'next/navigation'
 import {supabase} from '@/lib/supabase'
 
 interface ProbeResult {
@@ -21,7 +20,7 @@ interface AuditReport {
   latency_p50: number
   top_failures: Record<string, number>
   probe_results: ProbeResult[]
-  expires_at: string
+  expires_at: string | null
 }
 
 const FIX_SUGGESTIONS: Record<string, string> = {
@@ -84,26 +83,35 @@ function VerdictBanner({verdict, score}: {verdict: string; score: number}) {
 export default async function ReportPage({params}: {params: Promise<{id: string}>}) {
   const {id} = await params
 
+  const freeHistoryDays = process.env.NEXT_PUBLIC_FREE_REPORT_HISTORY_DAYS || '7'
+  const proHistoryDays = process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS || '90'
+  const proPrice = process.env.NEXT_PUBLIC_PRO_PRICE_MONTHLY || '49'
+
   const {data: report, error} = await supabase
     .from('audit_reports')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (error || !report) {
+  const expired = report?.expires_at && new Date(report.expires_at) < new Date()
+
+  if (error || !report || expired) {
     return (
-      <main style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}} className="min-h-screen flex items-center justify-center">
+      <main style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}} className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center space-y-2">
           <p className="text-xl font-mono" style={{color: '#f87171'}}>Report not found or expired.</p>
-          <p className="text-sm" style={{color: '#64748b'}}>Reports expire after 30 days.</p>
+          <p className="text-sm" style={{color: '#64748b'}}>Free reports are kept for {freeHistoryDays} days.</p>
+          <p className="text-sm" style={{color: '#64748b'}}>
+            Upgrade to Pro for {proHistoryDays}-day history.{' '}
+            <a href="/pro" style={{color: '#4ade80'}} className="underline">Upgrade →</a>
+          </p>
         </div>
       </main>
     )
   }
 
   const r = report as AuditReport
-  const topFailures = r.top_failures ?? {}
-  const failureEntries = Object.entries(topFailures)
+  const failures = (r.probe_results ?? []).filter((p) => !p.passed)
 
   return (
     <main style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}} className="min-h-screen py-12 px-4">
@@ -123,7 +131,7 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
         {/* Verdict banner */}
         <VerdictBanner verdict={r.verdict} score={r.trust_score} />
 
-        {/* Score bar */}
+        {/* Score breakdown */}
         <div
           className="rounded-lg border p-5 space-y-3"
           style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
@@ -151,25 +159,30 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
           </div>
         </div>
 
-        {/* Top failures */}
-        {failureEntries.length > 0 && (
+        {/* Top failures from probe_results */}
+        {failures.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#475569'}}>
-              Failures by mode
+              Failures
             </p>
             <div className="space-y-2">
-              {failureEntries.map(([mode, count]) => (
+              {failures.map((f, i) => (
                 <div
-                  key={mode}
+                  key={i}
                   className="rounded-lg border p-4 space-y-1"
                   style={{backgroundColor: '#1a0a0a', borderColor: '#7f1d1d'}}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm font-semibold" style={{color: '#f87171'}}>{mode}</span>
-                    <span className="text-xs" style={{color: '#64748b'}}>{count} failure{count !== 1 ? 's' : ''}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-semibold" style={{color: '#f87171'}}>{f.failureMode}</span>
+                    {f.toolCalled && (
+                      <span className="font-mono text-xs" style={{color: '#64748b'}}>{f.toolCalled}</span>
+                    )}
                   </div>
-                  <p className="text-xs" style={{color: '#94a3b8'}}>
-                    {FIX_SUGGESTIONS[mode] ?? 'Review server logs for this failure mode.'}
+                  {f.errorText && (
+                    <p className="text-xs font-mono break-all" style={{color: '#94a3b8'}}>{f.errorText}</p>
+                  )}
+                  <p className="text-xs" style={{color: '#475569'}}>
+                    {FIX_SUGGESTIONS[f.failureMode] ?? 'Review server logs for this failure mode.'}
                   </p>
                 </div>
               ))}
@@ -177,42 +190,44 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
           </div>
         )}
 
+        {/* Install CTA */}
+        <div
+          className="rounded-lg border p-5 space-y-2"
+          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
+        >
+          <p className="text-xs font-mono" style={{color: '#64748b'}}>Run your own audit:</p>
+          <pre className="font-mono text-sm overflow-x-auto" style={{color: '#e2e8f0'}}>
+{`npm install -g @vouqis/cli
+vouqis audit ${r.server_url}`}
+          </pre>
+        </div>
+
         {/* Upgrade banner */}
         <div
-          className="rounded-lg border p-5 space-y-3"
+          className="rounded-lg border p-5 space-y-2"
           style={{backgroundColor: '#0f1a0f', borderColor: '#166534'}}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-sm font-semibold font-mono" style={{color: '#4ade80'}}>
-                Vouqis Pro
-              </p>
+              <p className="text-sm font-semibold font-mono" style={{color: '#4ade80'}}>Vouqis Pro</p>
               <p className="text-xs" style={{color: '#94a3b8'}}>
-                Unlimited audits, private reports, CI/CD badges, and Slack alerts.
+                Free reports expire after {freeHistoryDays} days.
+                Pro keeps {proHistoryDays} days of history — ${proPrice}/month.
               </p>
+              {r.expires_at && (
+                <p className="text-xs" style={{color: '#475569'}}>
+                  This report expires in {daysUntil(r.expires_at)} days.
+                </p>
+              )}
             </div>
             <a
               href="/pro"
               className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold font-mono whitespace-nowrap"
               style={{backgroundColor: '#4ade80', color: '#052e16'}}
             >
-              Upgrade →
+              Upgrade to Pro →
             </a>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div
-          className="rounded-lg border p-5 space-y-2"
-          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
-        >
-          <p className="text-xs font-mono" style={{color: '#64748b'}}>Run your own audit:</p>
-          <p className="font-mono text-sm" style={{color: '#e2e8f0'}}>
-            npm install -g @vouqis/cli &amp;&amp; vouqis audit {r.server_url}
-          </p>
-          <p className="text-xs pt-1" style={{color: '#475569'}}>
-            Report expires in {daysUntil(r.expires_at)} days.
-          </p>
         </div>
 
       </div>

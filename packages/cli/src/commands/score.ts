@@ -43,7 +43,7 @@ export default class Score extends Command {
     try {
       tools = await client.connect()
       spinner.stop()
-      printDiscovery(tools.length, DEFAULT_PROMPTS.length)
+      printDiscovery(tools.length, DEFAULT_PROMPTS.length, args.url)
     } catch (err: unknown) {
       spinner.fail('Could not connect to MCP server')
       this.error(err instanceof Error ? err.message : String(err))

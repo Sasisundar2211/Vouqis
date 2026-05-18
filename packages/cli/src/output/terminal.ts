@@ -31,12 +31,12 @@ export function printHeader(serverUrl: string): void {
 
 // ── Section 1: Discovery (shown after connect) ────────────────────────────────
 
-export function printDiscovery(toolCount: number, totalProbes: number): void {
+export function printDiscovery(toolCount: number, totalProbes: number, serverUrl: string): void {
   console.log(
     `  ${green('✓')} found ${chalk.white(String(toolCount))} tool${toolCount === 1 ? '' : 's'}` +
       ` ${dim('·')} schema valid ${dim('·')} protocol ${dim(MCP_PROTOCOL)}`,
   )
-  console.log(`  Running ${chalk.white(String(totalProbes))} deterministic protocol probes`)
+  console.log(`  Running ${chalk.white(String(totalProbes))} deterministic protocol probes against ${blue(serverUrl)}`)
   console.log('')
 }
 

@@ -19,11 +19,21 @@ export async function POST(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://vouqis.vercel.app'
   const productId = process.env.POLAR_PRODUCT_ID!
 
-  const checkout = await polar.checkouts.create({
-    products: [productId],
-    customerEmail: email,
-    successUrl: `${appUrl}/pro/success`,
-  })
-
-  return NextResponse.json({url: checkout.url})
+  try {
+    const checkout = await polar.checkouts.create({
+      products: [productId],
+      customerEmail: email,
+      successUrl: `${appUrl}/pro/success`,
+      metadata: {email},
+    })
+    return Response.json({url: checkout.url})
+  } catch (err) {
+    console.error('[checkout] polar.checkouts.create failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return Response.json(
+      {error: 'Checkout unavailable. Please try again in a few minutes.'},
+      {status: 503},
+    )
+  }
 }
