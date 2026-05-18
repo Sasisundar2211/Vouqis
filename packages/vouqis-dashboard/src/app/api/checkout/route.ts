@@ -40,9 +40,8 @@ export async function POST(request: NextRequest) {
       error: err instanceof Error ? err.message : String(err),
       stack: err instanceof Error ? err.stack?.split('\n')[1] : undefined,
     })
-    const debugMsg = err instanceof Error ? err.message : String(err)
     return Response.json(
-      {error: 'Checkout unavailable. Please try again in a few minutes.', _debug: debugMsg},
+      {error: 'Checkout unavailable. Please try again in a few minutes.'},
       {status: 503},
     )
   }
