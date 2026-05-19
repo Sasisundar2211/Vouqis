@@ -24,6 +24,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_APP_URL: https://placeholder.example.com
+          NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS: "30"
+          NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS: "90"
+          NEXT_PUBLIC_PRO_PRICE_MONTHLY: "29"
+          SUPABASE_SERVICE_KEY: placeholder-service-key
+          POLAR_ACCESS_TOKEN: placeholder-polar-token
+          POLAR_PRODUCT_ID: placeholder-product-id
+          POLAR_WEBHOOK_SECRET: placeholder-webhook-secret
+          RESEND_API_KEY: placeholder-resend-key
 
       - name: Test
         run: npm test

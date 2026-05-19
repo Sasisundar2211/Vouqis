@@ -4,12 +4,11 @@ import {createClient} from '@supabase/supabase-js'
 import {validateEvent, WebhookVerificationError} from '@polar-sh/sdk/webhooks'
 import {sendWelcomeEmail} from '@/lib/email'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!,
-)
-
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+  )
   const body = await request.text()
   const headers: Record<string, string> = {}
   request.headers.forEach((value, key) => {
