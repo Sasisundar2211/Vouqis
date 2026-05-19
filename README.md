@@ -14,8 +14,8 @@ Vouqis Trust Score Report
 ────────────────────────────────────────────────
   Server:      https://your-mcp-server.example.com
   Score:       87 / 100  ████████████████░░░░
-  Pass rate:   92.0%  (46/50 prompts)
-  P95 latency: 340ms
+  Pass rate:   92.0%  (9/10 probes passed)
+  P50 latency: 340ms
 
   Errors by category:
     ✗ error-handling: 2 failures
@@ -23,7 +23,7 @@ Vouqis Trust Score Report
 ────────────────────────────────────────────────
 ```
 
-> 17,468 MCP servers run in production. 87% score below the high-trust threshold. Vouqis fixes that.
+> MCP servers fail silently. Your AI agent reports success while the tool call returns null. Vouqis finds that before your customers do.
 
 ## Installation
 
@@ -73,14 +73,17 @@ No configuration required — results appear in the dashboard the moment the eva
 ## Usage
 
 ```bash
-# Score an MCP server against the default 50-prompt eval suite
+# Audit an MCP server and get a verdict: APPROVED, RISKY, or DO NOT INTEGRATE
+vouqis audit https://your-mcp-server.example.com
+
+# Audit and fail CI if trust score drops below 80
+vouqis audit https://your-mcp-server.example.com --fail-below 80
+
+# Score only (no shareable report URL generated)
 vouqis score https://your-mcp-server.example.com
 
-# Run eval with custom prompts and write JSON report
-vouqis score https://your-mcp-server.example.com --output json
-
-# Run eval with a custom prompts file
-vouqis eval https://your-mcp-server.example.com --prompts ./my-prompts.json
+# Write detailed results to a JSON file
+vouqis audit https://your-mcp-server.example.com --json-path ./results.json
 ```
 
 ## Trust Score Algorithm

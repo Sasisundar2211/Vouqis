@@ -33,10 +33,9 @@ export function printHeader(serverUrl: string): void {
 
 export function printDiscovery(toolCount: number, totalProbes: number, serverUrl: string): void {
   console.log(
-    `  ${green('✓')} found ${chalk.white(String(toolCount))} tool${toolCount === 1 ? '' : 's'}` +
-      ` ${dim('·')} schema valid ${dim('·')} protocol ${dim(MCP_PROTOCOL)}`,
+    `  ${green('✓')} Connected — found ${chalk.white(String(toolCount))} tool${toolCount === 1 ? '' : 's'}`,
   )
-  console.log(`  Running ${chalk.white(String(totalProbes))} deterministic protocol probes against ${blue(serverUrl)}`)
+  console.log(`  Running ${chalk.white(String(totalProbes))} reliability tests against ${blue(serverUrl)}`)
   console.log('')
 }
 
@@ -73,15 +72,23 @@ export function printTrustScore(
   console.log(SEP)
   console.log(chalk.white.bold('  Vouqis Trust Score Report'))
   console.log(SEP)
-  console.log(`  ${label('Server')}       ${blue(serverUrl)}`)
-  console.log(`  ${label('Score')}        ${chalk.white(`${trust.score} / 100`)}  ${scoreBar}`)
+  console.log(`  ${label('Server')}          ${blue(serverUrl)}`)
+  console.log(`  ${label('Score')}           ${chalk.white(`${trust.score} / 100`)}  ${scoreBar}`)
   console.log(
-    `  ${label('Pass rate')}    ${chalk.white(`${(trust.passRate * 100).toFixed(1)}%`)}` +
-      ` (${trust.passedPrompts}/${trust.totalPrompts} prompts)`,
+    `  ${label('Tests passed')}    ${chalk.white(`${trust.passedPrompts} of ${trust.totalPrompts}`)}` +
+      `  ${dim(`(${(trust.passRate * 100).toFixed(0)}%)`)}`,
   )
   console.log(
-    `  ${label('P50 latency')}  ${chalk.white(`${trust.p50LatencyMs}ms`)}  ${dim('(target: <500ms)')}`,
+    `  ${label('Response time')}   ${chalk.white(`${trust.p50LatencyMs}ms`)}  ${dim('typical · target <500ms')}`,
   )
+
+  const FAILURE_LABELS: Record<string, string> = {
+    'malformed-jsonrpc': 'Did not reject invalid requests',
+    'missing-params':    'Ignored missing required inputs',
+    'timeout':           'Too slow — timed out',
+    'unexpected-schema': 'Returned unexpected response format',
+    'null-response':     'Returned empty or null results',
+  }
 
   // Group failures by mode, keep first occurrence for tool/latency detail
   const failuresByMode = results
@@ -94,16 +101,16 @@ export function printTrustScore(
 
   if (Object.keys(failuresByMode).length > 0) {
     console.log('')
-    console.log(`  ${label('Errors by category:')}`)
+    console.log(`  ${label('What failed:')}`)
     for (const [mode, failures] of Object.entries(failuresByMode)) {
       const count = failures.length
       const first = failures[0]
+      const humanLabel = FAILURE_LABELS[mode] ?? mode
       const detail = first.toolCalled
-        ? `${blue(first.toolCalled)} ${dim(`(${first.durationMs}ms)`)}`
-        : dim(first.errorText?.slice(0, 50) ?? 'error')
-      const dots = dim('·'.repeat(Math.max(4, 22 - mode.length)))
-      const plural = count === 1 ? 'failure' : 'failures'
-      console.log(`  ${red('✗')} ${mode} ${dots} ${chalk.white(`${count} ${plural}`)}  ${detail}`)
+        ? dim(` (tool: ${first.toolCalled}, ${first.durationMs}ms)`)
+        : dim(first.errorText ? ` — ${first.errorText.slice(0, 50)}` : '')
+      const times = count === 1 ? '1 time' : `${count} times`
+      console.log(`  ${red('✗')} ${humanLabel} ${dim('·')} ${chalk.white(times)}${detail}`)
     }
   }
 

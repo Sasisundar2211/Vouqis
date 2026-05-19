@@ -44,6 +44,13 @@ export default function RootLayout({
             >
               Eval Runs
             </Link>
+            <Link
+              href="/pro"
+              className="ml-auto text-sm font-semibold transition-colors"
+              style={{color: '#4ade80'}}
+            >
+              Upgrade to Pro →
+            </Link>
           </nav>
         </header>
         {children}

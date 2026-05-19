@@ -31,11 +31,11 @@ function printAuditHeader(serverUrl: string): void {
 function printVerdict(score: number): void {
   const verdict = getVerdict(score)
   if (verdict === 'APPROVED') {
-    console.log(chalk.bold.green('  ✓ APPROVED — safe to integrate'))
+    console.log(chalk.bold.green('  ✓ APPROVED — this server passed all reliability tests'))
   } else if (verdict === 'RISKY') {
-    console.log(chalk.bold.yellow('  ⚠ RISKY — review failures before integrating'))
+    console.log(chalk.bold.yellow('  ⚠ RISKY — some tests failed, review before going to production'))
   } else {
-    console.log(chalk.bold.red('  ✗ DO NOT INTEGRATE — critical failures detected'))
+    console.log(chalk.bold.red('  ✗ DO NOT INTEGRATE — too many failures to trust in production'))
   }
   console.log('')
 }

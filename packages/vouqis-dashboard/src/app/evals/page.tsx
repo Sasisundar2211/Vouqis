@@ -73,11 +73,20 @@ export default async function EvalsPage() {
   return (
     <main className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Eval Runs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            CLI score runs — trust scores across your MCP servers
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Eval Runs</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Audit results — trust scores across your MCP servers
+            </p>
+          </div>
+          <Link
+            href="/pro"
+            className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold font-mono transition-opacity hover:opacity-80"
+            style={{backgroundColor: '#052e16', color: '#4ade80', border: '1px solid #166534'}}
+          >
+            Get 90-day history → Pro
+          </Link>
         </div>
 
         <Card>
