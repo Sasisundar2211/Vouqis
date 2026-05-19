@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function ProSuccessPage() {
   return (
     <main
@@ -25,13 +27,13 @@ export default function ProSuccessPage() {
             npm install -g @vouqis/cli &amp;&amp; vouqis audit &lt;your-mcp-url&gt;
           </p>
         </div>
-        <a
+        <Link
           href="/"
           className="inline-block text-sm font-mono underline"
           style={{color: '#60a5fa'}}
         >
           ← Back to dashboard
-        </a>
+        </Link>
       </div>
     </main>
   )

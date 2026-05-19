@@ -77,9 +77,9 @@ export default function TracesPage() {
   }, [])
 
   useEffect(() => {
-    fetchTraces()
-    const interval = setInterval(fetchTraces, 10_000)
-    return () => clearInterval(interval)
+    const initial = setTimeout(() => { void fetchTraces() }, 0)
+    const interval = setInterval(() => { void fetchTraces() }, 10_000)
+    return () => { clearTimeout(initial); clearInterval(interval) }
   }, [fetchTraces])
 
   return (
