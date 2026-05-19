@@ -3,7 +3,7 @@ import {Resend} from 'resend'
 export async function sendWelcomeEmail(email: string, rawApiKey: string): Promise<void> {
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: 'Vouqis <no-reply@vouqis.dev>',
+    from: 'Vouqis <onboarding@resend.dev>',
     to: email,
     subject: 'Your Vouqis Pro API key',
     html: `
