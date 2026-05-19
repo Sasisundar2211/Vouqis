@@ -13,16 +13,6 @@ import {
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
 
-interface EvalResult {
-  id: string
-  server_url: string
-  trust_score: number
-  pass_count: number
-  fail_count: number
-  latency_p50: number
-  created_at: string
-}
-
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const s = Math.floor(diff / 1000)
