@@ -89,13 +89,13 @@ The score is a weighted average of three signals:
 
 | Signal | Weight | Description |
 |---|---|---|
-| Pass rate | 60% | Fraction of prompts where the MCP server responded correctly |
-| P95 latency | 25% | 95th-percentile response time across all tool calls |
-| Error taxonomy | 15% | Penalty for failures spread across multiple error categories |
+| Pass rate | 50% | Fraction of prompts where the MCP server responded correctly |
+| P50 latency | 30% | Median response time across all tool calls |
+| Error taxonomy | 20% | Penalty for failures spread across multiple error categories |
 
 ## Roadmap
 
-- **v0.1** (May 16): Full eval harness running 50 real tool calls via Claude
+- **v0.1** (May 16): Full eval harness running 10 probes (2 per failure mode) via Claude
 - **v0.2** (May 23): Runtime SDK (5-line install, JSON-RPC trace capture)
 - **v0.3** (May 28): Hosted dashboard at vouqis.dev — trace search and replay
 
