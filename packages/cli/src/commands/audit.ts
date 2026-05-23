@@ -7,7 +7,6 @@ import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
 import {printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
-import {supabase} from '../lib/supabase.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
 const blue = chalk.hex('#60a5fa')
@@ -115,22 +114,6 @@ export default class Audit extends Command {
 
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, reportPath)
-
-    {
-      const {error: dbError} = await supabase.from('eval_results').insert({
-        server_url: args.url,
-        trust_score: trust.score,
-        pass_count: trust.passedPrompts,
-        fail_count: trust.totalPrompts - trust.passedPrompts,
-        latency_p50: trust.p50LatencyMs,
-        top_failures: trust.errorsByFailureMode,
-        probe_results: results,
-      })
-
-      if (dbError) {
-        this.log(chalk.dim(`Warning: failed to save to dashboard: ${dbError.message}`))
-      }
-    }
 
     try {
       const apiKey = process.env.VOUQIS_API_KEY

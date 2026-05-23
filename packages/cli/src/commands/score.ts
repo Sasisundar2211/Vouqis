@@ -1,5 +1,4 @@
 import {Args, Command, Flags} from '@oclif/core'
-import chalk from 'chalk'
 import ora from 'ora'
 import {McpClient} from '../mcp/client.js'
 import {runEval} from '../eval/harness.js'
@@ -7,7 +6,6 @@ import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
 import {printHeader, printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
-import {supabase} from '../lib/supabase.js'
 
 export default class Score extends Command {
   static override description =
@@ -79,22 +77,33 @@ export default class Score extends Command {
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, reportPath)
 
-    {
-      const {error: dbError} = await supabase.from('eval_results').insert({
-        server_url: args.url,
-        trust_score: trust.score,
-        pass_count: trust.passedPrompts,
-        fail_count: trust.totalPrompts - trust.passedPrompts,
-        latency_p50: trust.p50LatencyMs,
-        top_failures: trust.errorsByFailureMode,
-        probe_results: results,
-      })
+    try {
+      const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.vercel.app'
+      const apiKey = process.env.VOUQIS_API_KEY
+      const headers: Record<string, string> = {'Content-Type': 'application/json'}
+      if (apiKey) headers['X-Vouqis-Api-Key'] = apiKey
 
-      if (dbError) {
-        this.log(chalk.dim(`Warning: failed to save to dashboard: ${dbError.message}`))
-      } else {
-        this.log(chalk.dim('✓ Saved to Vouqis dashboard'))
-      }
+      const score = trust.score
+      const verdict =
+        score >= 80 ? 'APPROVED' : score >= 50 ? 'RISKY' : 'DO NOT INTEGRATE'
+
+      await fetch(`${dashboardUrl}/api/reports`, {
+        method: 'POST',
+        headers,
+        signal: AbortSignal.timeout(5000),
+        body: JSON.stringify({
+          serverUrl: args.url,
+          trustScore: score,
+          verdict,
+          passCount: trust.passedPrompts,
+          failCount: trust.totalPrompts - trust.passedPrompts,
+          latencyP50: trust.p50LatencyMs,
+          topFailures: trust.errorsByFailureMode,
+          probeResults: results,
+        }),
+      })
+    } catch {
+      // Non-fatal. CLI works with or without dashboard.
     }
   }
 }
