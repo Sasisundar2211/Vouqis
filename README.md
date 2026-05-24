@@ -87,21 +87,6 @@ These are not hypotheticals. They are documented production failures:
 | Works without LLM calls | ✗ | ✓ **100% deterministic** |
 
 ---
-
-## ▶ Video Demo
-
-<p align="center">
-  <a href="https://drive.google.com/file/d/1BiEqbEqb1lJ0xIF2jBeOQSdZzt_GFmgp/view?usp=sharing" target="_blank">
-    <img src="https://img.shields.io/badge/▶%20Watch%20Full%20Demo%20Video-Click%20to%20Play-f87171?style=for-the-badge&logo=googledrive&logoColor=white" alt="Watch Demo Video" height="55">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://drive.google.com/file/d/1BiEqbEqb1lJ0xIF2jBeOQSdZzt_GFmgp/view?usp=sharing" target="_blank">
-    <img src="https://img.shields.io/badge/%F0%9F%8E%AC%20Vouqis%20in%20Action%20%E2%80%94%20audit%20an%20MCP%20server%20in%2030%20seconds-Watch%20on%20Google%20Drive-%23475569?style=flat-square" alt="Vouqis demo video">
-  </a>
-</p>
-
 <p align="center"><em>See Vouqis audit a live MCP server — trust score, verdict, and shareable report URL in under 30 seconds.</em></p>
 
 ---
