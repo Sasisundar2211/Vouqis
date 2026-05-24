@@ -198,7 +198,7 @@ The shareable URL turns every audit into a vendor conversation:
 
 Every report link is a new person discovering Vouqis.
 
-Browse all public audit history at **[vouqis.vercel.app](https://vouqis.vercel.app)**.
+Browse all public audit history at **[vouqis.tech](https://www.vouqis.tech/)**.
 
 ---
 
@@ -217,8 +217,8 @@ Browse all public audit history at **[vouqis.vercel.app](https://vouqis.vercel.a
 | SSO / on-prem | — | — | — | ✓ |
 | Priority support | — | ✓ | ✓ | ✓ |
 
-**[Start free → vouqis.vercel.app](https://vouqis.vercel.app)**  
-**[Go Pro → vouqis.vercel.app/pro](https://vouqis.vercel.app/pro)**
+**[Start free → vouqis.vercel.app](https://www.vouqis.tech/)**  
+**[Go Pro → vouqis.vercel.app/pro](https://www.vouqis.tech/pro)**
 
 ---
 
