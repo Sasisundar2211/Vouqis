@@ -8,8 +8,8 @@ const free = {reportHistoryDays: 30}
 const FEATURES: {label: string; live: boolean}[] = [
   {label: `${pro.reportHistoryDays}-day report history (vs ${free.reportHistoryDays}-day free)`, live: true},
   {label: 'Unlimited audit runs', live: true},
-  {label: 'API access for CI/CD pipelines', live: false},
-  {label: '--fail-below flag in GitHub Actions', live: false},
+  {label: 'API key for CI/CD pipelines', live: true},
+  {label: '--fail-below flag to gate deployments on Trust Score', live: true},
   {label: 'Private reports (shareable only with team)', live: false},
   {label: 'Slack alerts on score regression', live: false},
   {label: 'Priority support', live: false},

@@ -137,9 +137,11 @@ export default class Audit extends Command {
         }),
       })
       if (reportRes.ok) {
-        const {reportUrl} = await reportRes.json() as {reportUrl: string}
-        this.log('')
-        this.log(chalk.dim('Shareable report: ') + chalk.cyan(reportUrl))
+        const {reportUrl} = await reportRes.json() as {reportUrl?: string}
+        if (reportUrl) {
+          this.log('')
+          this.log(chalk.dim('Shareable report: ') + chalk.cyan(reportUrl))
+        }
       }
     } catch {
       // Non-fatal. CLI works with or without dashboard.
