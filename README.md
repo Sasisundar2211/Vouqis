@@ -85,6 +85,8 @@ These are not hypotheticals. They are documented production failures:
 
 ## 🎬 Live Demo — Real Exa MCP Audit
 
+https://github.com/user-attachments/assets/18fe230c-99cb-4c19-8e5b-2f69670cfd63
+
 Output from an actual audit run against **[mcp.exa.ai/mcp](https://mcp.exa.ai/mcp)**, run just now:
 
 ```bash
