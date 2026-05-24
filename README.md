@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://www.vouqis.tech/og-banner.png" alt="Vouqis — MCP Server Trust Score" width="100%">
+  <img src="https://drive.google.com/file/d/19lGq7uukHSdeTj7rdB0LcCyouHziF7Z0/view?usp=drive_link" alt="Vouqis — MCP Server Trust Score" width="100%">
 </p>
 
 <p align="center">
