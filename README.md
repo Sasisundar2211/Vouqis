@@ -1,114 +1,119 @@
-# Vouqis — MCP Server Trust Score
+# Vouqis
 
-**Your AI agent calls an MCP server. The server returns `200 OK`. The agent logs "success." Your customer sees nothing.**
-
-This is not an edge case. A 2026 stress test of 100 MCP servers found the median server passes only **71% of tool calls**. Five chained tools at 71% reliability succeed end-to-end just **18% of the time**. Standard API monitoring never fires — the HTTP layer looks fine.
-
-Vouqis fixes this in one command.
+**Know if your MCP server actually works — before your users find out it doesn't.**
 
 ```bash
 npm install -g @vouqis/cli
-vouqis audit https://your-mcp-server.example.com
+vouqis audit https://mcp.exa.ai/mcp
 ```
 
+Real output from a real audit, run right now against [Exa's MCP server](https://mcp.exa.ai/mcp):
+
 ```
-VOUQIS ── audit ── https://your-mcp-server.example.com
-──────────────────────────────────────────────────────
-  ✓ Connected — 5 tools found
-  Running 10 reliability probes...
+VOUQIS ── audit ── https://mcp.exa.ai/mcp
+──────────────────────────────────────────────────
 
-  [████████████████████░░░░] 10 / 10   ✓ 8   ✗ 2
+  ✓ Connected — found 2 tools
+  Running 10 reliability tests against https://mcp.exa.ai/mcp
 
-──────────────────────────────────────────────────────
+  [████████████████████████░░░░░░░░░░] 10 / 10
+  ✓ 9   ✗ 1
+
+──────────────────────────────────────────────────
   Vouqis Trust Score Report
-──────────────────────────────────────────────────────
-  Server         https://your-mcp-server.example.com
-  Score          87 / 100  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱▱
-  Tests passed   8 of 10  (80%)
-  P50 latency    340ms  (target: ≤ 500ms)
+──────────────────────────────────────────────────
+  Server          https://mcp.exa.ai/mcp
+  Score           92 / 100  ▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▱▱
+  Tests passed    9 of 10  (90%)
+  Response time   691ms  typical · target <500ms
 
-  Failures:
-    ✗ [nul-01] get_data → returned null or empty content
-    ✗ [mjr-02] list_items → accepted malformed request silently
+  What failed:
+  ✗ Did not reject invalid requests · 1 time
+    — Server accepted malformed JSON-RPC (HTTP 202)
 
-  Shareable report → https://vouqis.vercel.app/report/abc123
-──────────────────────────────────────────────────────
+──────────────────────────────────────────────────
+  report written → ./vouqis-report.json
+  view traces:     https://vouqis.vercel.app
 
-  ✓ APPROVED — passed all reliability tests
+  ✓ APPROVED — this server passed all reliability tests
 ```
 
-30 seconds. No server changes. No instrumentation. Just a URL.
+**No LLM calls. No test case writing. No server changes.** Vouqis fires 10 deterministic probes directly at the MCP protocol layer. One command, ~30 seconds, 0–100 trust score.
 
 ---
 
-## The Problem Vouqis Solves
+## Why This Exists
 
-MCP server failures are invisible at the HTTP layer:
+Your AI agent calls an MCP server. The server returns `200 OK`. The agent logs "success." Your customer sees nothing.
 
-| Failure Type | What Happens | What You See |
-|---|---|---|
-| Null response | Tool returns `{"content": []}` | Agent logs success, user gets nothing |
-| Schema mismatch | Response ignores declared output shape | Downstream agent parses garbage |
-| Timeout | Tool takes 6s, agent framework retries silently | 3× cost, no error log |
-| Malformed request accepted | Server returns `200 OK` on garbage input | Retry logic, error signals, observability all break |
-| Missing-param silent fail | Null args produce `200 OK` | Agent assumes success, chain continues with bad data |
+This is not an edge case. A 2026 stress test of 100 MCP servers found:
 
-These are not hypotheticals. They are documented production failures:
+- **Median server passes only 71% of tool calls** — it just silently returns empty content
+- **Five chained tools at 71% reliability succeed end-to-end just 18% of the time**
+- **Standard API monitoring never fires** — the HTTP layer looks completely healthy
 
-- **Smithery (June 2025)**: Path traversal exposed 3,243 hosted MCP deployments and thousands of API keys. No active reliability monitoring existed.
-- **CVE-2025-6514**: CVSS 9.6 RCE in `mcp-remote` — 150M+ npm downloads affected.
-- **Asana MCP (May 2025)**: Cross-tenant data isolation failure exposed customer data for two weeks.
+And the failures aren't theoretical. These are documented production incidents:
 
-38% of MCP builders say security and reliability concerns are **actively blocking adoption** (Zuplo MCP Report, 2026). Vouqis is the answer to the question they are already asking.
+| Incident | Impact |
+|---|---|
+| Smithery path traversal (June 2025) | 3,243 hosted MCP servers exposed; thousands of API keys leaked |
+| CVE-2025-6514 in `mcp-remote` | CVSS 9.6 RCE — 150M+ npm downloads affected |
+| Asana MCP cross-tenant leak (May 2025) | Customer data exposed across instances for 2 weeks |
 
----
+**38% of MCP developers say security and reliability concerns are actively blocking adoption** (Zuplo MCP Report, 2026).
 
-## What Vouqis Catches
-
-Vouqis probes your MCP server with 10 deterministic tests across 5 failure modes. No LLM inference. No test case authoring. Point it at any URL.
-
-| Probe IDs | Failure Mode | What It Checks |
-|---|---|---|
-| `mjr-01, 02` | Malformed JSON-RPC | Server rejects garbage requests with proper errors, not silent `200 OK` |
-| `mrp-01, 02` | Missing parameters | Server handles empty/null args without hanging or silently succeeding |
-| `tmo-01, 02` | Timeout | Every tool responds within 5 seconds |
-| `urs-01, 02` | Schema compliance | Response matches MCP content-array spec (`content[]`, typed items) |
-| `nul-01, 02` | Empty response | Tool returns actual content — not `[]`, `null`, or `""` |
+Vouqis is one command that answers: *does this server actually work?*
 
 ---
 
-## Trust Score Algorithm
+## What Vouqis Tests
 
-Every audit produces a **0–100 Trust Score** from three weighted signals:
+Vouqis runs **10 probes across 5 failure modes**. Every probe is deterministic — no AI inference, no randomness, no test case authoring required on your side.
 
-| Signal | Weight | How It's Measured |
+| Probe | Failure Mode | What It Checks |
 |---|---|---|
-| Pass rate | 50% | Fraction of the 10 probes answered correctly |
-| P50 latency | 30% | Median response time across all tool calls (your real user experience) |
-| Error taxonomy | 20% | Penalty for failures spread across multiple failure modes |
+| `mjr-01, 02` | **Malformed JSON-RPC** | Does the server reject garbage requests with a proper error — or silently return `200 OK`? |
+| `mrp-01, 02` | **Missing parameters** | Does the server handle empty / null arguments without hanging or silently succeeding? |
+| `tmo-01, 02` | **Timeout** | Does every tool respond within 5 seconds? |
+| `urs-01, 02` | **Schema compliance** | Does the response match the MCP content-array spec? (`content[]` with typed items) |
+| `nul-01, 02` | **Empty response** | Does the tool return actual content — not `[]`, `null`, or `""`? |
 
-The 20% error diversity weight matters: a server that fails 4 times in one mode has one bug. A server that fails across 4 modes is architecturally broken. The score punishes breadth of failure, not just depth.
+The Exa result above (92/100) failed only `mjr-02`: it returned HTTP 202 instead of an error when given a malformed JSON-RPC envelope. The other 9 probes passed cleanly.
 
-**Latency tiers (P50):**
+---
 
-| P50 Response Time | Latency Score | Score Contribution |
+## Trust Score — How It's Calculated
+
+Every audit produces a **0–100 Trust Score** from three signals:
+
+| Signal | Weight | What It Measures |
 |---|---|---|
-| ≤ 500ms | 100 | 30 pts |
-| ≤ 1,000ms | 90 | 27 pts |
-| ≤ 2,000ms | 75 | 22.5 pts |
-| ≤ 4,000ms | 50 | 15 pts |
-| ≤ 8,000ms | 25 | 7.5 pts |
-| > 8,000ms | 0 | 0 pts |
+| Pass rate | **50%** | Fraction of the 10 probes the server answered correctly |
+| Response time | **30%** | Median (P50) response time across all tool calls |
+| Error spread | **20%** | Penalty for failures across multiple failure modes — not just one |
 
-> **P50 vs P95**: Vouqis scores your server on P50 (median) latency — the response time your typical tool call sees. Industry-wide, MCP server P95 latency runs 1,840ms and P99 reaches 6,200ms (Digital Applied, 2026). If your P50 is already above 500ms, your P95 is a production problem waiting to be discovered.
+> **On "Response time":** The CLI reports the P50 (median) latency across all 10 probes. This is what a typical tool call takes. Industry-wide P95 latency for MCP servers runs 1,840ms and P99 hits 6,200ms (Digital Applied, 2026). If your P50 is already above 500ms, your P95 is a customer-visible problem.
+
+**Response time scoring:**
+
+| Median (P50) | Score | Points added |
+|---|---|---|
+| ≤ 500ms | 100 | 30 |
+| ≤ 1,000ms | 90 | 27 |
+| ≤ 2,000ms | 75 | 22.5 |
+| ≤ 4,000ms | 50 | 15 |
+| ≤ 8,000ms | 25 | 7.5 |
+| > 8,000ms | 0 | 0 |
+
+**Error spread scoring:** A server that fails 4 times in one mode has one bug. A server that fails across 4 modes is architecturally broken. Each additional failure mode beyond the first costs 20 points — so diverse failures score far worse than repeated failures in one category.
 
 **Verdicts:**
 
-| Score | Verdict | Action |
+| Score | Verdict | What to do |
 |---|---|---|
-| 80–100 | ✓ APPROVED | Safe to integrate |
-| 50–79 | ⚠ RISKY | Review failures, fix before production |
-| 0–49 | ✗ DO NOT INTEGRATE | Something fundamental is broken |
+| 80–100 | ✓ **APPROVED** | Safe to integrate |
+| 50–79 | ⚠ **RISKY** | Review failures, fix before production |
+| 0–49 | ✗ **DO NOT INTEGRATE** | Something fundamental is broken |
 
 ---
 
@@ -125,24 +130,24 @@ Node.js 20 or later required.
 ## Commands
 
 ```bash
-# Audit an MCP server — returns verdict + shareable report URL
-vouqis audit https://your-mcp-server.example.com
+# Full audit — returns verdict (APPROVED / RISKY / DO NOT INTEGRATE) + shareable URL
+vouqis audit https://mcp.exa.ai/mcp
 
-# Block CI if trust score drops below your threshold
-vouqis audit https://your-mcp-server.example.com --fail-below 80
+# Fail CI if the trust score drops below your threshold
+vouqis audit https://mcp.exa.ai/mcp --fail-below 80
 
-# Write full probe results to JSON
-vouqis audit https://your-mcp-server.example.com --json-path ./results.json
+# Save full probe results to a JSON file
+vouqis audit https://mcp.exa.ai/mcp --json-path ./results.json
 
-# Score only (no shareable report generated)
-vouqis score https://your-mcp-server.example.com
+# Score only — no shareable report URL generated
+vouqis score https://mcp.exa.ai/mcp
 ```
 
 ---
 
-## CI/CD Integration
+## CI/CD — Gate Deployments on Trust Score
 
-Gate every deployment on MCP server reliability. One line in your GitHub Actions workflow:
+Add one step to your GitHub Actions workflow and your pipeline will break the moment an MCP server degrades — before your users notice.
 
 ```yaml
 # .github/workflows/mcp-trust-gate.yml
@@ -164,75 +169,80 @@ jobs:
       - name: Audit MCP servers
         run: |
           vouqis audit ${{ vars.GITHUB_MCP_URL }} --fail-below 80
-          vouqis audit ${{ vars.SLACK_MCP_URL }} --fail-below 80
+          vouqis audit ${{ vars.SLACK_MCP_URL }}  --fail-below 80
         env:
           VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
 ```
 
-Pipeline fails → PR blocked → engineer investigates → fix or find an alternative → pipeline passes → deploy.
+**When to use each threshold:**
 
-**Threshold guide:**
-
-| Threshold | When to use |
+| Flag | Use case |
 |---|---|
-| `--fail-below 80` | Standard production gate (requires APPROVED) |
-| `--fail-below 50` | Minimum bar — block only DO NOT INTEGRATE |
-| `--fail-below 90` | High-reliability use cases: financial, healthcare, customer-facing agents |
+| `--fail-below 80` | Standard production gate — requires APPROVED verdict |
+| `--fail-below 50` | Minimum bar — block only DO NOT INTEGRATE servers |
+| `--fail-below 90` | High-reliability services: financial, healthcare, customer-facing agents |
 
 ---
 
 ## Dashboard & Shareable Reports
 
-Every `vouqis audit` run automatically generates:
+Every `vouqis audit` automatically generates three outputs at once:
 
-1. **A terminal report** — score, verdict, failure breakdown, P50 latency
-2. **A local JSON file** — full probe results at `./vouqis-report.json`
-3. **A shareable URL** — `https://vouqis.vercel.app/report/<id>`
+1. **Terminal report** — score, verdict, failure details, response time
+2. **Local JSON file** — full probe results at `./vouqis-report.json`
+3. **Shareable URL** — `https://vouqis.vercel.app/report/<id>` (no login to view)
 
-The shareable URL is the fastest way to communicate a reliability issue to an MCP server vendor:
+The shareable URL turns every audit into a vendor conversation:
 
-> *"Your server scored 72. Two malformed-request failures and one null response. Here's the report: https://vouqis.vercel.app/report/abc123"*
+> *"Your server scored 92 but failed mjr-02 — it accepted a malformed JSON-RPC request with HTTP 202 instead of returning an error. Fix this before we integrate. Here's the full report: https://vouqis.vercel.app/report/abc123"*
 
-No login required to view a shared report. No setup required to generate one.
+Every report link is a new person discovering Vouqis.
 
-View all your audit history at **[vouqis.vercel.app](https://vouqis.vercel.app)**.
+Browse all public audit history at **[vouqis.vercel.app](https://vouqis.vercel.app)**.
 
 ---
 
 ## Pricing
 
-| Plan | Price | What You Get |
-|---|---|---|
-| **Free** | $0 | Unlimited CLI runs · 30-day report retention · Public dashboard |
-| **Pro** | $29/month | 90-day report retention · Pro API key · Priority support · Continuous monitoring (coming June 2026) |
-| **Team** | $99/month | 5 seats · Shared dashboard · Team report history *(coming Q3 2026)* |
-| **Enterprise** | Custom | SSO · On-prem · SLA · Custom probe weights · Dedicated support |
+| | **Free** | **Pro** | **Team** | **Enterprise** |
+|---|---|---|---|---|
+| **Price** | $0 | $29/month | $99/month | Custom |
+| CLI runs | Unlimited | Unlimited | Unlimited | Unlimited |
+| Report retention | 30 days | **90 days** | **90 days** | Custom |
+| API key | — | ✓ | ✓ | ✓ |
+| Shareable report URLs | ✓ | ✓ | ✓ | ✓ |
+| Continuous monitoring | — | ✓ coming June | ✓ coming June | ✓ |
+| Team seats | — | — | 5 | Custom |
+| Shared dashboard | — | — | ✓ | ✓ |
+| SSO / on-prem | — | — | — | ✓ |
+| Priority support | — | ✓ | ✓ | ✓ |
 
-[**Start free → vouqis.vercel.app**](https://vouqis.vercel.app)
+**[Start free → vouqis.vercel.app](https://vouqis.vercel.app)**  
+**[Go Pro → vouqis.vercel.app/pro](https://vouqis.vercel.app/pro)**
 
 ---
 
-## Why Not Just Use Existing Tools?
+## Why Not Use Existing Tools?
 
-| Tool | What it actually does | Tests your MCP server? |
+| Tool | What it actually does | Tests a live MCP server? |
 |---|---|---|
-| LangSmith / LangFuse / Arize | Traces LLM calls after they happen | ✗ — wrong layer |
-| Braintrust | Evaluates LLM output quality | ✗ — wrong layer |
-| MCP Inspector (Anthropic) | Manual interactive debugger, one call at a time | ✗ — no scoring, no CI |
-| mcpevals.io | LLM-based output eval — requires test case authoring | Partial — no protocol compliance |
-| MCPSkills / MCP Scorecard | GitHub metadata analysis (stars, last commit) | ✗ — never fires a real request |
-| **Vouqis** | Fires 10 deterministic probes at the live server | **✓ — the only one that does** |
+| MCP Inspector (Anthropic) | Interactive debugger — one manual call at a time | No scoring, no CI, no history |
+| LangSmith / LangFuse / Arize | Traces LLM calls after they happen | ✗ Wrong layer entirely |
+| Braintrust | Evaluates LLM output quality | ✗ Wrong layer entirely |
+| mcpevals.io | LLM-based eval — requires you to write test cases per server | Partial — no protocol compliance |
+| MCPSkills / MCP Scorecard | Reads GitHub metadata (stars, last commit date) | ✗ Never fires a real request |
+| **Vouqis** | Fires 10 deterministic protocol probes at the live server | ✓ The only tool that does |
 
-No funded competitor has active probe testing, a trust score, and CI/CD gate integration. Vouqis is the gap.
+No funded competitor has all four: active probe testing + trust score + CI gate + shareable reports.
 
 ---
 
 ## Roadmap
 
-| Version | Date | What Ships |
+| Version | Date | What ships |
 |---|---|---|
 | **v0.1** | May 2026 ✓ | CLI · 10-probe harness · Trust score · Shareable reports · Pro subscription |
-| **v0.2** | June 2026 | User auth · API key management · Dashboard filtering · Webhook lifecycle events |
+| **v0.2** | June 2026 | User auth · API key management · Dashboard filters · Webhook lifecycle events |
 | **v0.3** | July 2026 | Continuous monitoring · Slack/Discord alerts · Score badge embed · Smithery integration |
 | **v1.0** | Q3 2026 | Team accounts · Historical trend charts · REST API · Custom probe weights |
 
