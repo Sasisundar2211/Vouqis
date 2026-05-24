@@ -86,5 +86,5 @@ export async function POST(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const reportUrl = `${appUrl}/report/${data.id}`
 
-  return Response.json({id: data.id, reportUrl})
+  return Response.json({id: data.id, url: reportUrl, reportUrl})
 }
