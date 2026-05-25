@@ -1,4 +1,3 @@
-<img width="800" height="450" alt="Live_demo-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/a683008f-6677-4136-8742-1646c1a7d9b9" />
 <p align="center">
   <img src="https://github.com/Sasisundar2211/Vouqis/blob/main/Voquis_banner.png" alt="Vouqis — MCP Server Trust Score" width="100%">
 </p>
