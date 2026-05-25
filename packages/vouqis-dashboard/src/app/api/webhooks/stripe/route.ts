@@ -67,8 +67,21 @@ export async function POST(request: NextRequest) {
 
     if (email) {
       try {
-        await sendWelcomeEmail(email, rawKey)
-        console.log('[stripe/webhook] welcome email sent', {email})
+        // Retrieve the latest invoice for this subscription
+        let invoiceDetails = undefined
+        if (sub.latest_invoice) {
+          const inv = await stripe.invoices.retrieve(sub.latest_invoice as string)
+          invoiceDetails = {
+            number: inv.number ?? 'N/A',
+            amountPaid: inv.amount_paid,
+            currency: inv.currency,
+            date: inv.created,
+            pdfUrl: inv.invoice_pdf ?? null,
+            hostedUrl: inv.hosted_invoice_url ?? null,
+          }
+        }
+        await sendWelcomeEmail(email, rawKey, invoiceDetails)
+        console.log('[stripe/webhook] welcome email sent', {email, hasInvoice: !!invoiceDetails})
       } catch (emailError) {
         console.error('[stripe/webhook] welcome email failed', {
           error: emailError instanceof Error ? emailError.message : String(emailError),
