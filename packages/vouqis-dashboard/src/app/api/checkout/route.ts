@@ -1,6 +1,8 @@
 import {NextRequest, NextResponse} from 'next/server'
 import Stripe from 'stripe'
 
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   let email: string | undefined
   try {
@@ -17,7 +19,9 @@ export async function POST(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
   try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      httpClient: Stripe.createFetchHttpClient(),
+    })
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
