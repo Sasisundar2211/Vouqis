@@ -30,12 +30,10 @@ export async function POST(request: NextRequest) {
 
     return Response.json({url: session.url})
   } catch (err) {
-    console.error('[checkout] failed', {
-      error: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack?.split('\n')[1] : undefined,
-    })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[checkout] failed', {error: msg})
     return Response.json(
-      {error: 'Checkout unavailable. Please try again in a few minutes.'},
+      {error: msg},
       {status: 503},
     )
   }
