@@ -42,7 +42,7 @@
 <p align="center">
 
 [Why Vouqis?](#-why-vouqis) ·
-[Live Demo](#-live-demo---real-exa-mcp-audit) ·
+[Live Demo](#-live-demo--real-exa-mcp-audit) ·
 [What It Tests](#-what-vouqis-tests) ·
 [Trust Score](#-trust-score-algorithm) ·
 [Quick Start](#-quick-start) ·
