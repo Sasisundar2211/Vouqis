@@ -4,6 +4,8 @@ import Stripe from 'stripe'
 import {createClient} from '@supabase/supabase-js'
 import {sendWelcomeEmail} from '@/lib/email'
 
+export const runtime = 'nodejs'
+
 export async function POST(request: NextRequest) {
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +15,9 @@ export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature') ?? ''
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    httpClient: Stripe.createFetchHttpClient(),
+  })
 
   let event: Stripe.Event
   try {
