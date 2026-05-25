@@ -1,3 +1,4 @@
+<img width="800" height="450" alt="Live_demo-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/a683008f-6677-4136-8742-1646c1a7d9b9" />
 <p align="center">
   <img src="https://github.com/Sasisundar2211/Vouqis/blob/main/Voquis_banner.png" alt="Vouqis — MCP Server Trust Score" width="100%">
 </p>
@@ -92,7 +93,8 @@ These are not hypotheticals. They are documented production failures:
 
 ## 🎬 Live Demo — Real Exa MCP Audit
 
-https://github.com/user-attachments/assets/18fe230c-99cb-4c19-8e5b-2f69670cfd63
+<img width="800" height="450" alt="Live_demo-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/906fdc45-b7b6-4539-9fa0-b450a7f5c463" />
+
 
 Output from an actual audit run against **[mcp.exa.ai/mcp](https://mcp.exa.ai/mcp)**, run just now:
 
