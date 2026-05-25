@@ -34,10 +34,11 @@ export async function POST(request: NextRequest) {
 
     return Response.json({url: session.url})
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[checkout] failed', {error: msg})
+    console.error('[checkout] failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
     return Response.json(
-      {error: msg},
+      {error: 'Checkout unavailable. Please try again in a few minutes.'},
       {status: 503},
     )
   }
