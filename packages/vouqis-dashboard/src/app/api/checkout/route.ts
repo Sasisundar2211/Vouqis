@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from 'next/server'
-import {Polar} from '@polar-sh/sdk'
+import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
   let email: string | undefined
@@ -15,26 +15,20 @@ export async function POST(request: NextRequest) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
-  const productId = process.env.POLAR_PRODUCT_ID!
 
   try {
-    const polar = new Polar({
-      accessToken: process.env.POLAR_ACCESS_TOKEN!,
-      server: (process.env.POLAR_SERVER as 'production' | 'sandbox') ?? 'production',
-    })
-    console.log('[checkout] creating checkout', {
-      server: process.env.POLAR_SERVER ?? 'production',
-      hasToken: !!process.env.POLAR_ACCESS_TOKEN,
-      hasProduct: !!productId,
-      email,
-    })
-    const checkout = await polar.checkouts.create({
-      products: [productId],
-      customerEmail: email,
-      successUrl: `${appUrl}/pro/success`,
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer_email: email,
+      line_items: [{price: process.env.STRIPE_PRICE_ID!, quantity: 1}],
+      success_url: `${appUrl}/pro/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pro`,
       metadata: {email},
     })
-    return Response.json({url: checkout.url})
+
+    return Response.json({url: session.url})
   } catch (err) {
     console.error('[checkout] failed', {
       error: err instanceof Error ? err.message : String(err),

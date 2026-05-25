@@ -114,11 +114,11 @@ export default function ProPage() {
             className="w-full rounded-lg px-6 py-3 text-sm font-semibold font-mono transition-opacity disabled:opacity-50"
             style={{backgroundColor: '#4ade80', color: '#052e16'}}
           >
-            {loading ? 'Redirecting…' : 'Upgrade to Pro →'}
+            {loading ? 'Redirecting…' : 'Upgrade to Pro — $49/mo →'}
           </button>
 
           <p className="text-center text-xs" style={{color: '#475569'}}>
-            Secure checkout via Polar · Cancel anytime
+            Secure checkout via Stripe · Cancel anytime
           </p>
         </form>
       </div>

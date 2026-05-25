@@ -31,7 +31,7 @@
   </a>
   &nbsp;&nbsp;
   <a href="https://www.vouqis.tech/pro" target="_blank">
-    <img src="https://img.shields.io/badge/⚡%20Go%20Pro-$29%2Fmonth-4ade80?style=for-the-badge" alt="Go Pro" height="45">
+    <img src="https://img.shields.io/badge/⚡%20Go%20Pro-$49%2Fmonth-4ade80?style=for-the-badge" alt="Go Pro" height="45">
   </a>
 </p>
 
@@ -408,7 +408,7 @@ Browse all public audit history → **[vouqis.tech](https://www.vouqis.tech)**
 
 | | **Free** | **Pro** | **Team** | **Enterprise** |
 |:---|:---:|:---:|:---:|:---:|
-| **Price** | $0 | **$29/mo** | $99/mo | Custom |
+| **Price** | $0 | **$49/mo** | $99/mo | Custom |
 | CLI runs | Unlimited | Unlimited | Unlimited | Unlimited |
 | Report retention | 30 days | **90 days** | 90 days | Custom |
 | Shareable report URLs | ✓ | ✓ | ✓ | ✓ |
@@ -427,7 +427,7 @@ Browse all public audit history → **[vouqis.tech](https://www.vouqis.tech)**
   </a>
   &nbsp;&nbsp;
   <a href="https://www.vouqis.tech/pro" target="_blank">
-    <img src="https://img.shields.io/badge/Go%20Pro-$29%2Fmonth-4ade80?style=for-the-badge" alt="Go Pro" height="40">
+    <img src="https://img.shields.io/badge/Go%20Pro-$49%2Fmonth-4ade80?style=for-the-badge" alt="Go Pro" height="40">
   </a>
 </p>
 
