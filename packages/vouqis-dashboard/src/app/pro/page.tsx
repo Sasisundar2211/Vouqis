@@ -50,6 +50,16 @@ export default function ProPage() {
       className="min-h-screen py-16 px-4 flex items-center justify-center"
     >
       <div className="max-w-md w-full space-y-10">
+        {/* Launch pricing banner */}
+        <div
+          className="rounded-lg px-4 py-3 text-center"
+          style={{backgroundColor: '#1a2e1a', border: '1px solid #166534'}}
+        >
+          <p className="text-xs font-mono" style={{color: '#4ade80'}}>
+            🚀 Launch pricing — first 50 customers only. Locks in at $9/mo forever.
+          </p>
+        </div>
+
         {/* Header */}
         <div className="space-y-2 text-center">
           <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#475569'}}>
@@ -58,8 +68,13 @@ export default function ProPage() {
           <h1 className="text-3xl font-bold font-mono" style={{color: '#e2e8f0'}}>
             Go Pro
           </h1>
+          <div className="flex items-baseline justify-center gap-2">
+            <span className="text-4xl font-bold font-mono" style={{color: '#4ade80'}}>$9</span>
+            <span className="text-sm font-mono" style={{color: '#475569'}}>/mo · launch price</span>
+            <span className="text-sm font-mono line-through" style={{color: '#374151'}}>$49</span>
+          </div>
           <p className="text-sm" style={{color: '#94a3b8'}}>
-            Production-grade MCP trust monitoring for teams.
+            Production-grade MCP trust monitoring. Cancel anytime.
           </p>
         </div>
 
@@ -114,7 +129,7 @@ export default function ProPage() {
             className="w-full rounded-lg px-6 py-3 text-sm font-semibold font-mono transition-opacity disabled:opacity-50"
             style={{backgroundColor: '#4ade80', color: '#052e16'}}
           >
-            {loading ? 'Redirecting…' : 'Upgrade to Pro — $49/mo →'}
+            {loading ? 'Redirecting…' : 'Get Pro for $9/mo — Lock in launch price →'}
           </button>
 
           <p className="text-center text-xs" style={{color: '#475569'}}>
