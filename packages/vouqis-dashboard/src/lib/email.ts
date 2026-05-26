@@ -45,7 +45,8 @@ export async function sendWelcomeEmail(
     : ''
 
   await resend.emails.send({
-    from: 'Vouqis <onboarding@resend.dev>',
+    from: process.env.EMAIL_FROM ?? 'Vouqis <hello@vouqis.tech>',
+    replyTo: process.env.EMAIL_REPLY_TO ?? 'giantlabs25@gmail.com',
     to: email,
     subject: 'Your Vouqis Pro API key',
     html: `
