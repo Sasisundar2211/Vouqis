@@ -31,25 +31,32 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-10">
           <nav className="max-w-6xl mx-auto px-6 h-12 flex items-center gap-6">
-            <span className="font-semibold text-sm tracking-tight">Vouqis</span>
             <Link
               href="/"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="font-semibold text-sm tracking-tight hover:opacity-80 transition-opacity"
             >
-              Traces
+              Vouqis
             </Link>
-            <Link
-              href="/evals"
+            <a
+              href="https://github.com/Sasisundar2211/Vouqis"
+              target="_blank"
+              rel="noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Eval Runs
+              GitHub
+            </a>
+            <Link
+              href="/dashboard"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dashboard
             </Link>
             <Link
               href="/pro"
-              className="ml-auto text-sm font-semibold transition-colors"
-              style={{color: '#4ade80'}}
+              className="ml-auto text-sm transition-colors"
+              style={{color: '#4ade80', fontWeight: 700}}
             >
-              Upgrade to Pro →
+              Get Pro · $9/mo →
             </Link>
           </nav>
         </header>
