@@ -1,4 +1,3 @@
-https://github.com/Sasisundar2211/Vouqis/blob/main/Voquis_banner.png
 <p align="center">
   <img src="https://github.com/Sasisundar2211/Vouqis/blob/main/vouqis-logo.png" alt="Vouqis" width="600">
 </p>
