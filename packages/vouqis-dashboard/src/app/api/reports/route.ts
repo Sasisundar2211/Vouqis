@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const rawKey = request.headers.get('x-vouqis-api-key')
-  const freeExpiryDays = parseInt(process.env.NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS ?? '30')
+  const freeExpiryDays = parseInt(process.env.NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS ?? '7')
   let expiryDays = freeExpiryDays
 
   if (rawKey) {
