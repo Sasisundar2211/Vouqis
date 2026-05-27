@@ -12,7 +12,10 @@ import type {McpTool, McpToolCallResult, McpRawProbeResult} from './types.js'
 export class McpClient {
   private sdk: Client | null = null
 
-  constructor(private readonly url: string) {}
+  constructor(
+    private readonly url: string,
+    private readonly headers: Record<string, string> = {},
+  ) {}
 
   async connect(): Promise<McpTool[]> {
     this.sdk = await this.connectWithFallback()
@@ -47,7 +50,11 @@ export class McpClient {
   async probeRaw(body: unknown): Promise<McpRawProbeResult> {
     const response = await fetch(this.url, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json', Accept: 'application/json, text/event-stream'},
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        ...this.headers,
+      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(8000),
     })
@@ -70,17 +77,49 @@ export class McpClient {
   // Transport branching is fully contained here — callers see only McpClient.
   private async connectWithFallback(): Promise<Client> {
     const baseUrl = new URL(this.url)
+    const requestInit = Object.keys(this.headers).length > 0
+      ? {headers: this.headers}
+      : undefined
 
     const streamableClient = new Client({name: 'vouqis', version: '0.0.1'})
+    let streamableError: unknown
     try {
-      await streamableClient.connect(new StreamableHTTPClientTransport(baseUrl))
+      await streamableClient.connect(
+        new StreamableHTTPClientTransport(baseUrl, requestInit ? {requestInit} : undefined),
+      )
       return streamableClient
-    } catch {
-      // fall through to SSE
+    } catch (err) {
+      streamableError = err
+      // If auth failure, surface immediately — fallback won't help
+      if (isAuthError(err)) throw buildAuthError(this.url)
     }
 
+    const sseOpts = Object.keys(this.headers).length > 0
+      ? {requestInit: {headers: this.headers}}
+      : undefined
     const sseClient = new Client({name: 'vouqis', version: '0.0.1'})
-    await sseClient.connect(new SSEClientTransport(baseUrl))
-    return sseClient
+    try {
+      await sseClient.connect(new SSEClientTransport(baseUrl, sseOpts))
+      return sseClient
+    } catch (err) {
+      if (isAuthError(err)) throw buildAuthError(this.url)
+      // Throw the original streamable error if SSE also fails generically
+      throw streamableError ?? err
+    }
   }
+}
+
+function isAuthError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes('401') || msg.includes('403') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('forbidden')
+}
+
+function buildAuthError(url: string): Error {
+  return new Error(
+    `This server requires authentication (HTTP 401).\n\n` +
+    `Pass your credentials with the --header flag:\n` +
+    `  vouqis audit ${url} --header "Authorization: Bearer YOUR_TOKEN"\n\n` +
+    `Or embed the key in the URL if the server supports query params:\n` +
+    `  vouqis audit ${url}?api_key=YOUR_KEY`,
+  )
 }
