@@ -1,5 +1,9 @@
 https://github.com/Sasisundar2211/Vouqis/blob/main/Voquis_banner.png
 <p align="center">
+  <img src="https://github.com/Sasisundar2211/Vouqis/blob/main/vouqis-logo.png" alt="Vouqis" width="600">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/npm/v/@vouqis/cli?style=flat-square&color=60a5fa" alt="npm version">
   &nbsp;
   <img src="https://img.shields.io/npm/dm/@vouqis/cli?style=flat-square&color=4ade80" alt="Monthly Downloads">
