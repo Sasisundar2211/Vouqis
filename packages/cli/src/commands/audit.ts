@@ -5,7 +5,7 @@ import {McpClient} from '../mcp/client.js'
 import {runEval} from '../eval/harness.js'
 import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
-import {printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
+import {printDiscovery, formatProgress, printTrustScore, printProCallout} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
@@ -46,6 +46,7 @@ export default class Audit extends Command {
   static override examples = [
     '<%= config.bin %> audit https://your-mcp-server.example.com',
     '<%= config.bin %> audit https://your-mcp-server.example.com --fail-below 80',
+    '<%= config.bin %> audit https://your-mcp-server.example.com --header "Authorization: Bearer TOKEN"',
   ]
 
   static override args = {
@@ -61,7 +62,7 @@ export default class Audit extends Command {
       default: './vouqis-report.json',
     }),
     'fail-below': Flags.integer({
-      description: 'Exit with code 1 if trust score is below this threshold',
+      description: '[PRO] Exit with code 1 if trust score is below this threshold (requires VOUQIS_API_KEY for CI/CD)',
     }),
     header: Flags.string({
       description: 'Extra HTTP header to send (format: "Key: Value"). Repeatable.',
@@ -72,13 +73,14 @@ export default class Audit extends Command {
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Audit)
-    const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.vercel.app'
+    const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.tech'
+    const apiKey = process.env.VOUQIS_API_KEY
+    const isPro = !!apiKey
 
     printAuditHeader(args.url)
 
     const spinner = ora('  discovering tools…').start()
 
-    // Parse --header flags into a record
     const extraHeaders: Record<string, string> = {}
     for (const raw of flags.header ?? []) {
       const colon = raw.indexOf(':')
@@ -132,12 +134,11 @@ export default class Audit extends Command {
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, reportPath)
 
+    let reportUrl: string | undefined
     try {
-      const apiKey = process.env.VOUQIS_API_KEY
       const headers: Record<string, string> = {'Content-Type': 'application/json'}
-      if (apiKey) {
-        headers['X-Vouqis-Api-Key'] = apiKey
-      }
+      if (apiKey) headers['X-Vouqis-Api-Key'] = apiKey
+
       const reportRes = await fetch(`${dashboardUrl}/api/reports`, {
         method: 'POST',
         headers,
@@ -154,15 +155,14 @@ export default class Audit extends Command {
         }),
       })
       if (reportRes.ok) {
-        const {reportUrl} = await reportRes.json() as {reportUrl?: string}
-        if (reportUrl) {
-          this.log('')
-          this.log(chalk.dim('Shareable report: ') + chalk.cyan(reportUrl))
-        }
+        const json = await reportRes.json() as {reportUrl?: string}
+        reportUrl = json.reportUrl
       }
     } catch {
-      // Non-fatal. CLI works with or without dashboard.
+      // Non-fatal — CLI works without dashboard connectivity
     }
+
+    printProCallout(isPro, reportUrl)
 
     if (flags['fail-below'] !== undefined && trust.score < flags['fail-below']) {
       this.exit(1)

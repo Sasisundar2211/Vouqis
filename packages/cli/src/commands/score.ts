@@ -4,7 +4,7 @@ import {McpClient} from '../mcp/client.js'
 import {runEval} from '../eval/harness.js'
 import {DEFAULT_PROMPTS} from '../eval/prompts.js'
 import {computeTrustScore} from '../eval/scoring.js'
-import {printHeader, printDiscovery, formatProgress, printTrustScore} from '../output/terminal.js'
+import {printHeader, printDiscovery, formatProgress, printTrustScore, printProCallout} from '../output/terminal.js'
 import {buildJsonReport, writeJsonReport} from '../output/json.js'
 
 export default class Score extends Command {
@@ -31,6 +31,9 @@ export default class Score extends Command {
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(Score)
+    const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.tech'
+    const apiKey = process.env.VOUQIS_API_KEY
+    const isPro = !!apiKey
 
     printHeader(args.url)
 
@@ -77,17 +80,15 @@ export default class Score extends Command {
     const report = buildJsonReport(args.url, trust, results)
     writeJsonReport(report, reportPath)
 
+    let reportUrl: string | undefined
     try {
-      const dashboardUrl = process.env.VOUQIS_DASHBOARD_URL || 'https://vouqis.vercel.app'
-      const apiKey = process.env.VOUQIS_API_KEY
       const headers: Record<string, string> = {'Content-Type': 'application/json'}
       if (apiKey) headers['X-Vouqis-Api-Key'] = apiKey
 
       const score = trust.score
-      const verdict =
-        score >= 80 ? 'APPROVED' : score >= 50 ? 'RISKY' : 'DO NOT INTEGRATE'
+      const verdict = score >= 80 ? 'APPROVED' : score >= 50 ? 'RISKY' : 'DO NOT INTEGRATE'
 
-      await fetch(`${dashboardUrl}/api/reports`, {
+      const res = await fetch(`${dashboardUrl}/api/reports`, {
         method: 'POST',
         headers,
         signal: AbortSignal.timeout(5000),
@@ -102,8 +103,14 @@ export default class Score extends Command {
           probeResults: results,
         }),
       })
+      if (res.ok) {
+        const json = await res.json() as {reportUrl?: string}
+        reportUrl = json.reportUrl
+      }
     } catch {
-      // Non-fatal. CLI works with or without dashboard.
+      // Non-fatal — CLI works without dashboard connectivity
     }
+
+    printProCallout(isPro, reportUrl)
   }
 }

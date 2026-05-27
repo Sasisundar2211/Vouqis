@@ -3,14 +3,13 @@
 import {useState} from 'react'
 
 const pro = {reportHistoryDays: 90}
-const free = {reportHistoryDays: 30}
+const free = {reportHistoryDays: 7}
 
 const FEATURES: {label: string; live: boolean}[] = [
-  {label: `${pro.reportHistoryDays}-day report history (vs ${free.reportHistoryDays}-day free)`, live: true},
-  {label: 'Unlimited audit runs', live: true},
-  {label: 'API key for CI/CD pipelines', live: true},
-  {label: '--fail-below flag to gate deployments on Trust Score', live: true},
-  {label: 'Private reports (shareable only with team)', live: false},
+  {label: `${pro.reportHistoryDays}-day report history (free: ${free.reportHistoryDays} days)`, live: true},
+  {label: 'API key — push audit results from GitHub Actions / CI', live: true},
+  {label: '--fail-below flag — fail builds when trust score drops', live: true},
+  {label: 'Private shareable report links (team-only)', live: false},
   {label: 'Slack alerts on score regression', live: false},
   {label: 'Priority support', live: false},
 ]

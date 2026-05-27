@@ -3,6 +3,8 @@ import type {TrustScore, EvalResult} from '../eval/scoring.js'
 
 export const MCP_PROTOCOL = '2025-06-18'
 
+const DASHBOARD_URL = 'https://vouqis.tech'
+
 // ── Color palette ─────────────────────────────────────────────────────────────
 const SEP = chalk.hex('#475569')('─'.repeat(50))
 const dim = chalk.hex('#475569')
@@ -10,6 +12,7 @@ const label = chalk.hex('#64748b')
 const blue = chalk.hex('#60a5fa')
 const green = chalk.hex('#4ade80')
 const red = chalk.hex('#f87171')
+const yellow = chalk.hex('#fbbf24')
 
 function barColor(score: number) {
   if (score >= 80) return chalk.hex('#4ade80')
@@ -29,7 +32,7 @@ export function printHeader(serverUrl: string): void {
   console.log('')
 }
 
-// ── Section 1: Discovery (shown after connect) ────────────────────────────────
+// ── Section 2: Discovery (shown after connect) ────────────────────────────────
 
 export function printDiscovery(toolCount: number, totalProbes: number, serverUrl: string): void {
   console.log(
@@ -39,7 +42,7 @@ export function printDiscovery(toolCount: number, totalProbes: number, serverUrl
   console.log('')
 }
 
-// ── Section 2: Progress bar (returned as string for ora .text) ────────────────
+// ── Section 3: Progress bar (returned as string for ora .text) ────────────────
 
 export function formatProgress(
   completed: number,
@@ -54,7 +57,7 @@ export function formatProgress(
   return `${line1}\n${line2}`
 }
 
-// ── Section 3: Trust score report ────────────────────────────────────────────
+// ── Section 4: Trust score report ────────────────────────────────────────────
 
 export function printTrustScore(
   serverUrl: string,
@@ -62,7 +65,6 @@ export function printTrustScore(
   results: EvalResult[],
   reportPath = './vouqis-report.json',
 ): void {
-  // 24-block score bar colored by threshold
   const filled = Math.round((trust.score / 100) * 24)
   const scoreBar =
     barColor(trust.score)('▰'.repeat(filled)) +
@@ -90,7 +92,6 @@ export function printTrustScore(
     'null-response':     'Returned empty or null results',
   }
 
-  // Group failures by mode, keep first occurrence for tool/latency detail
   const failuresByMode = results
     .filter((r) => !r.passed)
     .reduce<Record<string, EvalResult[]>>((acc, r) => {
@@ -117,6 +118,37 @@ export function printTrustScore(
   console.log('')
   console.log(SEP)
   console.log(`  ${label('report written →')} ${chalk.white(reportPath)}`)
-  console.log(`  ${label('view traces:')}     ${blue('https://vouqis.vercel.app')}`)
+  console.log('')
+}
+
+// ── Section 5: Pro plan callout ────────────────────────────────────────────────
+// Call this after the dashboard upload attempt — it knows reportUrl and isPro.
+
+export function printProCallout(isPro: boolean, reportUrl?: string): void {
+  if (reportUrl) {
+    const retention = isPro ? '90 days' : '7 days'
+    const planLabel = isPro ? green('⚡ Pro') : dim('[free]')
+    console.log(`  ${label('Dashboard')}      ${planLabel}  ${dim(`· report kept for ${retention}`)}`)
+    console.log(`  ${label('Share link')}     ${blue(reportUrl)}`)
+    console.log('')
+  }
+
+  if (isPro) {
+    console.log(`  ${green('⚡')} ${dim('Pro active · 90-day history · CI/CD ready')}`)
+    console.log('')
+    return
+  }
+
+  // Free user upgrade prompt
+  console.log(SEP)
+  console.log(`  ${yellow('⚡ Unlock Pro')} ${dim('— $9/mo · first 50 users lock in forever')}`)
+  console.log(SEP)
+  console.log(`  ${dim('[PRO]')}  ${chalk.white('90-day report history')}  ${dim('you get 7 days on free')}`)
+  console.log(`  ${dim('[PRO]')}  ${chalk.white('CI/CD API key')}          ${dim('block deploys on low trust score')}`)
+  console.log(`  ${dim('[PRO]')}  ${chalk.white('--fail-below gate')}      ${dim('fail builds automatically')}`)
+  console.log(`  ${dim('[PRO]')}  ${chalk.white('Private report links')}   ${dim('team-only sharing (coming soon)')}`)
+  console.log('')
+  console.log(`  Set ${chalk.cyan('VOUQIS_API_KEY=<your-key>')} to activate Pro`)
+  console.log(`  Get your key: ${blue(`${DASHBOARD_URL}/pro`)}`)
   console.log('')
 }
