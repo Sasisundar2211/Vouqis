@@ -63,6 +63,11 @@ export default class Audit extends Command {
     'fail-below': Flags.integer({
       description: 'Exit with code 1 if trust score is below this threshold',
     }),
+    header: Flags.string({
+      description: 'Extra HTTP header to send (format: "Key: Value"). Repeatable.',
+      multiple: true,
+      char: 'H',
+    }),
   }
 
   async run(): Promise<void> {
@@ -72,7 +77,19 @@ export default class Audit extends Command {
     printAuditHeader(args.url)
 
     const spinner = ora('  discovering tools…').start()
-    const client = new McpClient(args.url)
+
+    // Parse --header flags into a record
+    const extraHeaders: Record<string, string> = {}
+    for (const raw of flags.header ?? []) {
+      const colon = raw.indexOf(':')
+      if (colon === -1) {
+        spinner.warn(`Ignoring malformed header (expected "Key: Value"): ${raw}`)
+        continue
+      }
+      extraHeaders[raw.slice(0, colon).trim()] = raw.slice(colon + 1).trim()
+    }
+
+    const client = new McpClient(args.url, extraHeaders)
 
     let tools: Awaited<ReturnType<McpClient['connect']>>
     try {

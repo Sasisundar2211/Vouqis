@@ -1,6 +1,14 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {randomUUID} from 'node:crypto'
 import {supabase} from '@/lib/supabase'
+import {createClient} from '@supabase/supabase-js'
+
+export const runtime = 'nodejs'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
+)
 
 export async function POST(request: NextRequest) {
   let traceId: string
@@ -32,12 +40,49 @@ export async function POST(request: NextRequest) {
   let success = true
 
   try {
+    // MCP Streamable HTTP requires an initialize handshake before tools/call.
+    // Step 1: initialize to get a session ID.
+    const initRes = await fetch(trace.server_url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream'},
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          clientInfo: {name: 'vouqis-replay', version: '1.0.0'},
+          capabilities: {},
+        },
+      }),
+      signal: AbortSignal.timeout(10_000),
+    })
+
+    // Extract session ID from response header (Streamable HTTP transport).
+    const sessionId = initRes.headers.get('mcp-session-id')
+
+    // Drain the init response body so the connection is freed.
+    await initRes.text()
+
+    // Build headers for subsequent requests — include session ID if the server issued one.
+    const mcpHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+    }
+    if (sessionId) mcpHeaders['mcp-session-id'] = sessionId
+
+    // Step 2: Send initialized notification (fire-and-forget; ignore response).
+    fetch(trace.server_url, {
+      method: 'POST',
+      headers: mcpHeaders,
+      body: JSON.stringify({jsonrpc: '2.0', method: 'notifications/initialized'}),
+      signal: AbortSignal.timeout(5_000),
+    }).catch(() => undefined)
+
+    // Step 3: Call the tool.
     const res = await fetch(trace.server_url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream',
-      },
+      headers: mcpHeaders,
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
@@ -59,7 +104,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (json.error) {
-      // JSON-RPC error object
       const err = json.error
       callError =
         typeof err === 'object' && err !== null
@@ -80,7 +124,7 @@ export async function POST(request: NextRequest) {
 
   // Insert replay trace row
   const newTraceId = randomUUID()
-  const {error: insertError} = await supabase.from('traces').insert({
+  const {error: insertError} = await supabaseAdmin.from('traces').insert({
     id: newTraceId,
     project_id: trace.project_id,
     server_url: trace.server_url,
