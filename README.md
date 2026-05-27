@@ -1,3 +1,4 @@
+https://github.com/Sasisundar2211/Vouqis/blob/main/Voquis_banner.png
 <p align="center">
   <img src="https://img.shields.io/npm/v/@vouqis/cli?style=flat-square&color=60a5fa" alt="npm version">
   &nbsp;
