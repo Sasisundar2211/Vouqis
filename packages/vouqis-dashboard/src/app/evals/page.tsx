@@ -50,9 +50,24 @@ function ScoreBadge({score}: {score: number}) {
   )
 }
 
-function scoreBar(score: number): string {
-  const filled = Math.round(score / 5)
-  return '█'.repeat(filled) + '░'.repeat(20 - filled)
+function VerdictBadge({score}: {score: number}) {
+  if (score >= 80)
+    return (
+      <Badge variant="outline" className="text-green-600 border-green-600/30 bg-green-50 dark:bg-green-950/20 whitespace-nowrap">
+        Approved
+      </Badge>
+    )
+  if (score >= 50)
+    return (
+      <Badge variant="outline" className="text-yellow-600 border-yellow-600/30 bg-yellow-50 dark:bg-yellow-950/20 whitespace-nowrap">
+        Risky
+      </Badge>
+    )
+  return (
+    <Badge variant="outline" className="text-red-500 border-red-500/30 bg-red-50 dark:bg-red-950/20 whitespace-nowrap">
+      Do Not Integrate
+    </Badge>
+  )
 }
 
 export default async function EvalsPage({
@@ -125,7 +140,7 @@ export default async function EvalsPage({
                   <TableHead>Server URL</TableHead>
                   <TableHead className="w-24">Score</TableHead>
                   <TableHead className="w-16">Trend</TableHead>
-                  <TableHead className="w-48 font-mono text-xs">Progress</TableHead>
+                  <TableHead className="w-36">Verdict</TableHead>
                   <TableHead className="w-24">Pass / Fail</TableHead>
                   <TableHead className="w-28">P50 Latency</TableHead>
                 </TableRow>
@@ -163,9 +178,9 @@ export default async function EvalsPage({
                           <ScoreSparkline scores={scoresByUrl[run.server_url] ?? []} />
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
+                      <TableCell>
                         <Link href={`/evals/${run.id}`} className="block">
-                          {scoreBar(run.trust_score)}
+                          <VerdictBadge score={run.trust_score} />
                         </Link>
                       </TableCell>
                       <TableCell className="text-sm">

@@ -49,11 +49,63 @@ function scoreBar(score: number): string {
   return '█'.repeat(filled) + '░'.repeat(20 - filled)
 }
 
-function JsonBlock({data}: {data: unknown}) {
+const PROBE_LABELS: Record<string, string> = {
+  'mjr-01': 'Malformed JSON-RPC body',
+  'mjr-02': 'Invalid JSON-RPC version',
+  'mis-01': 'Missing method field',
+  'mis-02': 'Missing params field',
+  'tmo-01': 'Slow-response timeout',
+  'tmo-02': 'Hung-connection timeout',
+  'sch-01': 'Wrong param types',
+  'sch-02': 'Extra unknown fields',
+  'nul-01': 'Null tool arguments',
+  'nul-02': 'Empty string arguments',
+}
+
+interface ProbeResult {
+  promptId: string
+  passed: boolean
+  failureMode?: string
+  durationMs?: number
+  errorText?: string
+}
+
+function ProbeTable({results}: {results: ProbeResult[]}) {
   return (
-    <pre className="bg-muted rounded-lg p-4 text-xs font-mono overflow-auto max-h-96 leading-relaxed">
-      <code>{JSON.stringify(data, null, 2)}</code>
-    </pre>
+    <div className="rounded-lg border overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-muted/50 border-b">
+            <th className="text-left px-4 py-2 font-medium text-muted-foreground w-24">Probe</th>
+            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Test</th>
+            <th className="text-center px-4 py-2 font-medium text-muted-foreground w-20">Result</th>
+            <th className="text-left px-4 py-2 font-medium text-muted-foreground w-40">Failure mode</th>
+            <th className="text-right px-4 py-2 font-medium text-muted-foreground w-24">Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((r, i) => (
+            <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+              <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{r.promptId}</td>
+              <td className="px-4 py-2 text-sm">{PROBE_LABELS[r.promptId] ?? r.promptId}</td>
+              <td className="px-4 py-2 text-center">
+                {r.passed ? (
+                  <span className="text-green-600 font-medium">✓ pass</span>
+                ) : (
+                  <span className="text-red-500 font-medium">✗ fail</span>
+                )}
+              </td>
+              <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                {r.failureMode ?? '—'}
+              </td>
+              <td className="px-4 py-2 text-right font-mono text-xs text-muted-foreground">
+                {r.durationMs != null ? `${r.durationMs}ms` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -165,18 +217,25 @@ export default async function EvalDetailPage({
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Server URL</p>
-              <p className="font-mono text-xs break-all">{run.server_url}</p>
+              <a
+                href={run.server_url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-xs break-all hover:underline text-foreground"
+              >
+                {run.server_url}
+              </a>
             </div>
           </CardContent>
         </Card>
 
         {/* Probe results */}
-        {run.probe_results && (
+        {run.probe_results && Array.isArray(run.probe_results) && (
           <div className="space-y-2">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Probe Results
             </h2>
-            <JsonBlock data={run.probe_results} />
+            <ProbeTable results={run.probe_results as ProbeResult[]} />
           </div>
         )}
       </div>
