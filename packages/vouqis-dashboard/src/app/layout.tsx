@@ -50,7 +50,7 @@ export default function RootLayout({
               href="/dashboard"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Dashboard
+              Traces
             </Link>
             <Link
               href="/evals"

@@ -109,10 +109,10 @@ export default function TracesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Vouqis — MCP Trace Viewer
+              Live Traces
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Live tool call traces across your MCP servers
+              Real-time tool call traces from your MCP servers via the SDK
             </p>
           </div>
           {lastUpdated && (
@@ -178,11 +178,24 @@ export default function TracesPage() {
                   Array.from({length: 6}).map((_, i) => <SkeletonRow key={i} />)
                 ) : traces.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-16 text-muted-foreground"
-                    >
-                      No traces yet
+                    <TableCell colSpan={5} className="py-16">
+                      <div className="flex flex-col items-center gap-3 text-center max-w-sm mx-auto">
+                        <p className="text-sm font-medium">No traces yet</p>
+                        <p className="text-xs text-muted-foreground">
+                          Install the Vouqis SDK to capture live tool call traces from your MCP servers.
+                        </p>
+                        <pre className="bg-muted rounded-md px-4 py-2 text-xs font-mono text-left w-full">
+                          npm install @vouqis/sdk
+                        </pre>
+                        <a
+                          href="https://github.com/Sasisundar2211/Vouqis#sdk"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                        >
+                          View setup docs →
+                        </a>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
