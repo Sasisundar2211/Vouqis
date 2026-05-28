@@ -12,21 +12,12 @@ export function FreePlanBanner() {
   if (plan !== 'free') return null
 
   return (
-    <div
-      className="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4"
-      style={{backgroundColor: '#1c1400', borderColor: '#92400e', color: '#fbbf24'}}
-    >
-      <span>
-        <strong>Free Plan</strong> — showing last 7 days only. Pro unlocks 90-day history,
-        team sharing, and private report links.
-      </span>
-      <Link
-        href="/pro"
-        className="shrink-0 rounded px-3 py-1 text-xs font-semibold font-mono hover:opacity-80 transition-opacity"
-        style={{backgroundColor: '#92400e', color: '#fef3c7'}}
-      >
-        Upgrade → Pro
-      </Link>
-    </div>
+    <p className="text-xs text-muted-foreground">
+      Showing last 7 days.{' '}
+      <Link href="/pro" className="underline underline-offset-2 hover:text-foreground transition-colors">
+        Upgrade to Pro
+      </Link>{' '}
+      for 90-day history and CI gate.
+    </p>
   )
 }

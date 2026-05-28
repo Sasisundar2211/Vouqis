@@ -14,11 +14,8 @@ export function PlanBadge() {
 
   if (plan === 'pro') {
     return (
-      <span
-        className="ml-auto flex items-center gap-1 text-xs font-mono font-bold px-2 py-0.5 rounded-full"
-        style={{backgroundColor: '#052e16', color: '#4ade80', border: '1px solid #166534'}}
-      >
-        ⚡ Pro
+      <span className="ml-auto text-xs font-mono font-medium px-2 py-0.5 rounded border border-green-600/40 text-green-600">
+        Pro
       </span>
     )
   }
@@ -26,10 +23,9 @@ export function PlanBadge() {
   return (
     <Link
       href="/pro"
-      className="ml-auto text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
-      style={{backgroundColor: '#1e1a00', color: '#facc15', border: '1px solid #713f12'}}
+      className="ml-auto text-xs text-muted-foreground font-mono px-2 py-0.5 rounded border border-border hover:text-foreground hover:border-foreground/30 transition-colors"
     >
-      Free Plan — Upgrade to Pro →
+      Free
     </Link>
   )
 }

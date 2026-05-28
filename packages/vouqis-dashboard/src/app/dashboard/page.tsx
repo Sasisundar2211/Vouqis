@@ -112,7 +112,9 @@ export default function TracesPage() {
               Live Traces
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Real-time tool call traces from your MCP servers via the SDK
+              SDK-captured tool call traces. Install{' '}
+              <code className="font-mono text-xs bg-muted px-1 rounded">@vouqis/sdk</code>{' '}
+              to start capturing.
             </p>
           </div>
           {lastUpdated && (

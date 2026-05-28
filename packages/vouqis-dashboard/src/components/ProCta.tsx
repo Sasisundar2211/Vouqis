@@ -14,10 +14,9 @@ export function ProCta() {
   return (
     <Link
       href="/pro"
-      className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold font-mono transition-opacity hover:opacity-80"
-      style={{backgroundColor: '#052e16', color: '#4ade80', border: '1px solid #166534'}}
+      className="shrink-0 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors font-mono"
     >
-      Get 90-day history → Pro
+      Pro: 90-day history + CI gate →
     </Link>
   )
 }

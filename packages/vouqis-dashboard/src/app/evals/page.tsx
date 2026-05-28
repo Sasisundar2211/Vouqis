@@ -111,9 +111,10 @@ export default async function EvalsPage({
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Eval Runs</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Audit Results</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Audit results — trust scores across your MCP servers
+              10-probe reliability scores for MCP servers. Each row is one{' '}
+              <code className="font-mono text-xs bg-muted px-1 rounded">vouqis audit &lt;url&gt;</code> run.
             </p>
           </div>
           <ProCta />

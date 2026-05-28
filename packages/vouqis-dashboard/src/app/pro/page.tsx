@@ -1,17 +1,34 @@
 'use client'
 
 import {useState} from 'react'
+import Link from 'next/link'
 
-const pro = {reportHistoryDays: 90}
-const free = {reportHistoryDays: 7}
-
-const FEATURES: {label: string; live: boolean}[] = [
-  {label: `${pro.reportHistoryDays}-day report history (free: ${free.reportHistoryDays} days)`, live: true},
-  {label: 'API key — push audit results from GitHub Actions / CI', live: true},
-  {label: '--fail-below flag — fail builds when trust score drops', live: true},
-  {label: 'Private shareable report links (team-only)', live: false},
-  {label: 'Slack alerts on score regression', live: false},
-  {label: 'Priority support', live: false},
+const FEATURES: {label: string; detail: string; live: boolean}[] = [
+  {
+    label: '90-day audit history',
+    detail: 'Free plan keeps 7 days. Pro keeps 90 — enough to catch slow regressions.',
+    live: true,
+  },
+  {
+    label: 'CI/CD gate via API key',
+    detail: 'Push audit results from GitHub Actions. Use --fail-below to block deploys.',
+    live: true,
+  },
+  {
+    label: '--fail-below flag',
+    detail: 'Fail builds when trust score drops below a threshold you set.',
+    live: true,
+  },
+  {
+    label: 'Private shareable report links',
+    detail: 'Share audit reports with your team without making them public.',
+    live: false,
+  },
+  {
+    label: 'Score regression alerts',
+    detail: 'Get notified when a server you monitor drops below your threshold.',
+    live: false,
+  },
 ]
 
 export default function ProPage() {
@@ -44,61 +61,56 @@ export default function ProPage() {
   }
 
   return (
-    <main
-      style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}}
-      className="min-h-screen py-16 px-4 flex items-center justify-center"
-    >
-      <div className="max-w-md w-full space-y-10">
-        {/* Launch pricing banner */}
-        <div
-          className="rounded-lg px-4 py-3 text-center"
-          style={{backgroundColor: '#1a2e1a', border: '1px solid #166534'}}
-        >
-          <p className="text-xs font-mono" style={{color: '#4ade80'}}>
-            🚀 Launch pricing — first 50 customers only. Locks in at $9/mo forever.
-          </p>
-        </div>
+    <main className="min-h-screen bg-background py-16 px-4">
+      <div className="max-w-lg mx-auto space-y-10">
+
+        {/* Back */}
+        <Link href="/evals" className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono">
+          ← Back to audits
+        </Link>
 
         {/* Header */}
-        <div className="space-y-2 text-center">
-          <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#475569'}}>
-            Vouqis
+        <div className="space-y-3">
+          <h1 className="text-2xl font-semibold tracking-tight">Vouqis Pro</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Vouqis runs 10 behavioral probes against your MCP servers and scores them 0–100.
+            Pro unlocks the CI gate, longer history, and team features.
           </p>
-          <h1 className="text-3xl font-bold font-mono" style={{color: '#e2e8f0'}}>
-            Go Pro
-          </h1>
-          <div className="flex items-baseline justify-center gap-2">
-            <span className="text-4xl font-bold font-mono" style={{color: '#4ade80'}}>$9</span>
-            <span className="text-sm font-mono" style={{color: '#475569'}}>/mo · launch price</span>
-            <span className="text-sm font-mono line-through" style={{color: '#374151'}}>$49</span>
+          <div className="flex items-baseline gap-2 pt-1">
+            <span className="text-3xl font-bold font-mono">$9</span>
+            <span className="text-sm text-muted-foreground font-mono">/month</span>
+            <span className="text-xs text-muted-foreground ml-2">Cancel anytime.</span>
           </div>
-          <p className="text-sm" style={{color: '#94a3b8'}}>
-            Production-grade MCP trust monitoring. Cancel anytime.
-          </p>
         </div>
 
-        {/* Feature list */}
-        <div
-          className="rounded-lg border p-6"
-          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
-        >
-          <ul style={{listStyle: 'none', margin: 0, padding: 0, fontSize: 14}}>
-            {FEATURES.map((f) => (
-              <li key={f.label} style={{marginBottom: 12, color: f.live ? '#94a3b8' : '#4b5563'}}>
-                <span style={{color: f.live ? '#4ade80' : '#374151', marginRight: 10}}>✓</span>
-                {f.label}
-                {!f.live && (
-                  <span style={{color: '#374151', fontSize: 11, marginLeft: 8}}>coming soon</span>
-                )}
-              </li>
-            ))}
-          </ul>
+        {/* Features */}
+        <div className="border rounded-lg divide-y">
+          {FEATURES.map((f) => (
+            <div key={f.label} className={`px-5 py-4 ${!f.live ? 'opacity-50' : ''}`}>
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 text-xs font-mono ${f.live ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  {f.live ? '✓' : '○'}
+                </span>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">
+                    {f.label}
+                    {!f.live && (
+                      <span className="ml-2 text-xs text-muted-foreground font-mono font-normal">
+                        coming soon
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{f.detail}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Checkout form */}
+        {/* Checkout */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-widest" style={{color: '#64748b'}}>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-mono">
               Work email
             </label>
             <input
@@ -107,34 +119,27 @@ export default function ProPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              className="w-full rounded-lg border px-4 py-3 text-sm font-mono outline-none"
-              style={{
-                backgroundColor: '#0f172a',
-                borderColor: '#1e293b',
-                color: '#e2e8f0',
-              }}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           {error && (
-            <p className="text-sm font-mono" style={{color: '#f87171'}}>
-              {error}
-            </p>
+            <p className="text-sm text-red-500 font-mono">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading || !email}
-            className="w-full rounded-lg px-6 py-3 text-sm font-semibold font-mono transition-opacity disabled:opacity-50"
-            style={{backgroundColor: '#4ade80', color: '#052e16'}}
+            className="w-full rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
           >
-            {loading ? 'Redirecting…' : 'Get Pro for $9/mo — Lock in launch price →'}
+            {loading ? 'Redirecting to Stripe…' : 'Start Pro — $9/mo'}
           </button>
 
-          <p className="text-center text-xs" style={{color: '#475569'}}>
-            Secure checkout via Stripe · Cancel anytime
+          <p className="text-center text-xs text-muted-foreground">
+            Secure checkout via Stripe. Cancel anytime from your billing portal.
           </p>
         </form>
+
       </div>
     </main>
   )
