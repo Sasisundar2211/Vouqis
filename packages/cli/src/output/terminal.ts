@@ -141,7 +141,7 @@ export function printProCallout(isPro: boolean, reportUrl?: string): void {
 
   // Free user upgrade prompt
   console.log(SEP)
-  console.log(`  ${yellow('⚡ Unlock Pro')} ${dim('— $9/mo · first 50 users lock in forever')}`)
+  console.log(`  ${yellow('⚡ Unlock Pro')} ${dim('— $9/mo · cancel anytime')}`)
   console.log(SEP)
   console.log(`  ${dim('[PRO]')}  ${chalk.white('90-day report history')}  ${dim('you get 7 days on free')}`)
   console.log(`  ${dim('[PRO]')}  ${chalk.white('CI/CD API key')}          ${dim('block deploys on low trust score')}`)
