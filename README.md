@@ -89,7 +89,7 @@ These are documented production failures:
 ### Step 1 — Install
 
 ```bash
-npm install -g vouqis
+npm install -g @vouqis/cli
 ```
 
 ### Step 2 — Run your first audit
@@ -194,7 +194,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm install -g vouqis
+      - run: npm install -g @vouqis/cli
 
       - name: Audit MCP server
         run: vouqis audit ${{ vars.MCP_SERVER_URL }} --fail-below 80
