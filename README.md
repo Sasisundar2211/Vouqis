@@ -252,7 +252,7 @@ jobs:
 
 ---
 
-## 💡 How It Works — Plain English
+## 💡 How It Works 
 
 **What is an MCP server?**
 
