@@ -139,7 +139,10 @@ export function printProCallout(isPro: boolean, reportUrl?: string): void {
     return
   }
 
-  // Free user — single quiet nudge
+  // Free user — hint about --report, then Pro nudge
+  if (!reportUrl) {
+    console.log(`  ${dim('Add')} ${chalk.white('--report')} ${dim('to generate a shareable URL')}`)
+  }
   console.log(`  ${dim('Pro: 90-day history + CI gate')}  ${dim('→')}  ${blue(`${DASHBOARD_URL}/pro`)}`)
   console.log('')
 }

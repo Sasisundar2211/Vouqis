@@ -27,6 +27,10 @@ export default class Score extends Command {
       description: 'File path to write JSON report',
       default: './vouqis-report.json',
     }),
+    report: Flags.boolean({
+      description: 'Upload results to vouqis.tech and generate a shareable URL',
+      default: false,
+    }),
   }
 
   async run(): Promise<void> {
@@ -81,34 +85,36 @@ export default class Score extends Command {
     writeJsonReport(report, reportPath)
 
     let reportUrl: string | undefined
-    try {
-      const headers: Record<string, string> = {'Content-Type': 'application/json'}
-      if (apiKey) headers['X-Vouqis-Api-Key'] = apiKey
+    if (apiKey || flags['report']) {
+      try {
+        const headers: Record<string, string> = {'Content-Type': 'application/json'}
+        if (apiKey) headers['X-Vouqis-Api-Key'] = apiKey
 
-      const score = trust.score
-      const verdict = score >= 80 ? 'APPROVED' : score >= 50 ? 'RISKY' : 'DO NOT INTEGRATE'
+        const score = trust.score
+        const verdict = score >= 80 ? 'APPROVED' : score >= 50 ? 'RISKY' : 'DO NOT INTEGRATE'
 
-      const res = await fetch(`${dashboardUrl}/api/reports`, {
-        method: 'POST',
-        headers,
-        signal: AbortSignal.timeout(5000),
-        body: JSON.stringify({
-          serverUrl: args.url,
-          trustScore: score,
-          verdict,
-          passCount: trust.passedPrompts,
-          failCount: trust.totalPrompts - trust.passedPrompts,
-          latencyP50: trust.p50LatencyMs,
-          topFailures: trust.errorsByFailureMode,
-          probeResults: results,
-        }),
-      })
-      if (res.ok) {
-        const json = await res.json() as {reportUrl?: string}
-        reportUrl = json.reportUrl
+        const res = await fetch(`${dashboardUrl}/api/reports`, {
+          method: 'POST',
+          headers,
+          signal: AbortSignal.timeout(5000),
+          body: JSON.stringify({
+            serverUrl: args.url,
+            trustScore: score,
+            verdict,
+            passCount: trust.passedPrompts,
+            failCount: trust.totalPrompts - trust.passedPrompts,
+            latencyP50: trust.p50LatencyMs,
+            topFailures: trust.errorsByFailureMode,
+            probeResults: results,
+          }),
+        })
+        if (res.ok) {
+          const json = await res.json() as {reportUrl?: string}
+          reportUrl = json.reportUrl
+        }
+      } catch {
+        // Non-fatal — CLI works without dashboard connectivity
       }
-    } catch {
-      // Non-fatal — CLI works without dashboard connectivity
     }
 
     printProCallout(isPro, reportUrl)
