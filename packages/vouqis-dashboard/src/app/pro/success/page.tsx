@@ -26,7 +26,7 @@ export default function ProSuccessPage() {
             Step 1 — Install
           </p>
           <div className="bg-muted rounded-lg px-4 py-3">
-            <pre className="text-xs font-mono text-foreground overflow-x-auto">npm install -g vouqis</pre>
+            <pre className="text-xs font-mono text-foreground overflow-x-auto">npm install -g @vouqis/cli</pre>
           </div>
         </div>
 
