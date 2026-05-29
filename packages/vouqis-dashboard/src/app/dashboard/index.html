@@ -415,9 +415,9 @@
 </head>
 <body>
 
-<!-- URGENCY BANNER -->
+<!-- TRUST BANNER -->
 <div id="banner">
-  <p>🚀 Launch pricing — first 50 users only · $9/mo locks in forever · <a href="https://www.vouqis.tech/pro">Claim your spot →</a></p>
+  <p>Local-first · zero telemetry · no account required · <a href="https://github.com/Sasisundar2211/Vouqis">Open source on GitHub →</a></p>
 </div>
 
 <!-- NAV -->
@@ -446,7 +446,7 @@
     <button class="copy-btn" id="copy-hero">copy</button>
   </div>
 
-  <a href="https://www.vouqis.tech/pro" class="hero-cta">Get Pro for $9/mo — Lock in launch price →</a>
+  <a href="https://www.vouqis.tech/pro" class="hero-cta">Get Pro for $9/mo →</a>
   <p class="hero-note">Free for single audits · No account needed · Cancel anytime</p>
 </section>
 
@@ -487,6 +487,7 @@
       <div class="stat-num">71%</div>
       <div class="stat-label">Median MCP tool call success rate</div>
       <div class="stat-sub">1 in 3 tool calls fails silently</div>
+      <div class="stat-sub" style="margin-top:6px;font-size:10px;color:var(--text-4);">Source: Digital Applied — 100 MCP Servers Stress-Tested (2026)</div>
     </div>
     <div class="stat-card">
       <div class="stat-num">18%</div>
@@ -506,7 +507,7 @@
   <div class="container-sm">
     <div class="section-label">Live Audit</div>
     <h2>Real audit. Real server. 92/100.</h2>
-    <p class="section-sub">Every audit generates a shareable report URL. Put it in your README. Gate on it in CI.</p>
+    <p class="section-sub">Pass <code style="background:#0f172a;padding:2px 7px;border-radius:4px;color:#4ade80;font-size:13px;">--report</code> to generate a shareable URL. Put it in your README. Gate on it in CI.</p>
     <div class="terminal-wrap">
       <div class="terminal">
         <div class="terminal-bar">
@@ -516,17 +517,17 @@
           <span class="terminal-title">vouqis — zsh</span>
         </div>
         <div class="terminal-body">
-          <div><span class="t-prompt">$ </span><span class="t-cmd">vouqis audit https://mcp.exa.ai/mcp</span></div>
+          <div><span class="t-prompt">$ </span><span class="t-cmd">vouqis audit https://mcp.exa.ai/mcp --report</span></div>
           <div class="t-dim" style="margin-top:8px;">  Vouqis — MCP Trust Auditor</div>
           <div class="t-dim" style="margin-bottom:12px;">  ● Running 10 probes against mcp.exa.ai...</div>
-          <div><span class="t-green">  mal-01  ✓</span><span class="t-label">  malformed jsonrpc rejected         </span><span class="t-amber">12ms</span></div>
-          <div><span class="t-red">  mal-02  ✗</span><span class="t-label">  silent acceptance (unexpected)     </span><span class="t-amber">18ms</span></div>
-          <div><span class="t-green">  mis-01  ✓</span><span class="t-label">  missing params → error returned    </span><span class="t-amber">340ms</span></div>
-          <div><span class="t-green">  mis-02  ✓</span><span class="t-label">  missing params → error returned    </span><span class="t-amber">298ms</span></div>
-          <div><span class="t-green">  tmo-01  ✓</span><span class="t-label">  response within 500ms             </span><span class="t-amber">487ms</span></div>
-          <div><span class="t-green">  tmo-02  ✓</span><span class="t-label">  response within 500ms             </span><span class="t-amber">412ms</span></div>
-          <div><span class="t-green">  sch-01  ✓</span><span class="t-label">  response schema valid             </span><span class="t-amber">691ms</span></div>
-          <div><span class="t-green">  sch-02  ✓</span><span class="t-label">  response schema valid             </span><span class="t-amber">623ms</span></div>
+          <div><span class="t-green">  mjr-01  ✓</span><span class="t-label">  malformed jsonrpc rejected         </span><span class="t-amber">12ms</span></div>
+          <div><span class="t-red">  mjr-02  ✗</span><span class="t-label">  silent acceptance (unexpected)     </span><span class="t-amber">18ms</span></div>
+          <div><span class="t-green">  mrp-01  ✓</span><span class="t-label">  missing params → error returned    </span><span class="t-amber">340ms</span></div>
+          <div><span class="t-green">  mrp-02  ✓</span><span class="t-label">  null params → error returned       </span><span class="t-amber">298ms</span></div>
+          <div><span class="t-green">  tmo-01  ✓</span><span class="t-label">  cold-start response within 5s      </span><span class="t-amber">487ms</span></div>
+          <div><span class="t-green">  tmo-02  ✓</span><span class="t-label">  repeat-call response within 5s     </span><span class="t-amber">412ms</span></div>
+          <div><span class="t-green">  urs-01  ✓</span><span class="t-label">  response conforms to content[] spec</span><span class="t-amber">691ms</span></div>
+          <div><span class="t-green">  urs-02  ✓</span><span class="t-label">  each content item has a type field </span><span class="t-amber">623ms</span></div>
           <div><span class="t-green">  nul-01  ✓</span><span class="t-label">  non-empty response returned        </span><span class="t-amber">441ms</span></div>
           <div><span class="t-green">  nul-02  ✓</span><span class="t-label">  non-empty response returned        </span><span class="t-amber">398ms</span></div>
           <hr class="terminal-divider"/>
@@ -539,7 +540,7 @@
         </div>
       </div>
     </div>
-    <p class="demo-caption" style="margin-top:20px;">Every audit generates a shareable report URL. Put it in your README. Gate on it in CI.</p>
+    <p class="demo-caption" style="margin-top:20px;">Add <code style="background:#111;padding:1px 5px;border-radius:3px;color:#4ade80;font-size:12px;">--report</code> to upload results and get a shareable URL. Results always written locally to <code style="background:#111;padding:1px 5px;border-radius:3px;color:#4ade80;font-size:12px;">vouqis-report.json</code>.</p>
   </div>
 </section>
 
@@ -556,7 +557,7 @@
           <div class="probe-title">Malformed Request Rejection</div>
         </div>
         <div class="probe-body">Does the server correctly reject JSON-RPC requests with invalid structure? A server that silently accepts malformed requests is a reliability and security risk.</div>
-        <div class="probe-badge">mal-01 · mal-02</div>
+        <div class="probe-badge">mjr-01 · mjr-02</div>
       </div>
       <div class="probe-card">
         <div class="probe-header">
@@ -564,7 +565,7 @@
           <div class="probe-title">Missing Parameter Handling</div>
         </div>
         <div class="probe-body">Does the server return a proper error when required parameters are absent? Silent success on missing params produces undefined behavior in downstream agents.</div>
-        <div class="probe-badge">mis-01 · mis-02</div>
+        <div class="probe-badge">mrp-01 · mrp-02</div>
       </div>
       <div class="probe-card">
         <div class="probe-header">
@@ -580,7 +581,7 @@
           <div class="probe-title">Response Schema Compliance</div>
         </div>
         <div class="probe-body">Does the server return responses that conform to the JSON-RPC 2.0 spec? Schema drift causes silent failures in downstream consumers and agent parsers.</div>
-        <div class="probe-badge">sch-01 · sch-02</div>
+        <div class="probe-badge">urs-01 · urs-02</div>
       </div>
       <div class="probe-card">
         <div class="probe-header">
@@ -625,7 +626,7 @@
         <div class="step-title">Audit any MCP server</div>
         <div class="step-code">vouqis audit \
   https://your-mcp-server</div>
-        <div class="step-sub">10 protocol-layer probes. Results in under 30 seconds. A shareable report URL is generated automatically.</div>
+        <div class="step-sub">10 protocol-layer probes. Results in under 30 seconds. Fully local by default — pass <code style="background:#0f172a;padding:1px 5px;border-radius:3px;color:#4ade80;font-size:11px;">--report</code> to generate a shareable URL.</div>
       </div>
       <div class="step-card">
         <div class="step-num">03 — Gate</div>
@@ -788,13 +789,11 @@
 
       <div class="plan-card featured">
         <div class="plan-label">Pro</div>
-        <div class="plan-launch-badge">🚀 Launch pricing — first 50 only</div>
         <div class="plan-price">
           <span class="plan-amount">$9</span>
-          <span class="plan-period">/mo · launch</span>
-          <span class="plan-strike">$49</span>
+          <span class="plan-period">/mo</span>
         </div>
-        <div class="plan-sub">Lock in forever · Cancel anytime</div>
+        <div class="plan-sub">Cancel anytime</div>
         <ul class="plan-features">
           <li><span class="fi fi-y">✓</span> Everything in Free</li>
           <li><span class="fi fi-y">✓</span> 90-day report history</li>
@@ -892,7 +891,7 @@
     </div>
 
     <a href="https://www.vouqis.tech/pro" class="hero-cta" style="max-width:100%;">Get Pro for $9/mo →</a>
-    <p class="final-note">First 50 subscribers lock in $9/mo forever · After that, $49/mo</p>
+    <p class="final-note">Free for single audits · No account needed · Cancel anytime</p>
   </div>
 </section>
 
