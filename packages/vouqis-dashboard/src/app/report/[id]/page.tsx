@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import {supabase} from '@/lib/supabase'
 
 interface ProbeResult {
@@ -25,12 +26,25 @@ interface AuditReport {
   expires_at: string | null
 }
 
+const PROBE_LABELS: Record<string, string> = {
+  'mjr-01': 'Malformed JSON-RPC body',
+  'mjr-02': 'Invalid JSON-RPC version',
+  'mis-01': 'Missing method field',
+  'mis-02': 'Missing params field',
+  'tmo-01': 'Slow-response timeout',
+  'tmo-02': 'Hung-connection timeout',
+  'sch-01': 'Wrong param types',
+  'sch-02': 'Extra unknown fields',
+  'nul-01': 'Null tool arguments',
+  'nul-02': 'Empty string arguments',
+}
+
 const FIX_SUGGESTIONS: Record<string, string> = {
-  'malformed-jsonrpc': 'Return a proper JSON-RPC error object for malformed requests instead of 2xx.',
-  'missing-params': 'Validate required parameters and return a validation error, not a silent failure.',
-  'timeout': 'Optimize tool response time to stay under 5 seconds for all tool calls.',
-  'unexpected-schema': 'Ensure all responses include a content[] array where each item has a type field.',
-  'null-response': 'Return non-empty content[] on every tool call — even errors should return a message.',
+  'malformed-jsonrpc': 'Return a proper JSON-RPC error for malformed requests — not 2xx.',
+  'missing-params': 'Validate required parameters and return a validation error, not a silent pass.',
+  'timeout': 'Tool response must stay under 5s. Optimize or add a timeout guard.',
+  'unexpected-schema': 'Responses must include a content[] array with a type field on each item.',
+  'null-response': 'Return non-empty content[] on every call — even error paths need a message.',
 }
 
 function timeAgo(dateStr: string): string {
@@ -48,38 +62,30 @@ function daysUntil(dateStr: string): number {
   return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000))
 }
 
-function ScoreBar({score}: {score: number}) {
-  const filled = Math.round((score / 100) * 24)
-  const color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'
+function VerdictBadge({verdict}: {verdict: string}) {
+  if (verdict === 'APPROVED')
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded px-2.5 py-1 font-mono">
+        ✓ Approved
+      </span>
+    )
+  if (verdict === 'RISKY')
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2.5 py-1 font-mono">
+        ⚠ Risky
+      </span>
+    )
   return (
-    <span className="font-mono text-lg tracking-tight" aria-label={`Score bar: ${score}/100`}>
-      <span style={{color}}>{('▰').repeat(filled)}</span>
-      <span style={{color: '#334155'}}>{'▱'.repeat(24 - filled)}</span>
+    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded px-2.5 py-1 font-mono">
+      ✗ Do Not Integrate
     </span>
   )
 }
 
-function VerdictBanner({verdict, score}: {verdict: string; score: number}) {
-  const cfg =
-    verdict === 'APPROVED'
-      ? {bg: '#052e16', border: '#166534', text: '#4ade80', icon: '✓'}
-      : verdict === 'RISKY'
-        ? {bg: '#2d1a00', border: '#92400e', text: '#fbbf24', icon: '⚠'}
-        : {bg: '#2d0a0a', border: '#991b1b', text: '#f87171', icon: '✗'}
-
-  return (
-    <div
-      className="rounded-lg border p-6 text-center"
-      style={{backgroundColor: cfg.bg, borderColor: cfg.border}}
-    >
-      <p className="text-4xl font-bold font-mono" style={{color: cfg.text}}>
-        {cfg.icon} {verdict}
-      </p>
-      <p className="mt-2 text-sm" style={{color: '#94a3b8'}}>
-        Trust score: <span className="font-mono font-semibold" style={{color: cfg.text}}>{score} / 100</span>
-      </p>
-    </div>
-  )
+function latencyLabel(ms: number): string {
+  if (ms <= 500) return 'fast'
+  if (ms <= 2000) return 'acceptable'
+  return 'slow'
 }
 
 export default async function ReportPage({params}: {params: Promise<{id: string}>}) {
@@ -87,7 +93,6 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
 
   const freeHistoryDays = process.env.NEXT_PUBLIC_FREE_REPORT_HISTORY_DAYS || '7'
   const proHistoryDays = process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS || '90'
-  const proPrice = process.env.NEXT_PUBLIC_PRO_PRICE_MONTHLY || '49'
 
   const {data: report, error} = await supabase
     .from('audit_reports')
@@ -99,13 +104,17 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
 
   if (error || !report || expired) {
     return (
-      <main style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}} className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center space-y-2">
-          <p className="text-xl font-mono" style={{color: '#f87171'}}>Report not found or expired.</p>
-          <p className="text-sm" style={{color: '#64748b'}}>Free reports are kept for {freeHistoryDays} days.</p>
-          <p className="text-sm" style={{color: '#64748b'}}>
-            Upgrade to Pro for {proHistoryDays}-day history.{' '}
-            <a href="/pro" style={{color: '#4ade80'}} className="underline">Upgrade →</a>
+      <main className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="text-center space-y-3 max-w-sm">
+          <p className="text-base font-medium">Report not found or expired</p>
+          <p className="text-sm text-muted-foreground">
+            Free reports are kept for {freeHistoryDays} days. Run the audit again to get a fresh report.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <Link href="/pro" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              Upgrade to Pro
+            </Link>{' '}
+            for {proHistoryDays}-day history.
           </p>
         </div>
       </main>
@@ -113,123 +122,155 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
   }
 
   const r = report as AuditReport
+  const total = r.pass_count + r.fail_count
   const failures = (r.probe_results ?? []).filter((p) => !p.passed)
+  const passes = (r.probe_results ?? []).filter((p) => p.passed)
 
   return (
-    <main style={{backgroundColor: '#0d0d0d', color: '#e2e8f0'}} className="min-h-screen py-12 px-4">
+    <main className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-8">
 
         {/* Header */}
-        <div className="space-y-1">
-          <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#475569'}}>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
             Vouqis Audit Report
           </p>
-          <p className="font-mono text-sm break-all" style={{color: '#60a5fa'}}>{r.server_url}</p>
-          <p className="text-xs" style={{color: '#475569'}}>
+          <div className="flex items-start gap-3 flex-wrap">
+            <a
+              href={r.server_url}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-sm font-medium hover:underline underline-offset-2 break-all"
+            >
+              {r.server_url}
+            </a>
+            <VerdictBadge verdict={r.verdict} />
+          </div>
+          <p className="text-xs text-muted-foreground">
             {new Date(r.created_at).toLocaleString()} · {timeAgo(r.created_at)}
           </p>
         </div>
 
-        {/* Verdict banner */}
-        <VerdictBanner verdict={r.verdict} score={r.trust_score} />
-
-        {/* Score breakdown */}
-        <div
-          className="rounded-lg border p-5 space-y-3"
-          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
-        >
-          <ScoreBar score={r.trust_score} />
-          <div className="grid grid-cols-3 gap-4 text-sm pt-2">
-            <div>
-              <p style={{color: '#64748b'}}>Pass rate</p>
-              <p className="font-mono font-semibold" style={{color: '#e2e8f0'}}>
-                {r.pass_count}/{r.pass_count + r.fail_count} probes
+        {/* Score summary */}
+        <div className="border rounded-lg divide-y">
+          <div className="grid grid-cols-3 divide-x">
+            <div className="px-5 py-4">
+              <p className="text-xs text-muted-foreground mb-1">Trust score</p>
+              <p className="text-2xl font-bold font-mono">{r.trust_score}</p>
+              <p className="text-xs text-muted-foreground">out of 100</p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-xs text-muted-foreground mb-1">Probes passed</p>
+              <p className="text-2xl font-bold font-mono">
+                <span className="text-green-600">{r.pass_count}</span>
+                <span className="text-muted-foreground text-base font-normal"> / {total}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {r.fail_count === 0 ? 'all passed' : `${r.fail_count} failed`}
               </p>
             </div>
-            <div>
-              <p style={{color: '#64748b'}}>P50 latency</p>
-              <p className="font-mono font-semibold" style={{color: r.latency_p50 <= 500 ? '#4ade80' : r.latency_p50 <= 2000 ? '#fbbf24' : '#f87171'}}>
-                {r.latency_p50}ms
+            <div className="px-5 py-4">
+              <p className="text-xs text-muted-foreground mb-1">Response time</p>
+              <p className={`text-2xl font-bold font-mono ${r.latency_p50 <= 500 ? 'text-green-600' : r.latency_p50 <= 2000 ? 'text-yellow-600' : 'text-red-500'}`}>
+                {r.latency_p50}
+                <span className="text-base font-normal text-muted-foreground">ms</span>
               </p>
-            </div>
-            <div>
-              <p style={{color: '#64748b'}}>Failures</p>
-              <p className="font-mono font-semibold" style={{color: r.fail_count === 0 ? '#4ade80' : '#f87171'}}>
-                {r.fail_count} / {r.pass_count + r.fail_count}
-              </p>
+              <p className="text-xs text-muted-foreground">{latencyLabel(r.latency_p50)} · target &lt;500ms</p>
             </div>
           </div>
         </div>
 
-        {/* Top failures from probe_results */}
+        {/* Probe results table */}
+        {r.probe_results && r.probe_results.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              10 Probe Results
+            </h2>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground w-20">Probe</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">What it tests</th>
+                    <th className="text-center px-4 py-2 font-medium text-muted-foreground w-20">Result</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground w-20">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.probe_results.map((p, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{p.promptId}</td>
+                      <td className="px-4 py-2.5 text-sm">{PROBE_LABELS[p.promptId] ?? p.promptId}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {p.passed
+                          ? <span className="text-green-600 font-medium text-xs">✓ pass</span>
+                          : <span className="text-red-500 font-medium text-xs">✗ fail</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">
+                        {p.durationMs}ms
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Failures detail — only shown if there are failures */}
         {failures.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-xs font-mono uppercase tracking-widest" style={{color: '#475569'}}>
-              Failures
-            </p>
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              What Failed — and Why It Matters
+            </h2>
+            <div className="border rounded-lg divide-y">
               {failures.map((f, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border p-4 space-y-1"
-                  style={{backgroundColor: '#1a0a0a', borderColor: '#7f1d1d'}}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-sm font-semibold" style={{color: '#f87171'}}>{f.failureMode}</span>
-                    {f.toolCalled && (
-                      <span className="font-mono text-xs" style={{color: '#64748b'}}>{f.toolCalled}</span>
-                    )}
+                <div key={i} className="px-5 py-4 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-500 font-mono text-xs font-medium">{f.promptId}</span>
+                    <span className="text-muted-foreground text-xs">·</span>
+                    <span className="text-sm font-medium">{PROBE_LABELS[f.promptId] ?? f.failureMode}</span>
                   </div>
-                  {f.errorText && (
-                    <p className="text-xs font-mono break-all" style={{color: '#94a3b8'}}>{f.errorText}</p>
-                  )}
-                  <p className="text-xs" style={{color: '#475569'}}>
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-foreground">Fix:</strong>{' '}
                     {FIX_SUGGESTIONS[f.failureMode] ?? 'Review server logs for this failure mode.'}
                   </p>
+                  {f.errorText && (
+                    <pre className="text-xs font-mono text-muted-foreground bg-muted rounded px-3 py-2 overflow-x-auto">
+                      {f.errorText.slice(0, 200)}
+                    </pre>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Install CTA */}
-        <div
-          className="rounded-lg border p-5 space-y-2"
-          style={{backgroundColor: '#0f172a', borderColor: '#1e293b'}}
-        >
-          <p className="text-xs font-mono" style={{color: '#64748b'}}>Run your own audit:</p>
-          <pre className="font-mono text-sm overflow-x-auto" style={{color: '#e2e8f0'}}>
+        {/* Run it yourself */}
+        <div className="space-y-2">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+            Run This Audit Yourself
+          </h2>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <pre className="text-xs font-mono text-foreground overflow-x-auto leading-relaxed">
 {`npm install -g @vouqis/cli
 vouqis audit ${r.server_url}`}
-          </pre>
+            </pre>
+          </div>
         </div>
 
-        {/* Upgrade banner */}
-        <div
-          className="rounded-lg border p-5 space-y-2"
-          style={{backgroundColor: '#0f1a0f', borderColor: '#166534'}}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold font-mono" style={{color: '#4ade80'}}>Vouqis Pro</p>
-              <p className="text-xs" style={{color: '#94a3b8'}}>
-                Free reports expire after {freeHistoryDays} days.
-                Pro keeps {proHistoryDays} days of history — ${proPrice}/month.
-              </p>
-              {r.expires_at && (
-                <p className="text-xs" style={{color: '#475569'}}>
-                  This report expires in {daysUntil(r.expires_at)} days.
-                </p>
-              )}
-            </div>
-            <a
-              href="/pro"
-              className="shrink-0 rounded-lg px-4 py-2 text-xs font-semibold font-mono whitespace-nowrap"
-              style={{backgroundColor: '#4ade80', color: '#052e16'}}
-            >
-              Upgrade to Pro →
-            </a>
-          </div>
+        {/* Expiry + upgrade — quiet, not a banner */}
+        <div className="border-t pt-6 space-y-1">
+          <p className="text-xs text-muted-foreground">
+            {r.expires_at
+              ? `This report expires in ${daysUntil(r.expires_at)} days (free plan keeps ${freeHistoryDays} days).`
+              : `Free plan keeps reports for ${freeHistoryDays} days.`}
+            {' '}
+            <Link href="/pro" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              Upgrade to Pro
+            </Link>{' '}
+            for {proHistoryDays}-day history and CI gate.
+          </p>
         </div>
 
       </div>
