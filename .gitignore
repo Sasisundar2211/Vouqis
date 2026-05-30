@@ -12,3 +12,7 @@ scripts/
 VOUQIS_PRD.md
 TODOS.md
 Voquis_banner.png
+*.db
+vouqis-report.json
+generate_paradigm_pdf.py
+*.pdf
