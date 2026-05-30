@@ -67,3 +67,93 @@ export class VouqisSDK {
     }) as T
   }
 }
+
+export class TrustGuardError extends Error {
+  constructor(
+    public readonly serverUrl: string,
+    public readonly score: number,
+    public readonly minScore: number,
+  ) {
+    super(
+      `TrustGuard blocked: ${serverUrl} scored ${score}/100 (minimum: ${minScore}). ` +
+      `Run \`vouqis audit ${serverUrl}\` for the full report.`
+    )
+    this.name = 'TrustGuardError'
+  }
+}
+
+export interface TrustGuardOptions {
+  minScore: number
+  apiKey?: string
+  timeoutMs?: number
+  onBlock?: (url: string, score: number) => void
+}
+
+/**
+ * Audit a server's Trust Score before allowing any tool calls.
+ * Throws TrustGuardError if the score is below minScore.
+ *
+ * @example
+ * ```ts
+ * const client = await withTrustGuard(mcpClient, 'https://mcp.example.com', {
+ *   minScore: 80,
+ *   onBlock: (url, score) => logger.warn(`Blocked ${url} with score ${score}`)
+ * })
+ * // client is now safe to use
+ * await client.callTool('search', { query: 'hello' })
+ * ```
+ */
+export async function withTrustGuard<T extends HasCallTool>(
+  client: T,
+  serverUrl: string,
+  options: TrustGuardOptions,
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? 30_000
+  const apiKey = options.apiKey ?? process.env['VOUQIS_API_KEY']
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  let score: number
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    const res = await fetch('https://vouqis.tech/api/score', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({url: serverUrl}),
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      console.warn(
+        `[vouqis] TrustGuard: score endpoint returned ${res.status} for ${serverUrl} — failing open`,
+      )
+      return client
+    }
+
+    const data = (await res.json()) as {score: number}
+    score = data.score
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.warn(
+      `[vouqis] TrustGuard: could not reach score endpoint for ${serverUrl} (${message}) — failing open`,
+    )
+    return client
+  } finally {
+    clearTimeout(timer)
+  }
+
+  if (score < options.minScore) {
+    options.onBlock?.(serverUrl, score)
+    throw new TrustGuardError(serverUrl, score, options.minScore)
+  }
+
+  return client
+}
