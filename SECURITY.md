@@ -10,7 +10,7 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email: [hello@vouqis.tech](mailto:hello@vouqis.tech)
+Email: [sasisundhar2211@gmail.com](mailto:sasisundhar2211@gmail.com)
 
 Include in your report:
 - Description of the vulnerability
