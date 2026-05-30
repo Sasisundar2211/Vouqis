@@ -71,7 +71,8 @@ export default class Audit extends Command {
     }),
     report: Flags.boolean({
       description: 'Upload results to vouqis.tech and generate a shareable URL',
-      default: false,
+      default: true,
+      allowNo: true,
     }),
   }
 

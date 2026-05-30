@@ -16,3 +16,7 @@ Voquis_banner.png
 vouqis-report.json
 generate_paradigm_pdf.py
 *.pdf
+VOUQIS-TARGETING.md
+agentdb.rvf
+agentdb.rvf.lock
+generate_source_proof.py

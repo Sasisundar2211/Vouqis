@@ -117,7 +117,7 @@ export default async function EvalDetailPage({
   const {id} = await params
 
   const {data: run, error} = await supabase
-    .from('eval_results')
+    .from('audit_reports')
     .select('*')
     .eq('id', id)
     .single()

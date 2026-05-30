@@ -48,7 +48,7 @@ function latencyClass(ms: number): string {
 function SkeletonRow() {
   return (
     <TableRow>
-      {Array.from({length: 5}).map((_, i) => (
+      {Array.from({length: 6}).map((_, i) => (
         <TableCell key={i}>
           <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
         </TableCell>
@@ -169,6 +169,7 @@ export default function TracesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-32">Timestamp</TableHead>
+                  <TableHead>Server URL</TableHead>
                   <TableHead>Tool Name</TableHead>
                   <TableHead className="w-28">Latency</TableHead>
                   <TableHead className="w-24">Status</TableHead>
@@ -180,7 +181,7 @@ export default function TracesPage() {
                   Array.from({length: 6}).map((_, i) => <SkeletonRow key={i} />)
                 ) : traces.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-16">
+                    <TableCell colSpan={6} className="py-16">
                       <div className="flex flex-col items-center gap-3 text-center max-w-sm mx-auto">
                         <p className="text-sm font-medium">No traces yet</p>
                         <p className="text-xs text-muted-foreground">
@@ -209,6 +210,9 @@ export default function TracesPage() {
                     >
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {timeAgo(trace.created_at)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[200px] truncate">
+                        {trace.server_url ?? '—'}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {trace.tool_name}

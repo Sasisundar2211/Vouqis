@@ -78,7 +78,7 @@ export default async function EvalsPage({
   const {url, verdict, from} = await searchParams
 
   let query = supabase
-    .from('eval_results')
+    .from('audit_reports')
     .select('id,server_url,trust_score,pass_count,fail_count,latency_p50,created_at')
     .order('created_at', {ascending: false})
     .limit(50)
@@ -92,7 +92,7 @@ export default async function EvalsPage({
   const [{data: evals}, {data: history}] = await Promise.all([
     query,
     supabase
-      .from('eval_results')
+      .from('audit_reports')
       .select('server_url,trust_score')
       .order('created_at', {ascending: true})
       .limit(500),
