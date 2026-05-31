@@ -67,6 +67,7 @@ export default function ProPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
 
   async function handleRazorpayPayment() {
     if (!email) return
@@ -85,7 +86,7 @@ export default function ProPage() {
       const res = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({amount: 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
+        body: JSON.stringify({amount: billingPeriod === 'annual' ? 900000 : 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
       })
       const data = await res.json() as typeof order & {error?: string}
       if (!res.ok) {
@@ -105,7 +106,7 @@ export default function ProPage() {
       amount: order.amount,
       currency: order.currency,
       name: 'Vouqis',
-      description: 'Pro Plan — ₹900/month',
+      description: billingPeriod === 'annual' ? 'Pro Plan — ₹9,000/year' : 'Pro Plan — ₹900/month',
       order_id: order.order_id,
       prefill: {email},
       theme: {color: '#000000'},
@@ -157,6 +158,13 @@ export default function ProPage() {
           </p>
         </div>
 
+        {/* Cost-of-failure anchor */}
+        <div className="border-l-2 border-amber-500 bg-amber-50/5 pl-4 py-3 pr-4 rounded-r-md text-xs font-mono text-muted-foreground leading-relaxed">
+          <span className="text-amber-500 font-semibold">The math:</span> One undetected silent MCP failure = avg 4.5 engineering hours debugging + wasted LLM API costs.
+          Vouqis Pro is ₹900/month — the same budget line as Datadog or Sentry.
+          Frame it to your VP Eng as: &ldquo;the missing observability layer for our AI stack.&rdquo;
+        </div>
+
         {/* 2-column tier grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
@@ -193,13 +201,32 @@ export default function ProPage() {
                 Most popular
               </span>
             </div>
+            {/* Billing toggle */}
+            <div className="flex rounded-md border overflow-hidden text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setBillingPeriod('monthly')}
+                className={`flex-1 py-1.5 transition-colors ${billingPeriod === 'monthly' ? 'bg-foreground text-background' : 'hover:bg-muted text-muted-foreground'}`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingPeriod('annual')}
+                className={`flex-1 py-1.5 transition-colors ${billingPeriod === 'annual' ? 'bg-foreground text-background' : 'hover:bg-muted text-muted-foreground'}`}
+              >
+                Annual <span className="text-green-600 font-semibold">−17%</span>
+              </button>
+            </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Pro</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold font-mono">₹900</span>
-                <span className="text-sm text-muted-foreground font-mono">/month</span>
+                <span className="text-3xl font-bold font-mono">{billingPeriod === 'annual' ? '₹9,000' : '₹900'}</span>
+                <span className="text-sm text-muted-foreground font-mono">{billingPeriod === 'annual' ? '/year' : '/month'}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Cancel anytime.</p>
+              <p className="text-xs text-muted-foreground">
+                {billingPeriod === 'annual' ? '2 months free · PO-friendly annual billing' : 'Cancel anytime.'}
+              </p>
             </div>
             <ul className="space-y-2.5">
               {PRO_FEATURES.map((f) => (
@@ -232,7 +259,7 @@ export default function ProPage() {
                 disabled={loading || !email}
                 className="w-full rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
               >
-                {loading ? 'Opening checkout…' : 'Start Pro — ₹900/mo'}
+                {loading ? 'Opening checkout…' : billingPeriod === 'annual' ? 'Start Pro — ₹9,000/yr' : 'Start Pro — ₹900/mo'}
               </button>
               <p className="text-xs text-muted-foreground font-mono text-center">
                 UPI · Net Banking · Indian cards
