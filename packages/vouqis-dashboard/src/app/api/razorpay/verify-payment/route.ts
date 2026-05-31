@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 })
   }
 
-  // Generate API key
-  const apiKey = `vq_${crypto.randomBytes(24).toString('hex')}`
+  // Generate API key (64 hex chars = 32 bytes entropy)
+  const apiKey = `vq_${crypto.randomBytes(32).toString('hex')}`
 
   // Provision subscription in Supabase
   try {
@@ -43,13 +43,18 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_KEY!,
     )
-    await supabase.from('subscriptions').insert({
+    const { error: dbError } = await supabase.from('subscriptions').insert({
       api_key: apiKey,
       status: 'active',
       email: email ?? null,
-      payment_provider: 'razorpay',
-      payment_id: razorpay_payment_id,
+      plan: 'pro',
+      report_history_days: 90,
+      polar_customer_id: null,
+      polar_subscription_id: null,
     })
+    if (dbError) {
+      console.error('[razorpay/verify-payment] db insert failed', dbError.message)
+    }
   } catch (err) {
     console.error('[razorpay/verify-payment] db insert failed', err instanceof Error ? err.message : err)
     // Non-fatal: still send the email so the user gets their key
