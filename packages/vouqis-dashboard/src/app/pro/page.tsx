@@ -16,7 +16,7 @@ interface RazorpayOptions {
   name: string
   description: string
   order_id: string
-  prefill?: {email?: string}
+  prefill?: {email?: string; method?: string}
   theme?: {color?: string}
   handler: (response: RazorpaySuccessResponse) => void
   modal?: {ondismiss?: () => void}
@@ -113,7 +113,7 @@ export default function ProPage() {
       name: 'Vouqis',
       description: 'Pro Plan — ₹900/month',
       order_id: order.order_id,
-      prefill: {email},
+      prefill: {email, method: 'upi'},
       theme: {color: '#000000'},
       handler: async (response: RazorpaySuccessResponse) => {
         try {
@@ -255,7 +255,7 @@ export default function ProPage() {
                 {loading ? 'Opening checkout…' : 'Start Pro — ₹900/mo'}
               </button>
               <p className="text-xs text-muted-foreground font-mono text-center">
-                UPI · Net Banking · Indian cards
+                UPI · Net Banking · Indian cards only
               </p>
             </div>
           </div>
