@@ -35,9 +35,9 @@ interface RazorpaySuccessResponse {
 
 const FREE_FEATURES = [
   '10-probe Trust Score audit',
-  'Local JSON report output',
-  '7-day audit history',
-  '1 seat',
+  'Shareable report URL',
+  '30-day report history',
+  'No account required',
 ]
 
 const PRO_FEATURES: {label: string; live: boolean}[] = [
@@ -67,7 +67,6 @@ export default function ProPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
 
   async function handleRazorpayPayment() {
     if (!email) return
@@ -86,7 +85,7 @@ export default function ProPage() {
       const res = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({amount: billingPeriod === 'annual' ? 900000 : 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
+        body: JSON.stringify({amount: 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
       })
       const data = await res.json() as typeof order & {error?: string}
       if (!res.ok) {
@@ -106,7 +105,7 @@ export default function ProPage() {
       amount: order.amount,
       currency: order.currency,
       name: 'Vouqis',
-      description: billingPeriod === 'annual' ? 'Pro Plan — ₹9,000/year' : 'Pro Plan — ₹900/month',
+      description: 'Pro Plan — ₹900/month',
       order_id: order.order_id,
       prefill: {email},
       theme: {color: '#000000'},
@@ -152,17 +151,29 @@ export default function ProPage() {
 
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Vouqis Pricing</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Become a Founding Customer</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Start free. Upgrade when you need CI gates, longer history, or team-wide coverage.
+            We&apos;re in early access. The first 10 customers get Pro free for 3 months — in exchange for one honest feedback call.
           </p>
         </div>
 
-        {/* Cost-of-failure anchor */}
-        <div className="border-l-2 border-amber-500 bg-amber-50/5 pl-4 py-3 pr-4 rounded-r-md text-xs font-mono text-muted-foreground leading-relaxed">
-          <span className="text-amber-500 font-semibold">The math:</span> One undetected silent MCP failure = avg 4.5 engineering hours debugging + wasted LLM API costs.
-          Vouqis Pro is ₹900/month — the same budget line as Datadog or Sentry.
-          Frame it to your VP Eng as: &ldquo;the missing observability layer for our AI stack.&rdquo;
+        {/* Founding customer offer */}
+        <div className="border border-foreground rounded-lg p-5 space-y-3 bg-background">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">Founding Customer</p>
+              <p className="text-sm font-semibold">3 months of Pro, free.</p>
+              <p className="text-xs text-muted-foreground mt-1">In exchange: one 30-minute call where you tell us about your worst MCP failure. That&apos;s it.</p>
+            </div>
+            <span className="shrink-0 text-xs font-mono bg-foreground text-background px-2 py-1 rounded">10 seats left</span>
+          </div>
+          <a
+            href="mailto:hello@vouqis.tech?subject=Founding%20Customer%20Application&body=Hi%2C%0A%0AI%20want%20to%20apply%20for%20founding%20customer%20access.%0A%0AMy%20use%20case%3A%20%5Bdescribe%20your%20MCP%20setup%20or%20the%20failure%20you%27ve%20had%5D%0A%0A"
+            className="block w-full text-center rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity"
+          >
+            Apply for Founding Access →
+          </a>
+          <p className="text-xs text-muted-foreground font-mono text-center">No payment. No card. One email.</p>
         </div>
 
         {/* 2-column tier grid */}
@@ -195,38 +206,14 @@ export default function ProPage() {
           </div>
 
           {/* Pro tier */}
-          <div className="border-2 border-foreground rounded-lg p-6 space-y-5 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-foreground text-background text-xs font-mono px-3 py-1 rounded-full">
-                Most popular
-              </span>
-            </div>
-            {/* Billing toggle */}
-            <div className="flex rounded-md border overflow-hidden text-xs font-mono">
-              <button
-                type="button"
-                onClick={() => setBillingPeriod('monthly')}
-                className={`flex-1 py-1.5 transition-colors ${billingPeriod === 'monthly' ? 'bg-foreground text-background' : 'hover:bg-muted text-muted-foreground'}`}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setBillingPeriod('annual')}
-                className={`flex-1 py-1.5 transition-colors ${billingPeriod === 'annual' ? 'bg-foreground text-background' : 'hover:bg-muted text-muted-foreground'}`}
-              >
-                Annual <span className="text-green-600 font-semibold">−17%</span>
-              </button>
-            </div>
+          <div className="border rounded-lg p-6 space-y-5 relative">
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Pro</p>
+              <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Pro — or pay now</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold font-mono">{billingPeriod === 'annual' ? '₹9,000' : '₹900'}</span>
-                <span className="text-sm text-muted-foreground font-mono">{billingPeriod === 'annual' ? '/year' : '/month'}</span>
+                <span className="text-3xl font-bold font-mono">₹900</span>
+                <span className="text-sm text-muted-foreground font-mono">/month</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {billingPeriod === 'annual' ? '2 months free · PO-friendly annual billing' : 'Cancel anytime.'}
-              </p>
+              <p className="text-xs text-muted-foreground">Cancel anytime. Skip the call, start immediately.</p>
             </div>
             <ul className="space-y-2.5">
               {PRO_FEATURES.map((f) => (
@@ -259,7 +246,7 @@ export default function ProPage() {
                 disabled={loading || !email}
                 className="w-full rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
               >
-                {loading ? 'Opening checkout…' : billingPeriod === 'annual' ? 'Start Pro — ₹9,000/yr' : 'Start Pro — ₹900/mo'}
+                {loading ? 'Opening checkout…' : 'Start Pro — ₹900/mo'}
               </button>
               <p className="text-xs text-muted-foreground font-mono text-center">
                 UPI · Net Banking · Indian cards
