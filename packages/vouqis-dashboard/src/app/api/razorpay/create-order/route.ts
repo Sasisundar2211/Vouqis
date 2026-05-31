@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
       currency: order.currency,
     })
   } catch (err) {
-    console.error('[razorpay/create-order]', err instanceof Error ? err.message : err)
-    return NextResponse.json({ error: 'Order creation failed. Please try again.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[razorpay/create-order]', msg)
+    return NextResponse.json({ error: `Order creation failed: ${msg}` }, { status: 500 })
   }
 }

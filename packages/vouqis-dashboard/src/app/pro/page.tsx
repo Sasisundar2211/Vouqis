@@ -82,11 +82,17 @@ export default function ProPage() {
 
     let order: {order_id: string; amount: number; currency: string}
     try {
-      const res = await fetch('/api/razorpay/create-order', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({amount: 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
+      const payload = JSON.stringify({amount: 90000, currency: 'INR', receipt: `pro_${Date.now()}`})
+      let res = await fetch('/api/razorpay/create-order', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload,
       })
+      // One automatic retry for cold-start failures
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 2000))
+        res = await fetch('/api/razorpay/create-order', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload,
+        })
+      }
       const data = await res.json() as typeof order & {error?: string}
       if (!res.ok) {
         setError(data.error ?? 'Failed to create order.')
@@ -168,7 +174,7 @@ export default function ProPage() {
             <span className="shrink-0 text-xs font-mono bg-foreground text-background px-2 py-1 rounded">10 seats left</span>
           </div>
           <a
-            href="mailto:hello@vouqis.tech?subject=Founding%20Customer%20Application&body=Hi%2C%0A%0AI%20want%20to%20apply%20for%20founding%20customer%20access.%0A%0AMy%20use%20case%3A%20%5Bdescribe%20your%20MCP%20setup%20or%20the%20failure%20you%27ve%20had%5D%0A%0A"
+            href="mailto:sasisundhar2211@gmail.com?subject=Founding%20Customer%20Application&body=Hi%2C%0A%0AI%20want%20to%20apply%20for%20founding%20customer%20access.%0A%0AMy%20MCP%20use%20case%3A%20%5Bdescribe%20your%20setup%20or%20the%20failure%20you%27ve%20had%5D%0A%0A"
             className="block w-full text-center rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity"
           >
             Apply for Founding Access →
