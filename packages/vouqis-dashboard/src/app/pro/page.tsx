@@ -3,6 +3,36 @@
 import {useState} from 'react'
 import Link from 'next/link'
 
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance
+  }
+}
+
+interface RazorpayOptions {
+  key: string | undefined
+  amount: number | string
+  currency: string
+  name: string
+  description: string
+  order_id: string
+  prefill?: {email?: string}
+  theme?: {color?: string}
+  handler: (response: RazorpaySuccessResponse) => void
+  modal?: {ondismiss?: () => void}
+}
+
+interface RazorpayInstance {
+  open(): void
+  on(event: 'payment.failed', handler: (response: {error: {description: string}}) => void): void
+}
+
+interface RazorpaySuccessResponse {
+  razorpay_payment_id: string
+  razorpay_order_id: string
+  razorpay_signature: string
+}
+
 const FREE_FEATURES = [
   '10-probe Trust Score audit',
   'Local JSON report output',
@@ -19,48 +49,100 @@ const PRO_FEATURES: {label: string; live: boolean}[] = [
   {label: 'Score regression alerts', live: false},
 ]
 
-const ENTERPRISE_FEATURES = [
-  'Everything in Pro',
-  'Unlimited seats + SSO',
-  'SLA: 99.9% uptime guarantee',
-  'Dedicated Slack channel',
-  'Security questionnaire & compliance docs',
-  '30-day pilot with white-glove onboarding',
-  'Custom retention & data residency',
-]
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 export default function ProPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleRazorpayPayment() {
     if (!email) return
     setLoading(true)
     setError('')
+
+    const loaded = await loadRazorpayScript()
+    if (!loaded) {
+      setError('Failed to load payment gateway. Check your connection.')
+      setLoading(false)
+      return
+    }
+
+    let order: {order_id: string; amount: number; currency: string}
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email}),
+        body: JSON.stringify({amount: 90000, currency: 'INR', receipt: `pro_${Date.now()}`}),
       })
-      const data = await res.json() as {url?: string; error?: string}
-      if (!res.ok || !data.url) {
-        setError(data.error ?? 'Something went wrong. Try again.')
+      const data = await res.json() as typeof order & {error?: string}
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to create order.')
+        setLoading(false)
         return
       }
-      window.location.href = data.url
+      order = data
     } catch {
       setError('Network error. Try again.')
-    } finally {
       setLoading(false)
+      return
     }
+
+    const rzp = new window.Razorpay({
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
+      name: 'Vouqis',
+      description: 'Pro Plan — ₹900/month',
+      order_id: order.order_id,
+      prefill: {email},
+      theme: {color: '#000000'},
+      handler: async (response: RazorpaySuccessResponse) => {
+        try {
+          const vRes = await fetch('/api/razorpay/verify-payment', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(response),
+          })
+          const vData = await vRes.json() as {success?: boolean; error?: string}
+          if (!vRes.ok) {
+            setError(vData.error ?? 'Payment verification failed.')
+            return
+          }
+          window.location.href = '/pro/success'
+        } catch {
+          setError('Verification failed. Contact hello@vouqis.tech.')
+        }
+      },
+      modal: {
+        ondismiss: () => setLoading(false),
+      },
+    })
+
+    rzp.on('payment.failed', (response) => {
+      setError(response.error?.description ?? 'Payment failed. Try again.')
+      setLoading(false)
+    })
+
+    rzp.open()
+    setLoading(false)
   }
 
   return (
     <main className="min-h-screen bg-background py-16 px-4">
-      <div className="max-w-5xl mx-auto space-y-10">
+      <div className="max-w-3xl mx-auto space-y-10">
 
         {/* Back */}
         <Link href="/evals" className="text-xs text-muted-foreground hover:text-foreground transition-colors font-mono">
@@ -75,8 +157,8 @@ export default function ProPage() {
           </p>
         </div>
 
-        {/* 3-column tier grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        {/* 2-column tier grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
           {/* Free tier */}
           <div className="border rounded-lg p-6 space-y-5">
@@ -114,7 +196,7 @@ export default function ProPage() {
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Pro</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold font-mono">$9</span>
+                <span className="text-3xl font-bold font-mono">₹900</span>
                 <span className="text-sm text-muted-foreground font-mono">/month</span>
               </div>
               <p className="text-xs text-muted-foreground">Cancel anytime.</p>
@@ -134,7 +216,7 @@ export default function ProPage() {
                 </li>
               ))}
             </ul>
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-3">
               <input
                 type="email"
                 required
@@ -143,49 +225,22 @@ export default function ProPage() {
                 placeholder="you@company.com"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-ring"
               />
-              {error && (
-                <p className="text-xs text-red-500 font-mono">{error}</p>
-              )}
+              {error && <p className="text-xs text-red-500 font-mono">{error}</p>}
               <button
-                type="submit"
+                type="button"
+                onClick={handleRazorpayPayment}
                 disabled={loading || !email}
                 className="w-full rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
               >
-                {loading ? 'Redirecting to Stripe…' : 'Start Pro — $9/mo'}
+                {loading ? 'Opening checkout…' : 'Start Pro — ₹900/mo'}
               </button>
-            </form>
-          </div>
-
-          {/* Enterprise tier */}
-          <div className="border rounded-lg p-6 space-y-5">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Enterprise</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold font-mono">$499</span>
-                <span className="text-sm text-muted-foreground font-mono">/month</span>
-              </div>
-              <p className="text-xs text-muted-foreground">30-day pilot available.</p>
             </div>
-            <ul className="space-y-2.5">
-              {ENTERPRISE_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm">
-                  <span className="mt-0.5 text-xs font-mono text-green-600">✓</span>
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/enterprise"
-              className="block w-full text-center rounded-md px-4 py-2.5 text-sm font-semibold bg-foreground text-background hover:opacity-90 transition-opacity"
-            >
-              Talk to Sales →
-            </Link>
           </div>
 
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Pro: Secure checkout via Stripe. Enterprise: We&apos;ll reach out within 1 business day.
+          Secure checkout via Razorpay. Questions? <a href="mailto:hello@vouqis.tech" className="underline underline-offset-2 hover:text-foreground transition-colors">hello@vouqis.tech</a>
         </p>
 
       </div>
