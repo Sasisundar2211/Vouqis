@@ -43,15 +43,18 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_KEY!,
     )
-    const { error: dbError } = await supabase.from('subscriptions').insert({
-      api_key: apiKey,
-      status: 'active',
-      email: email ?? null,
-      plan: 'pro',
-      report_history_days: 90,
-      polar_customer_id: null,
-      polar_subscription_id: null,
-    })
+    const { error: dbError } = await supabase.from('subscriptions').upsert(
+      {
+        api_key: apiKey,
+        status: 'active',
+        email: email ?? null,
+        plan: 'pro',
+        report_history_days: 90,
+        polar_customer_id: null,
+        polar_subscription_id: null,
+      },
+      { onConflict: 'email' },
+    )
     if (dbError) {
       console.error('[razorpay/verify-payment] db insert failed', dbError.message)
     }
