@@ -2,6 +2,11 @@ import {randomUUID} from 'node:crypto'
 
 export interface VouqisSDKOptions {
   projectId: string
+  apiKey?: string
+  dashboardUrl?: string
+  // Retry policy for failed tool calls
+  retries?: number
+  retryDelayMs?: number
 }
 
 export interface TraceRecord {
@@ -13,21 +18,46 @@ export interface TraceRecord {
   response: unknown
   latencyMs: number
   error: string | null
+  attempt: number
 }
 
 interface HasCallTool {
   callTool(toolName: string, params: Record<string, unknown>): Promise<unknown>
 }
 
+async function uploadTrace(
+  trace: TraceRecord,
+  dashboardUrl: string,
+  apiKey: string,
+): Promise<void> {
+  await fetch(`${dashboardUrl}/api/traces`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Vouqis-Api-Key': apiKey,
+    },
+    body: JSON.stringify(trace),
+    signal: AbortSignal.timeout(3000),
+  })
+}
+
 export class VouqisSDK {
   private readonly projectId: string
+  private readonly apiKey: string | undefined
+  private readonly dashboardUrl: string
+  private readonly retries: number
+  private readonly retryDelayMs: number
 
   constructor(options: VouqisSDKOptions) {
     this.projectId = options.projectId
+    this.apiKey = options.apiKey ?? process.env['VOUQIS_API_KEY']
+    this.dashboardUrl = options.dashboardUrl ?? 'https://vouqis.tech'
+    this.retries = options.retries ?? 0
+    this.retryDelayMs = options.retryDelayMs ?? 300
   }
 
   wrap<T extends HasCallTool>(client: T): T {
-    const projectId = this.projectId
+    const sdk = this
 
     return new Proxy(client, {
       get(target, prop, receiver) {
@@ -39,28 +69,48 @@ export class VouqisSDK {
           toolName: string,
           params: Record<string, unknown>,
         ): Promise<unknown> {
-          const startTime = Date.now()
-          let response: unknown = null
-          let error: string | null = null
+          let attempt = 0
+          const maxAttempts = sdk.retries + 1
 
-          try {
-            response = await target.callTool(toolName, params)
-            return response
-          } catch (err) {
-            error = err instanceof Error ? err.message : String(err)
-            throw err
-          } finally {
-            const trace: TraceRecord = {
-              traceId: randomUUID(),
-              projectId,
-              timestamp: new Date().toISOString(),
-              toolName,
-              params,
-              response,
-              latencyMs: Date.now() - startTime,
-              error,
+          for (;;) {
+            attempt++
+            const startTime = Date.now()
+            let response: unknown = null
+            let error: string | null = null
+
+            try {
+              response = await target.callTool(toolName, params)
+              return response
+            } catch (err) {
+              error = err instanceof Error ? err.message : String(err)
+              if (attempt < maxAttempts) {
+                await new Promise((r) => setTimeout(r, sdk.retryDelayMs * attempt))
+                continue
+              }
+              throw err
+            } finally {
+              const trace: TraceRecord = {
+                traceId: randomUUID(),
+                projectId: sdk.projectId,
+                timestamp: new Date().toISOString(),
+                toolName,
+                params,
+                response,
+                latencyMs: Date.now() - startTime,
+                error,
+                attempt,
+              }
+
+              if (sdk.apiKey) {
+                // Fire-and-forget upload — never block the caller
+                uploadTrace(trace, sdk.dashboardUrl, sdk.apiKey).catch(() => {
+                  // swallow silently; tracing must never affect agent behaviour
+                })
+              } else {
+                // No API key: write to stdout so the developer can see what's happening
+                console.log(JSON.stringify(trace))
+              }
             }
-            console.log(JSON.stringify(trace))
           }
         }
       },
@@ -76,7 +126,7 @@ export class TrustGuardError extends Error {
   ) {
     super(
       `TrustGuard blocked: ${serverUrl} scored ${score}/100 (minimum: ${minScore}). ` +
-      `Run \`vouqis audit ${serverUrl}\` for the full report.`
+        `Run \`vouqis audit ${serverUrl}\` for the full report.`,
     )
     this.name = 'TrustGuardError'
   }
@@ -89,20 +139,6 @@ export interface TrustGuardOptions {
   onBlock?: (url: string, score: number) => void
 }
 
-/**
- * Audit a server's Trust Score before allowing any tool calls.
- * Throws TrustGuardError if the score is below minScore.
- *
- * @example
- * ```ts
- * const client = await withTrustGuard(mcpClient, 'https://mcp.example.com', {
- *   minScore: 80,
- *   onBlock: (url, score) => logger.warn(`Blocked ${url} with score ${score}`)
- * })
- * // client is now safe to use
- * await client.callTool('search', { query: 'hello' })
- * ```
- */
 export async function withTrustGuard<T extends HasCallTool>(
   client: T,
   serverUrl: string,
@@ -117,12 +153,8 @@ export async function withTrustGuard<T extends HasCallTool>(
   let score: number
 
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`
-    }
+    const headers: Record<string, string> = {'Content-Type': 'application/json'}
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
 
     const res = await fetch('https://vouqis.tech/api/score', {
       method: 'POST',

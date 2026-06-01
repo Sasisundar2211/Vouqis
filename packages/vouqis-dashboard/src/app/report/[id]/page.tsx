@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import Link from 'next/link'
 import {supabase} from '@/lib/supabase'
 
 interface ProbeResult {
@@ -27,14 +26,14 @@ interface AuditReport {
 }
 
 const PROBE_LABELS: Record<string, string> = {
-  'mjr-01': 'Malformed JSON-RPC body',
-  'mjr-02': 'Invalid JSON-RPC version',
-  'mrp-01': 'Empty arguments (stripped)',
-  'mrp-02': 'All arguments set to null',
+  'mal-01': 'Malformed JSON-RPC body',
+  'mal-02': 'Invalid JSON-RPC method type',
+  'mis-01': 'Empty arguments (stripped)',
+  'mis-02': 'All arguments set to null',
   'tmo-01': 'Cold-start response time',
   'tmo-02': 'Repeat-call response time',
-  'urs-01': 'Response conforms to MCP content-array schema',
-  'urs-02': 'Each content item has a valid type field',
+  'sch-01': 'Response conforms to MCP content-array schema',
+  'sch-02': 'Each content item has a valid type field',
   'nul-01': 'Null tool arguments',
   'nul-02': 'Empty string arguments',
 }
@@ -92,7 +91,6 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
   const {id} = await params
 
   const freeHistoryDays = process.env.NEXT_PUBLIC_FREE_REPORT_HISTORY_DAYS || '7'
-  const proHistoryDays = process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS || '90'
 
   const {data: report, error} = await supabase
     .from('audit_reports')
@@ -111,10 +109,7 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
             Free reports are kept for {freeHistoryDays} days. Run the audit again to get a fresh report.
           </p>
           <p className="text-sm text-muted-foreground">
-            <Link href="/pro" className="underline underline-offset-2 hover:text-foreground transition-colors">
-              Upgrade to Pro
-            </Link>{' '}
-            for {proHistoryDays}-day history.
+            Run <code className="text-xs font-mono">vouqis audit</code> again to get a fresh report.
           </p>
         </div>
       </main>
@@ -124,7 +119,6 @@ export default async function ReportPage({params}: {params: Promise<{id: string}
   const r = report as AuditReport
   const total = r.pass_count + r.fail_count
   const failures = (r.probe_results ?? []).filter((p) => !p.passed)
-  const passes = (r.probe_results ?? []).filter((p) => p.passed)
 
   return (
     <main className="min-h-screen bg-background py-12 px-4">
@@ -263,13 +257,8 @@ vouqis audit ${r.server_url}`}
         <div className="border-t pt-6 space-y-1">
           <p className="text-xs text-muted-foreground">
             {r.expires_at
-              ? `This report expires in ${daysUntil(r.expires_at)} days (free plan keeps ${freeHistoryDays} days).`
-              : `Free plan keeps reports for ${freeHistoryDays} days.`}
-            {' '}
-            <Link href="/pro" className="underline underline-offset-2 hover:text-foreground transition-colors">
-              Upgrade to Pro
-            </Link>{' '}
-            for {proHistoryDays}-day history and CI gate.
+              ? `This report expires in ${daysUntil(r.expires_at)} days.`
+              : 'Reports are kept for 7 days.'}
           </p>
         </div>
 

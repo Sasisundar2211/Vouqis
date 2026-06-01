@@ -8,32 +8,32 @@ export interface Remediation {
 }
 
 const REMEDIATION_MAP: Record<string, Remediation> = {
-  'mjr-01': {
-    probe: 'mjr-01',
+  'mal-01': {
+    probe: 'mal-01',
     category: 'Malformed JSON-RPC',
     issue: 'Server does not reject requests with invalid id field types',
     fix: 'Validate jsonrpc request id is string|number|null before processing. Return error code -32600 for invalid ids.',
     severity: 'critical',
     docsUrl: 'https://www.jsonrpc.org/specification#request_object',
   },
-  'mjr-02': {
-    probe: 'mjr-02',
+  'mal-02': {
+    probe: 'mal-02',
     category: 'Malformed JSON-RPC',
     issue: 'Server accepts non-string method names without error',
     fix: 'Add method name type check at request entry point. Return error code -32601 if method is not a string.',
     severity: 'critical',
     docsUrl: 'https://www.jsonrpc.org/specification#request_object',
   },
-  'mrp-01': {
-    probe: 'mrp-01',
+  'mis-01': {
+    probe: 'mis-01',
     category: 'Missing Parameters',
     issue: 'Server crashes or returns unstructured error on missing required params',
     fix: 'Add parameter presence validation before handler dispatch. Return structured JSON-RPC error code -32602 with field name.',
     severity: 'high',
     docsUrl: 'https://spec.modelcontextprotocol.io/specification/server/tools/',
   },
-  'mrp-02': {
-    probe: 'mrp-02',
+  'mis-02': {
+    probe: 'mis-02',
     category: 'Missing Parameters',
     issue: 'Error response is not a valid JSON-RPC error object',
     fix: "Ensure all error paths return {jsonrpc:'2.0', id, error:{code, message}}. Never throw unhandled exceptions.",
@@ -56,16 +56,16 @@ const REMEDIATION_MAP: Record<string, Remediation> = {
     severity: 'medium',
     docsUrl: 'https://spec.modelcontextprotocol.io/specification/basic/transports/',
   },
-  'urs-01': {
-    probe: 'urs-01',
+  'sch-01': {
+    probe: 'sch-01',
     category: 'Schema Compliance',
     issue: 'tools/list response does not return valid JSON Schema for tool input',
     fix: "Ensure each tool definition includes inputSchema with type:'object' and properties. Validate against JSON Schema draft-07.",
     severity: 'critical',
     docsUrl: 'https://spec.modelcontextprotocol.io/specification/server/tools/#listing-tools',
   },
-  'urs-02': {
-    probe: 'urs-02',
+  'sch-02': {
+    probe: 'sch-02',
     category: 'Schema Compliance',
     issue: 'Tool output does not match declared input schema',
     fix: 'Validate actual tool call responses against the inputSchema declared in tools/list. Add a schema conformance test to your CI.',
