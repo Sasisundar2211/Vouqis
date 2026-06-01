@@ -1,65 +1,52 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {describe, it, expect, vi, beforeEach} from 'vitest'
 
 const mockInsert = vi.fn()
-const mockSubSelect = vi.fn()
 
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: (_url: string, key: string) => {
-    if (key === 'test-service-key') {
-      return {
-        from: (table: string) => {
-          if (table === 'subscriptions') {
-            return {
-              select: () => ({
-                eq: () => ({
-                  eq: () => ({
-                    single: mockSubSelect,
-                  }),
-                }),
-              }),
-            }
-          }
-          // audit_reports: insert(payload).select('id').single()
-          return {
-            insert: (payload: unknown) => {
-              mockInsert(payload)
-              return {
-                select: () => ({
-                  single: () => ({ data: { id: 'abc12345' }, error: null }),
-                }),
-              }
-            },
-          }
-        },
-      }
-    }
-    return { from: () => ({ insert: mockInsert }) }
-  },
+  createClient: () => ({
+    from: () => ({
+      insert: (payload: unknown) => {
+        mockInsert(payload)
+        return {
+          select: () => ({
+            single: () => ({data: {id: 'abc12345'}, error: null}),
+          }),
+        }
+      },
+    }),
+  }),
 }))
 
-describe('/api/reports — expires_at', () => {
+vi.mock('@/lib/email', () => ({
+  sendFounderAlert: vi.fn().mockResolvedValue(undefined),
+}))
+
+describe('/api/reports', () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
     process.env.SUPABASE_SERVICE_KEY = 'test-service-key'
-    process.env.NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS = '30'
-    process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS = '90'
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
     mockInsert.mockClear()
-    mockSubSelect.mockClear()
   })
 
-  it('sets 90d expiry when valid Pro api_key is provided', async () => {
-    mockSubSelect.mockResolvedValue({
-      data: { status: 'active', api_key: 'validkey123' },
-      error: null,
+  it('returns 400 when required fields are missing', async () => {
+    const {POST} = await import('./route')
+    const request = new Request('http://localhost/api/reports', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({trustScore: 75}),
     })
-    const { POST } = await import('./route')
+    const response = await POST(request as never)
+    expect(response.status).toBe(400)
+  })
+
+  it('always inserts with 7-day expiry — no Pro tier', async () => {
+    const {POST} = await import('./route')
     const request = new Request('http://localhost/api/reports', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Vouqis-Api-Key': 'validkey123',
+        'X-Vouqis-Api-Key': 'some-key',
       },
       body: JSON.stringify({
         serverUrl: 'http://test.example.com',
@@ -68,41 +55,38 @@ describe('/api/reports — expires_at', () => {
         passCount: 7,
         failCount: 3,
         latencyP50: 400,
-        topFailures: [],
+        topFailures: {},
         probeResults: [],
       }),
     })
     const response = await POST(request as never)
     expect(response.status).toBe(200)
     const insertCall = mockInsert.mock.calls[0][0]
-    const expiresAt = new Date(insertCall.expires_at)
-    const daysFromNow = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    expect(daysFromNow).toBeGreaterThan(88)
-    expect(daysFromNow).toBeLessThan(92)
+    const daysFromNow = (new Date(insertCall.expires_at).getTime() - Date.now()) / 86_400_000
+    expect(daysFromNow).toBeGreaterThan(6)
+    expect(daysFromNow).toBeLessThan(8)
+    expect(insertCall.user_api_key).toBeNull()
   })
 
-  it('sets 30d expiry when no api_key header is present', async () => {
-    const { POST } = await import('./route')
+  it('returns id and reportUrl in the response body', async () => {
+    const {POST} = await import('./route')
     const request = new Request('http://localhost/api/reports', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         serverUrl: 'http://test.example.com',
-        trustScore: 75,
-        verdict: 'RISKY',
-        passCount: 7,
-        failCount: 3,
-        latencyP50: 400,
-        topFailures: [],
+        trustScore: 80,
+        verdict: 'APPROVED',
+        passCount: 10,
+        failCount: 0,
+        latencyP50: 200,
+        topFailures: {},
         probeResults: [],
       }),
     })
     const response = await POST(request as never)
-    expect(response.status).toBe(200)
-    const insertCall = mockInsert.mock.calls[0][0]
-    const expiresAt = new Date(insertCall.expires_at)
-    const daysFromNow = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    expect(daysFromNow).toBeGreaterThan(28)
-    expect(daysFromNow).toBeLessThan(32)
+    const json = (await response.json()) as {id: string; reportUrl: string}
+    expect(json.id).toBe('abc12345')
+    expect(json.reportUrl).toContain('abc12345')
   })
 })

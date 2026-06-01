@@ -27,22 +27,29 @@ describe('DEFAULT_PROMPTS', () => {
     expect(modes.has('null-response')).toBe(true)
   })
 
-  it('direct probes (mjr-*, mrp-*) have empty userMessage', () => {
+  it('direct probes (mal-*, mis-*) have empty userMessage', () => {
     const directProbes = DEFAULT_PROMPTS.filter((p) =>
-      ['malformed-rpc', 'missing-params'].includes(p.probeType),
+      ['malformed-request', 'strip-params'].includes(p.probingStrategy),
     )
+    expect(directProbes.length).toBeGreaterThan(0)
     for (const p of directProbes) {
       expect(p.userMessage).toBe('')
     }
   })
 
-  it('Claude probes (tmo-*, urs-*, nul-*) have non-empty userMessage', () => {
-    const claudeProbes = DEFAULT_PROMPTS.filter((p) =>
-      ['timeout', 'schema-validation', 'null-check'].includes(p.probeType),
+  it('non-direct probes (tmo-*, sch-*, nul-*) have non-empty userMessage', () => {
+    const nonDirectProbes = DEFAULT_PROMPTS.filter((p) =>
+      ['slow-timeout', 'schema-check', 'normal'].includes(p.probingStrategy),
     )
-    for (const p of claudeProbes) {
+    expect(nonDirectProbes.length).toBeGreaterThan(0)
+    for (const p of nonDirectProbes) {
       expect(p.userMessage.length).toBeGreaterThan(0)
     }
+  })
+
+  it('probe weights sum to 1.0', () => {
+    const total = DEFAULT_PROMPTS.reduce((sum, p) => sum + p.weight, 0)
+    expect(total).toBeCloseTo(1.0, 3)
   })
 })
 
@@ -80,7 +87,6 @@ describe('computeTrustScore', () => {
   })
 
   it('p50LatencyMs is the median duration', () => {
-    // 10 items, all 500ms → P50 = 500
     const results = base.map((r) => ({...r, durationMs: 500}))
     expect(computeTrustScore(results).p50LatencyMs).toBe(500)
   })
@@ -90,10 +96,10 @@ describe('computeTrustScore', () => {
     expect(computeTrustScore(base).score).toBe(100)
 
     // All fail (passRate=0 → 0pts), high P50 → latencyScore=0 → 0pts,
-    // but errorTaxonomy: 5 modes → penalty=(5-1)*20=80 → score=20 → 20*0.2=4
+    // errorTaxonomy: 5 modes → penalty=(5-1)*20=80 → score=20 → 20*0.2=4
     const allFail = base.map((r) => ({...r, passed: false, durationMs: 10_000, errorText: 'x'}))
     const {score} = computeTrustScore(allFail)
-    expect(score).toBe(4) // 0 + 0 + (100-80)*0.2 = 4
+    expect(score).toBe(4)
   })
 
   it('errorsByFailureMode counts failures per mode', () => {
