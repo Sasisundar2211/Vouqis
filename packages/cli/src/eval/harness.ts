@@ -76,15 +76,15 @@ async function runProbe(
   }
 }
 
-// ── Probe implementations ────────────────────────────────────────────────────
+// ── Probe implementations ─────────────────────────────────────────────────────
 
 async function runMalformedRpcProbe(
   prompt: TestPrompt,
   client: McpClient,
 ): Promise<ProbeOutcome> {
   const malformedBodies: Record<string, unknown> = {
-    'mjr-01': {this: 'is not valid jsonrpc', garbage: true},
-    'mjr-02': {jsonrpc: '2.0', method: 'tools/call'}, // missing id and params
+    'mal-01': {this: 'is not valid jsonrpc', garbage: true},
+    'mal-02': {jsonrpc: '2.0', method: 'tools/call'}, // missing id and params
   }
 
   const body = malformedBodies[prompt.id] ?? {bad: 'request'}
@@ -115,9 +115,8 @@ async function runStripParamsProbe(
   }
 
   const tool = tools[0]
-  // mrp-01 → fully empty params; mrp-02 → all params set to null
   const badInput: Record<string, unknown> =
-    prompt.id === 'mrp-01' ? {} : buildNullInput(tool)
+    prompt.id === 'mis-01' ? {} : buildNullInput(tool)
 
   try {
     await withTimeout(
@@ -131,12 +130,10 @@ async function runStripParamsProbe(
     if (msg.includes('timed out')) {
       return {passed: false, errorText: msg, toolCalled: tool.name}
     }
-    // Any non-timeout error (validation, rejection) counts as a handled response
     return {passed: true, errorText: msg.slice(0, 300), toolCalled: tool.name}
   }
 }
 
-// Cycles every tool; fails on the first one that exceeds the 5 s deadline.
 async function runTimeoutProbe(
   tools: McpTool[],
   client: McpClient,
@@ -154,13 +151,11 @@ async function runTimeoutProbe(
       if (msg.includes('timed out')) {
         return {passed: false, errorText: `${tool.name}: ${msg}`, toolCalled: tool.name}
       }
-      // Non-timeout error (bad params, etc.) — tool is responsive, continue
     }
   }
   return {passed: true, toolCalled: tools[0]?.name}
 }
 
-// Cycles every tool; fails on the first response that lacks a valid content[].
 async function runSchemaValidationProbe(
   tools: McpTool[],
   client: McpClient,
@@ -175,7 +170,7 @@ async function runSchemaValidationProbe(
         `schema-check/${tool.name}`,
       )
     } catch {
-      continue // timeout or call error — not a schema issue, skip
+      continue
     }
 
     const valid =
@@ -196,7 +191,6 @@ async function runSchemaValidationProbe(
   return {passed: true, toolCalled: tools[0]?.name}
 }
 
-// Cycles every tool; fails on the first response that is null or empty.
 async function runNullCheckProbe(
   tools: McpTool[],
   client: McpClient,
@@ -211,7 +205,7 @@ async function runNullCheckProbe(
         `null-check/${tool.name}`,
       )
     } catch {
-      continue // timeout or call error — not a null-content issue, skip
+      continue
     }
 
     const hasContent =
@@ -241,7 +235,6 @@ function buildNullInput(tool: McpTool): Record<string, unknown> {
   return Object.fromEntries(Object.keys(schema.properties).map((k) => [k, null]))
 }
 
-// Builds a minimal valid-ish input: strings → "test", numbers → 1, booleans → true
 function buildMinimalInput(tool: McpTool): Record<string, unknown> {
   const schema = tool.inputSchema as {
     properties?: Record<string, {type?: string}>

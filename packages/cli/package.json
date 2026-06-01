@@ -1,6 +1,6 @@
 {
   "name": "@vouqis/cli",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
   "type": "module",
   "author": "Vouqis <hello@vouqis.tech>",

@@ -76,7 +76,7 @@ export default class Score extends Command {
 
     await client.disconnect()
 
-    const trust = computeTrustScore(results)
+    const trust = computeTrustScore(results, DEFAULT_PROMPTS)
     const reportPath = flags['json-path']
 
     printTrustScore(args.url, trust, results, reportPath)

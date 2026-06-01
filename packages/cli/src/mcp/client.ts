@@ -45,6 +45,19 @@ export class McpClient {
     }
   }
 
+  async listTools(): Promise<McpTool[]> {
+    if (!this.sdk) throw new Error('McpClient not connected — call connect() first')
+    const result = await this.sdk.request(
+      {method: 'tools/list', params: {}},
+      ListToolsResultSchema,
+    )
+    return result.tools.map((t) => ({
+      name: t.name,
+      description: t.description ?? '',
+      inputSchema: (t.inputSchema ?? {}) as Record<string, unknown>,
+    }))
+  }
+
   // Sends an arbitrary body directly to the server URL, bypassing the SDK.
   // Used exclusively by the malformed-rpc probes.
   async probeRaw(body: unknown): Promise<McpRawProbeResult> {

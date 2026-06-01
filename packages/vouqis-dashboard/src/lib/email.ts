@@ -1,5 +1,32 @@
 import {Resend} from 'resend'
 
+export async function sendFounderAlert(params: {
+  serverUrl: string
+  score: number
+  passCount: number
+  failCount: number
+  reportUrl: string
+}): Promise<void> {
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const {serverUrl, score, passCount, failCount, reportUrl} = params
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'Vouqis <hello@vouqis.tech>',
+    to: 'sasisundhar2211@gmail.com',
+    subject: `New audit — ${serverUrl} scored ${score}/100`,
+    html: `
+      <p><strong>Server:</strong> ${serverUrl}</p>
+      <p><strong>Score:</strong> ${score}/100</p>
+      <p><strong>Probes:</strong> ${passCount} passed / ${failCount} failed</p>
+      <p><strong>Report:</strong> <a href="${reportUrl}">${reportUrl}</a></p>
+      <hr/>
+      <p style="color:#6b7280;font-size:12px">
+        Follow up: Who are you? What server did you test? What happened next?
+      </p>
+    `,
+  })
+}
+
 interface InvoiceDetails {
   number: string
   amountPaid: number

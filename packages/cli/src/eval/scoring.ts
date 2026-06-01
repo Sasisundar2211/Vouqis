@@ -1,3 +1,5 @@
+import type {TestPrompt} from './prompts.js'
+
 export interface EvalResult {
   promptId: string
   failureMode: string
@@ -16,7 +18,7 @@ export interface TrustScore {
   passedPrompts: number
 }
 
-const WEIGHTS = {
+const SCORE_WEIGHTS = {
   passRate: 0.5,
   latency: 0.3,
   errorTaxonomy: 0.2,
@@ -46,9 +48,37 @@ function percentile(sortedMs: number[], p: number): number {
   return sortedMs[Math.max(0, idx)]
 }
 
-export function computeTrustScore(results: EvalResult[]): TrustScore {
+/**
+ * Weighted pass rate: each probe contributes its declared weight (0–1).
+ * A probe with weight 0.15 failing costs twice as much as one with weight 0.10.
+ * Falls back to simple pass rate if no weight map is provided.
+ */
+function weightedPassRate(
+  results: EvalResult[],
+  weightByProbeId: Record<string, number>,
+): number {
+  if (results.length === 0) return 0
+  let earnedWeight = 0
+  let totalWeight = 0
+  for (const r of results) {
+    const w = weightByProbeId[r.promptId] ?? 1 / results.length
+    totalWeight += w
+    if (r.passed) earnedWeight += w
+  }
+  return totalWeight > 0 ? earnedWeight / totalWeight : 0
+}
+
+export function computeTrustScore(
+  results: EvalResult[],
+  prompts?: TestPrompt[],
+): TrustScore {
+  const weightByProbeId: Record<string, number> = {}
+  if (prompts) {
+    for (const p of prompts) weightByProbeId[p.id] = p.weight
+  }
+
+  const passRate = weightedPassRate(results, weightByProbeId)
   const passed = results.filter((r) => r.passed)
-  const passRate = results.length > 0 ? passed.length / results.length : 0
 
   const sortedLatencies = results.map((r) => r.durationMs).sort((a, b) => a - b)
   const p50 = percentile(sortedLatencies, 50)
@@ -61,9 +91,9 @@ export function computeTrustScore(results: EvalResult[]): TrustScore {
     }, {})
 
   const rawScore =
-    passRate * 100 * WEIGHTS.passRate +
-    latencyScore(p50) * WEIGHTS.latency +
-    errorTaxonomyScore(results) * WEIGHTS.errorTaxonomy
+    passRate * 100 * SCORE_WEIGHTS.passRate +
+    latencyScore(p50) * SCORE_WEIGHTS.latency +
+    errorTaxonomyScore(results) * SCORE_WEIGHTS.errorTaxonomy
 
   return {
     score: Math.round(rawScore),

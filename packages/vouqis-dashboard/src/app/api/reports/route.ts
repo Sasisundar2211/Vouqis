@@ -1,5 +1,6 @@
 import {createClient} from '@supabase/supabase-js'
 import {NextRequest} from 'next/server'
+import {sendFounderAlert} from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   const supabase = createClient(
@@ -30,37 +31,8 @@ export async function POST(request: NextRequest) {
     return Response.json({error: 'Missing required fields'}, {status: 400})
   }
 
-  const rawKey = request.headers.get('x-vouqis-api-key')
-  const freeExpiryDays = parseInt(process.env.NEXT_PUBLIC_FREE_REPORT_EXPIRY_DAYS ?? '7')
-  let expiryDays = freeExpiryDays
-  let validatedApiKey: string | null = null
-
-  if (rawKey) {
-    try {
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_KEY!,
-      )
-      const {data: sub, error: lookupError} = await supabaseAdmin
-        .from('subscriptions')
-        .select('status, api_key')
-        .eq('api_key', rawKey)
-        .eq('status', 'active')
-        .single()
-
-      if (!lookupError && sub) {
-        const proExpiryDays = parseInt(process.env.NEXT_PUBLIC_PRO_REPORT_HISTORY_DAYS ?? '90')
-        expiryDays = proExpiryDays
-        validatedApiKey = rawKey
-      }
-      // If lookup errors or finds nothing: silent fallback to free tier
-    } catch {
-      console.error('[api/reports] api_key lookup failed, falling back to free tier')
-    }
-  }
-
   const expiresAt = new Date()
-  expiresAt.setDate(expiresAt.getDate() + expiryDays)
+  expiresAt.setDate(expiresAt.getDate() + 7)
 
   const {data, error} = await supabase
     .from('audit_reports')
@@ -74,7 +46,7 @@ export async function POST(request: NextRequest) {
       top_failures: topFailures,
       probe_results: probeResults,
       expires_at: expiresAt.toISOString(),
-      user_api_key: validatedApiKey,
+      user_api_key: null,
     })
     .select('id')
     .single()
@@ -85,6 +57,11 @@ export async function POST(request: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const reportUrl = `${appUrl}/report/${data.id}`
+
+  // Fire-and-forget founder alert — never block the response
+  sendFounderAlert({serverUrl, score: trustScore, passCount, failCount, reportUrl}).catch(
+    (err) => console.error('[reports] founder alert failed:', err),
+  )
 
   return Response.json({id: data.id, url: reportUrl, reportUrl})
 }
