@@ -35,7 +35,8 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
     "chalk": "^5",
-    "ora": "^9"
+    "ora": "^9",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^25",

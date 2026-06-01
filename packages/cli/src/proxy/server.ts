@@ -1,0 +1,227 @@
+import * as http from 'node:http'
+import type {ProxyConfig, UpstreamConfig} from './config.js'
+import {validateRequest, validateResponse} from './validator.js'
+import {buildRateLimiter, TokenBucket} from './ratelimit.js'
+import {AuditLogger} from './audit.js'
+import type {JsonRpcRequest, JsonRpcResponse, PolicyDecision} from './types.js'
+
+const RETRY_DELAY_MS = 300
+
+async function readBody(req: http.IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) chunks.push(chunk as Buffer)
+  return Buffer.concat(chunks)
+}
+
+function errorResponse(id: string | number | null | undefined, code: number, message: string): string {
+  return JSON.stringify({jsonrpc: '2.0', id: id ?? null, error: {code, message}})
+}
+
+async function forwardToUpstream(
+  upstream: UpstreamConfig,
+  headers: Record<string, string>,
+  rawBody: Buffer,
+  timeoutMs: number,
+): Promise<Response> {
+  return fetch(upstream.url, {
+    method: 'POST',
+    headers,
+    body: rawBody,
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+}
+
+export function createProxyServer(config: ProxyConfig, logger: AuditLogger): http.Server {
+  const upstream = config.upstreams[0] // MVP: single upstream
+  const bucket: TokenBucket | null = buildRateLimiter(upstream.rate_limit_rps)
+
+  const server = http.createServer(async (req, res) => {
+    const start = Date.now()
+    let rpcMethod = 'unknown'
+    let rpcId: string | number | null | undefined
+    let attempt = 0
+
+    const emit = (decision: PolicyDecision, reason?: string) => {
+      logger.log({
+        ts: new Date().toISOString(),
+        upstream: upstream.url,
+        method: rpcMethod,
+        requestId: rpcId,
+        decision,
+        latencyMs: Date.now() - start,
+        reason,
+        attempt,
+      })
+    }
+
+    const sendBlock = (code: number, message: string) => {
+      emit('block', message)
+      res.writeHead(200, {'Content-Type': 'application/json'})
+      res.end(errorResponse(rpcId, code, message))
+    }
+
+    try {
+      const rawBody = await readBody(req)
+
+      // Parse JSON-RPC envelope
+      let parsedBody: unknown
+      try {
+        parsedBody = JSON.parse(rawBody.toString())
+        rpcMethod = ((parsedBody as JsonRpcRequest).method as string) ?? 'unknown'
+        rpcId = (parsedBody as JsonRpcRequest).id
+      } catch {
+        sendBlock(-32700, 'Gateway: request body is not valid JSON')
+        return
+      }
+
+      // Request validation
+      const reqValidation = validateRequest(
+        parsedBody,
+        upstream.policies.max_request_size_kb,
+        rawBody.length,
+      )
+      if (reqValidation) {
+        sendBlock(-32600, `Gateway: ${reqValidation.reason}`)
+        return
+      }
+
+      // Rate limiting
+      if (bucket && !bucket.consume()) {
+        sendBlock(-32000, `Gateway: rate limit exceeded (${upstream.rate_limit_rps} req/s)`)
+        return
+      }
+
+      // Forward headers (strip Host, forward everything else)
+      const forwardHeaders: Record<string, string> = {
+        'content-type': 'application/json',
+        'accept': 'application/json, text/event-stream',
+      }
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (k.toLowerCase() === 'host') continue
+        forwardHeaders[k] = Array.isArray(v) ? v.join(', ') : (v ?? '')
+      }
+
+      // Forward to upstream with retry on timeout
+      const maxAttempts = upstream.retry + 1
+      let upstreamRes: Response | null = null
+      let lastError: unknown
+
+      for (attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          upstreamRes = await forwardToUpstream(upstream, forwardHeaders, rawBody, upstream.timeout_ms)
+          break
+        } catch (err) {
+          lastError = err
+          const isTimeout = err instanceof Error && err.name === 'TimeoutError'
+          if (!isTimeout || attempt >= maxAttempts) break
+
+          // Only retry idempotent MCP methods (reads, not mutations)
+          const isIdempotent = ['tools/list', 'tools/call', 'initialize', 'ping'].includes(rpcMethod)
+          if (!isIdempotent) break
+
+          emit('retry', `timeout on attempt ${attempt} — retrying in ${RETRY_DELAY_MS}ms`)
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+        }
+      }
+
+      if (!upstreamRes) {
+        const isTimeout = lastError instanceof Error && lastError.name === 'TimeoutError'
+        sendBlock(
+          isTimeout ? -32000 : -32603,
+          isTimeout
+            ? `Gateway: upstream timed out after ${upstream.timeout_ms}ms (${maxAttempts} attempt(s))`
+            : `Gateway: upstream unreachable — ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+        )
+        return
+      }
+
+      const contentType = upstreamRes.headers.get('content-type') ?? ''
+
+      // SSE streams: pipe through without buffering
+      if (contentType.includes('text/event-stream')) {
+        res.writeHead(upstreamRes.status, {
+          'Content-Type': contentType,
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        })
+        const reader = upstreamRes.body?.getReader()
+        if (reader) {
+          try {
+            for (;;) {
+              const {done, value} = await reader.read()
+              if (done) break
+              res.write(value)
+            }
+          } finally {
+            res.end()
+          }
+        } else {
+          res.end()
+        }
+        emit('allow')
+        return
+      }
+
+      // Buffer JSON response
+      const responseText = await upstreamRes.text()
+      let parsedResponse: unknown
+      try {
+        parsedResponse = JSON.parse(responseText)
+      } catch {
+        // Not JSON — forward as-is
+        res.writeHead(upstreamRes.status, {'Content-Type': contentType || 'application/json'})
+        res.end(responseText)
+        emit('allow')
+        return
+      }
+
+      // Response validation + policy
+      const resPolicy = validateResponse(
+        parsedResponse,
+        rpcMethod,
+        upstream.policies.block_null_result,
+        upstream.policies.sanitize_schema,
+      )
+
+      if (resPolicy) {
+        if (resPolicy.decision === 'block') {
+          sendBlock(-32000, `Gateway: ${resPolicy.reason}`)
+          return
+        }
+        if (resPolicy.decision === 'rewrite' && resPolicy.body) {
+          const rewritten = JSON.stringify(resPolicy.body)
+          emit('rewrite', resPolicy.reason)
+          res.writeHead(upstreamRes.status, {
+            'Content-Type': 'application/json',
+            'Content-Length': String(Buffer.byteLength(rewritten)),
+          })
+          res.end(rewritten)
+          return
+        }
+      }
+
+      emit('allow')
+      const outBuf = Buffer.from(responseText)
+      res.writeHead(upstreamRes.status, {
+        'Content-Type': 'application/json',
+        'Content-Length': String(outBuf.byteLength),
+      })
+      res.end(outBuf)
+    } catch (err) {
+      sendBlock(-32603, `Gateway internal error: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  })
+
+  return server
+}
+
+export function startServer(server: http.Server, listen: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const [host, portStr] = listen.includes(':')
+      ? [listen.slice(0, listen.lastIndexOf(':')), listen.slice(listen.lastIndexOf(':') + 1)]
+      : ['127.0.0.1', listen]
+    const port = parseInt(portStr, 10)
+    server.once('error', reject)
+    server.listen(port, host, () => resolve())
+  })
+}
