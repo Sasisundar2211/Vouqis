@@ -12,12 +12,12 @@
   <img src="https://img.shields.io/badge/node-%3E%3D20-6b7280?style=flat-square" alt="Node 20+">
 </p>
 
-<p align="center"><strong>MCP server reliability auditor for AI teams</strong></p>
+<p align="center"><strong>Runtime MCP trust layer — audit, proxy, and gate any MCP server</strong></p>
 
 <p align="center">
   <a href="https://www.vouqis.tech">Dashboard</a> ·
-  <a href="https://www.vouqis.tech/pro">Pro — $9/mo</a> ·
-  <a href="https://www.vouqis.tech/enterprise">Enterprise — $499/mo</a> ·
+  <a href="https://www.vouqis.tech/proxy">Live Proxy</a> ·
+  <a href="mailto:sasisundhar2211@gmail.com?subject=Founding%20Customer%20Application">Founding Customer (3 months free)</a> ·
   <a href="https://github.com/Sasisundar2211/Vouqis/issues">Issues</a>
 </p>
 
@@ -62,14 +62,14 @@ $ vouqis audit https://mcp.exa.ai/mcp
   Vouqis — MCP Trust Auditor
   Running 10 probes against mcp.exa.ai...
 
-  mjr-01  ✓  malformed jsonrpc rejected           12ms
-  mjr-02  ✗  silent acceptance (unexpected)        18ms
-  mrp-01  ✓  missing params → error returned      340ms
-  mrp-02  ✓  null params → error returned         298ms
+  mal-01  ✓  malformed jsonrpc rejected           12ms
+  mal-02  ✗  silent acceptance (unexpected)        18ms
+  mis-01  ✓  missing params → error returned      340ms
+  mis-02  ✓  null params → error returned         298ms
   tmo-01  ✓  cold-start response within 5s        487ms
   tmo-02  ✓  repeat-call response within 5s       412ms
-  urs-01  ✓  response conforms to content[] spec  691ms
-  urs-02  ✓  each content item has a type field   623ms
+  sch-01  ✓  response conforms to content[] spec  691ms
+  sch-02  ✓  each content item has a type field   623ms
   nul-01  ✓  non-empty response returned          441ms
   nul-02  ✓  non-empty response returned          398ms
 
@@ -99,10 +99,10 @@ Ten deterministic JSON-RPC probes across five failure modes. No LLM calls. No te
 
 | Probe | Failure Mode | What Passes |
 |:---|:---|:---|
-| `mjr-01/02` | Malformed JSON-RPC | Server rejects the request — not silent `200 OK` |
-| `mrp-01/02` | Missing parameters | Server handles `{}` and `null` args without hanging |
+| `mal-01/02` | Malformed JSON-RPC | Server rejects the request — not silent `200 OK` |
+| `mis-01/02` | Missing parameters | Server handles `{}` and `null` args without hanging |
 | `tmo-01/02` | Response time | Every tool responds within 5 seconds |
-| `urs-01/02` | Schema compliance | Response contains a valid `content[]` array with typed items |
+| `sch-01/02` | Schema compliance | Response contains a valid `content[]` array with typed items |
 | `nul-01/02` | Empty response | At least one non-blank result returned |
 
 **Trust Score formula:**
@@ -161,6 +161,81 @@ import { withTrustGuard } from '@vouqis/sdk'
 
 // Throws TrustGuardError before first tool call if score < 80
 const client = await withTrustGuard(mcpClient, serverUrl, { minScore: 80 })
+```
+
+---
+
+## Runtime Proxy
+
+`vouqis proxy` sits in front of any MCP server and enforces reliability at the transport layer — before broken tool calls reach your agent.
+
+```bash
+vouqis proxy \
+  --upstream https://your-mcp-server.com \
+  --timeout 5000 \
+  --retry 2 \
+  --rate-limit 10 \
+  --api-key $VOUQIS_API_KEY
+```
+
+Every request is validated, rate-limited, retried on timeout, and streamed live to the [proxy dashboard](https://www.vouqis.tech/proxy).
+
+| Feature | What it does |
+|:---|:---|
+| Timeout enforcement | Kills requests exceeding `--timeout` ms; retries idempotent calls |
+| Schema sanitization | Normalizes responses that drift from the MCP content[] spec |
+| Rate limiting | Token-bucket limiter per upstream to prevent quota burns |
+| Audit log | Every decision written to `./vouqis-audit.log` in JSONL format |
+| Live dashboard | Pass `--api-key` to stream events to `vouqis.tech/proxy` in real time |
+| Policy engine | Allow / block / retry / rewrite per tool and per server |
+
+Start the proxy with a config file for full control:
+
+```yaml
+# vouqis.yml
+upstream: https://your-mcp-server.com
+listen: 127.0.0.1:4444
+timeout: 5000
+retry: 2
+rateLimit: 10
+blockNull: true
+```
+
+```bash
+vouqis proxy --config vouqis.yml
+```
+
+View all audit events:
+
+```bash
+vouqis logs ./vouqis-audit.log
+```
+
+---
+
+## SDK
+
+The `@vouqis/sdk` package wraps any MCP client to intercept every `callTool()` call and apply the same trust policies as the proxy — without a separate process.
+
+```bash
+npm install @vouqis/sdk
+```
+
+```ts
+import { VouqisSDK } from '@vouqis/sdk'
+
+// Wrap any MCP client — intercepts every tool call transparently
+const guarded = VouqisSDK.wrap(mcpClient, {
+  serverUrl: 'https://your-mcp-server.com',
+  blockNull: true,
+  timeout: 5000,
+})
+
+// Or gate instantiation on a passing trust score:
+import { withTrustGuard } from '@vouqis/sdk'
+
+const client = await withTrustGuard(mcpClient, serverUrl, { minScore: 80 })
+// Throws TrustGuardError immediately if the server scores below 80
 ```
 
 ---
