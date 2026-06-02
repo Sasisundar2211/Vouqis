@@ -12,11 +12,11 @@
   <img src="https://img.shields.io/badge/node-%3E%3D20-6b7280?style=flat-square" alt="Node 20+">
 </p>
 
-<p align="center"><strong>Runtime MCP trust layer — audit, proxy, and gate any MCP server</strong></p>
+<p align="center"><strong>AI Agent Reliability Gateway — intercept, validate, and enforce every MCP call at runtime</strong></p>
 
 <p align="center">
+  <a href="https://www.vouqis.tech/proxy">Live Gateway</a> ·
   <a href="https://www.vouqis.tech">Dashboard</a> ·
-  <a href="https://www.vouqis.tech/proxy">Live Proxy</a> ·
   <a href="mailto:sasisundhar2211@gmail.com?subject=Founding%20Customer%20Application">Founding Customer (3 months free)</a> ·
   <a href="https://github.com/Sasisundar2211/Vouqis/issues">Issues</a>
 </p>
@@ -54,12 +54,77 @@ At 71% per-tool reliability, a 5-tool agent chain succeeds only **18% of the tim
 
 ---
 
-## Demo
+## The Gateway
+
+`vouqis proxy` sits between your agent and every MCP server. It intercepts every tool call, enforces your reliability policy, and passes or blocks — before broken responses reach your agent.
+
+```bash
+npm install -g @vouqis/cli
+
+vouqis proxy \
+  --upstream https://your-mcp-server.com \
+  --timeout 5000 \
+  --retry 2 \
+  --rate-limit 10 \
+  --api-key $VOUQIS_API_KEY
+```
+
+```
+Vouqis Gateway — AI Agent Reliability Proxy
+  ✓ Listening on 127.0.0.1:4444
+  ✓ Upstream: https://your-mcp-server.com
+  ● Live stream → www.vouqis.tech/proxy
+
+  [12:01:03] allow    tools/call  list_repos    142ms
+  [12:01:09] retry    tools/call  get_file      5,012ms  timeout → retrying
+  [12:01:09] allow    tools/call  get_file      380ms   (attempt 2)
+  [12:01:14] block    tools/call  search        — null content[]
+```
+
+Point your agent at `localhost:4444` instead of the upstream. Every call is validated, timed, and logged. Nothing else changes.
+
+| Feature | What it does |
+|:---|:---|
+| Timeout enforcement | Kills requests exceeding `--timeout` ms; retries idempotent calls up to `--retry` times |
+| Request validation | Rejects malformed JSON-RPC before it reaches the upstream |
+| Schema sanitization | Normalizes responses that drift from the MCP `content[]` spec |
+| Null blocking | Blocks null or empty tool call results before they propagate silently |
+| Rate limiting | Token-bucket limiter per upstream — prevents quota burns |
+| Audit log | Every allow / block / retry / rewrite decision written to `./vouqis-audit.log` in JSONL |
+| Live dashboard | Pass `--api-key` to stream every event to `vouqis.tech/proxy` in real time |
+
+Config file for full control:
+
+```yaml
+# vouqis.yml
+upstream: https://your-mcp-server.com
+listen: 127.0.0.1:4444
+timeout: 5000
+retry: 2
+rateLimit: 10
+blockNull: true
+```
+
+```bash
+vouqis proxy --config vouqis.yml
+```
+
+View the audit log:
+
+```bash
+vouqis logs ./vouqis-audit.log
+```
+
+---
+
+## Diagnostic Audit
+
+Before deploying the gateway — or before integrating a new MCP server — run a one-off audit. Ten deterministic probes across five failure modes. 30 seconds. No LLM calls.
 
 ```
 $ vouqis audit https://mcp.exa.ai/mcp
 
-  Vouqis — MCP Trust Auditor
+  Vouqis — MCP Reliability Audit
   Running 10 probes against mcp.exa.ai...
 
   mal-01  ✓  malformed jsonrpc rejected           12ms
@@ -82,10 +147,7 @@ $ vouqis audit https://mcp.exa.ai/mcp
   Report  →  https://www.vouqis.tech/report/exa-abc123
 ```
 
-**Install and run:**
-
 ```bash
-npm install -g @vouqis/cli
 vouqis audit https://your-mcp-server.com
 ```
 
@@ -93,9 +155,9 @@ By default the CLI is **fully local** — every run produces a terminal report a
 
 ---
 
-## What It Tests
+## What the Gateway Enforces
 
-Ten deterministic JSON-RPC probes across five failure modes. No LLM calls. No test case authoring. No server-side changes.
+Five failure modes. Ten probes. The gateway blocks all of them at runtime; the audit detects them before you integrate.
 
 | Probe | Failure Mode | What Passes |
 |:---|:---|:---|
@@ -143,8 +205,6 @@ jobs:
           VOUQIS_API_KEY: ${{ secrets.VOUQIS_API_KEY }}
 ```
 
-**Threshold guide:**
-
 | Flag | When to use |
 |:---|:---|
 | `--fail-below 80` | Standard production gate — APPROVED required |
@@ -165,57 +225,9 @@ const client = await withTrustGuard(mcpClient, serverUrl, { minScore: 80 })
 
 ---
 
-## Runtime Proxy
-
-`vouqis proxy` sits in front of any MCP server and enforces reliability at the transport layer — before broken tool calls reach your agent.
-
-```bash
-vouqis proxy \
-  --upstream https://your-mcp-server.com \
-  --timeout 5000 \
-  --retry 2 \
-  --rate-limit 10 \
-  --api-key $VOUQIS_API_KEY
-```
-
-Every request is validated, rate-limited, retried on timeout, and streamed live to the [proxy dashboard](https://www.vouqis.tech/proxy).
-
-| Feature | What it does |
-|:---|:---|
-| Timeout enforcement | Kills requests exceeding `--timeout` ms; retries idempotent calls |
-| Schema sanitization | Normalizes responses that drift from the MCP content[] spec |
-| Rate limiting | Token-bucket limiter per upstream to prevent quota burns |
-| Audit log | Every decision written to `./vouqis-audit.log` in JSONL format |
-| Live dashboard | Pass `--api-key` to stream events to `vouqis.tech/proxy` in real time |
-| Policy engine | Allow / block / retry / rewrite per tool and per server |
-
-Start the proxy with a config file for full control:
-
-```yaml
-# vouqis.yml
-upstream: https://your-mcp-server.com
-listen: 127.0.0.1:4444
-timeout: 5000
-retry: 2
-rateLimit: 10
-blockNull: true
-```
-
-```bash
-vouqis proxy --config vouqis.yml
-```
-
-View all audit events:
-
-```bash
-vouqis logs ./vouqis-audit.log
-```
-
----
-
 ## SDK
 
-The `@vouqis/sdk` package wraps any MCP client to intercept every `callTool()` call and apply the same trust policies as the proxy — without a separate process.
+The `@vouqis/sdk` package wraps any MCP client to intercept every `callTool()` call and apply the same trust policies as the gateway — without a separate process.
 
 ```bash
 npm install @vouqis/sdk
@@ -245,7 +257,8 @@ const client = await withTrustGuard(mcpClient, serverUrl, { minScore: 80 })
 | | Free | Pro | Enterprise |
 |:---|:---:|:---:|:---:|
 | Price | $0 | $9/mo | $499/mo |
-| All 10 probes | ✓ | ✓ | ✓ |
+| Gateway proxy | ✓ | ✓ | ✓ |
+| All 10 audit probes | ✓ | ✓ | ✓ |
 | Shareable report URLs | ✓ | ✓ | ✓ |
 | Report retention | 30 days | 90 days | 90 days |
 | API key for CI/CD | — | ✓ | ✓ |
