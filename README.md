@@ -8,13 +8,12 @@
   <strong>AI Agent Reliability Gateway</strong>
 </p>
 
-<p align="center">
-Prevent MCP failures before they reach production.
-</p>
+<p align="center"><strong>Sits between your agent and every MCP server — blocks silent failures before they reach production</strong></p>
 
 <p align="center">
-  <a href="https://github.com/Sasisundar2211/Vouqis">GitHub</a> ·
   <a href="https://www.vouqis.tech">Website</a> ·
+  <a href="https://www.vouqis.tech/proxy">Live Gateway</a> ·
+  <a href="mailto:sasisundhar2211@gmail.com?subject=Founding%20Customer%20Application">Founding Customer (3 months free)</a> ·
   <a href="https://github.com/Sasisundar2211/Vouqis/issues">Issues</a>
 </p>
 
@@ -22,43 +21,31 @@ Prevent MCP failures before they reach production.
 
 ## The Problem
 
-Most MCP failures don't look like failures.
+HTTP 200 is not success for MCP. Your AI agent calls a tool, gets a 200, logs "success" — and your user sees nothing happen.
 
-An MCP server can return:
+```
+Without Vouqis:
+  Agent → MCP Server → result: null → Agent says "done" → silent failure
 
-* HTTP 200
-* Empty content
+With Vouqis:
+  Agent → Vouqis → MCP Server → result: null → Vouqis blocks → Agent gets an error it can handle
+```
+
+These are real documented incidents where servers returned 200 while broken:
+
+* HTTP 200 with empty content
 * Null responses
 * Invalid schemas
 * Partial results
+* Hung requests that never resolve
 
-while still appearing healthy.
-
-Your AI agent believes the task succeeded.
-
-Your user receives a broken outcome.
-
-Standard monitoring stays green.
-
-Developers discover the problem hours later while debugging logs.
+Standard monitoring stays green. Your agent believes the task succeeded. Your user receives a broken outcome.
 
 ---
 
-## The Solution
+## The Gateway
 
-Vouqis sits directly between AI agents and MCP servers.
-
-```text
-Agent
-  ↓
-Vouqis Gateway
-  ↓
-MCP Server
-```
-
-Every request and response passes through Vouqis before reaching production.
-
-Vouqis validates requests, detects silent failures, retries recoverable errors, and produces structured reliability logs.
+`vouqis proxy` is the core product. It sits between your agent and every MCP server. Point your agent at `localhost:4444` instead of the upstream. Every call is validated, timed, and logged.
 
 ---
 
@@ -73,55 +60,37 @@ npm install -g @vouqis/cli
 Start the gateway:
 
 ```bash
-vouqis proxy \
-  --upstream https://your-mcp-server.com
+vouqis proxy --upstream https://your-mcp-server.com
 ```
 
-Point your AI agent to:
+```
+VOUQIS ── proxy ── https://your-mcp-server.com
 
-```text
-http://localhost:4444
+  Listening on   http://127.0.0.1:4444
+  Upstream       https://your-mcp-server.com
+  Timeout        5000ms
+  Retry          1 (idempotent requests)
+  Block null     yes
+  Audit log      ./vouqis-audit.log
+
+  Point your agent at http://127.0.0.1:4444 instead of the real server.
+
+  [14:23:11]  ALLOW    tools/call    list_repos          142ms
+  [14:23:19]  ALLOW    tools/call    search_code         388ms
+  [14:23:31]  RETRY    tools/call    get_file            5003ms  ← timeout on attempt 1
+  [14:23:36]  ALLOW    tools/call    get_file            411ms
+  [14:23:44]  BLOCK    tools/call    search              0ms     ← tools/call content is empty
 ```
 
-That's it.
+The only change to your agent is the URL:
 
----
+```typescript
+// Before
+const client = new MCPClient({ url: 'https://your-mcp-server.com' })
 
-## Example
-
-Without Vouqis:
-
-```text
-Agent
-  ↓
-GitHub MCP
-  ↓
-Returns null
-  ↓
-Agent believes task succeeded
+// After — one line changes
+const client = new MCPClient({ url: 'http://127.0.0.1:4444' })
 ```
-
-With Vouqis:
-
-```text
-Agent
-  ↓
-Vouqis
-  ↓
-GitHub MCP
-```
-
-Vouqis detects:
-
-```text
-null response
-```
-
-Blocks the response.
-
-Logs the failure.
-
-Returns a structured error.
 
 ---
 
@@ -129,84 +98,120 @@ Returns a structured error.
 
 ### Request Validation
 
-Reject malformed JSON-RPC requests before they reach the MCP server.
+Every request is validated before reaching the upstream:
+
+| Check | What it catches |
+|:---|:---|
+| Valid JSON-RPC 2.0 | Malformed requests rejected before they reach the upstream |
+| `method` field present | Required by MCP spec |
+| Request size ≤ 512 KB | Oversized payloads rejected before forwarding |
 
 ### Response Validation
 
-Detect:
+Every response is validated before reaching your agent:
 
-* Null responses
-* Empty arrays
-* Empty objects
-* Missing content
-* Invalid response structures
+| Check | What it catches |
+|:---|:---|
+| `result` is not null | Silent null returns |
+| `content[]` is non-empty | Tool calls that succeeded but produced nothing |
+| `content[]` items have `type` field | Schema drift — items normalized automatically |
+| Response within `--timeout` ms | Hung requests — retried once automatically |
 
-### Timeout Detection
+### Decision on every call
 
-Identify slow or hanging MCP servers.
+| Decision | What it means |
+|:---|:---|
+| `allow` | Request and response valid. Passed through. |
+| `block` | Something is wrong. Agent gets a structured error. |
+| `retry` | Timed out. Retried once. Logged. |
+| `rewrite` | Schema drift fixed silently. |
 
-### Automatic Retry
+### Config file
 
-Recover from transient failures automatically.
+For production or teams, create `vouqis.yml` in your project root:
 
-### Structured Logs
+```yaml
+listen: 127.0.0.1:4444
+log_file: ./vouqis-audit.log
 
-Every decision is recorded.
+upstreams:
+  - name: github-mcp
+    url: https://your-mcp-server.com
+    timeout_ms: 5000
+    retry: 1
+    policies:
+      block_null_result: true
+      sanitize_schema: true
+      max_request_size_kb: 512
+```
 
-Example:
+```bash
+vouqis proxy   # auto-detects vouqis.yml
+```
+
+---
+
+## Structured Logs
+
+Every decision is written to `./vouqis-audit.log` in JSONL:
 
 ```json
-{
-  "tool": "github.search",
-  "latency_ms": 6210,
-  "decision": "blocked",
-  "reason": "timeout"
-}
+{"timestamp":"2026-06-03T14:23:44.000Z","upstream":"https://your-mcp-server.com","method":"tools/call","tool":"search","requestId":7,"decision":"block","latency_ms":0,"reason":"tools/call content is empty or not an array","attempt":1}
 ```
+
+View with:
+
+```bash
+vouqis logs
+```
+
+```
+VOUQIS ── audit log summary
+
+  Total events   47
+  Allowed        41
+  Blocked        4
+  Retried        2
+  Latency P50    312ms
+  Latency P95    1847ms
+
+  Top block reasons:
+    ✗ tools/call content is empty or not an array (3)
+    ✗ upstream timed out after 5000ms (1)
+```
+
+Options: `--tail 50`, `--summary` (stats only), `--file ./path/to/log`
 
 ---
 
 ## Run A Reliability Audit
 
-Before integrating a new MCP server, run a diagnostic audit.
+Before deploying the gateway — run a one-off audit to test whether a server is safe to integrate. 10 protocol-level probes, 30 seconds, no LLM calls.
 
 ```bash
 vouqis audit https://your-mcp-server.com
 ```
 
-The audit runs deterministic reliability probes and identifies:
+```
+  Vouqis — MCP Reliability Audit
+  Running 10 probes against your-mcp-server.com...
 
-* Timeout issues
-* Error handling failures
-* Schema compliance issues
-* Empty responses
-* Silent failures
+  mal-01  ✓  malformed jsonrpc rejected           12ms
+  mis-01  ✓  missing params → error returned      340ms
+  tmo-01  ✓  cold-start response within 5s        487ms
+  sch-01  ✓  response conforms to content[] spec  691ms
+  nul-01  ✓  non-empty response returned          441ms
+  ...
 
-Example:
-
-```text
-Vouqis Audit Report
-──────────────────────────────
-
-Server:
-github-mcp.example.com
-
-Checks:
-✓ Request Validation
-✓ Error Handling
-✓ Timeout Handling
-✗ Null Response Protection
-
-Summary:
-1 critical issue detected
-
-Recommendation:
-Review before production use.
+  Trust Score    90 / 100  ✅ APPROVED
+  Pass Rate      9 / 10
 ```
 
-The audit helps you evaluate a server before deployment.
+The audit answers: *should I integrate this server?*
 
-The gateway protects traffic during execution.
+The gateway answers: *is it behaving correctly right now, on this specific call?*
+
+Use both.
 
 ---
 
@@ -233,26 +238,14 @@ The gateway protects traffic during execution.
 
 Inside Vouqis:
 
-Request
-  ↓
-Validation
-  ↓
-Forward
-  ↓
-Response Validation
-  ↓
-Retry Logic
-  ↓
-Structured Logs
-  ↓
-Return Result
+Request → Validation → Forward → Response Validation → Retry Logic → Structured Logs → Return Result
 ```
 
 ---
 
 ## Current MVP
 
-Vouqis currently focuses on five core capabilities:
+Vouqis v0.3 focuses on five core capabilities:
 
 * Request Validation
 * Response Validation
@@ -266,109 +259,46 @@ Everything else is secondary.
 
 ## Why Existing Tools Aren't Enough
 
-### Observability Platforms
+**Observability platforms** (Langfuse, LangSmith, Braintrust, Arize) show what happened after a failure. Vouqis prevents failures before users see them.
 
-Examples:
+**Integration platforms** (Composio, Truto, Klavis) connect tools. Vouqis validates reliability.
 
-* Langfuse
-* LangSmith
-* Braintrust
-* Arize
+**API gateways** (Kong, Envoy, NGINX) route traffic. Vouqis understands MCP-specific failures.
 
-These show what happened after a failure.
+---
 
-Vouqis prevents failures before users see them.
+## Privacy
 
-### Integration Platforms
+Vouqis is local-first.
 
-Examples:
+| What | When | Where |
+|:---|:---|:---|
+| JSON-RPC requests | Every run | Your MCP server only |
+| Audit results | Only with `--report` or `--api-key` | `vouqis.tech/api` |
 
-* Composio
-* Truto
-* Klavis
-
-These connect tools.
-
-Vouqis validates reliability.
-
-### API Gateways
-
-Examples:
-
-* Kong
-* Envoy
-* NGINX
-
-These route traffic.
-
-Vouqis understands MCP-specific failures.
+No telemetry. No account required. Nothing leaves your machine unless you explicitly opt in.
 
 ---
 
 ## Roadmap
 
-### Phase 1
+**Phase 1 — Reliability Gateway** (now)
+Request validation, response validation, timeout detection, retry logic
 
-Reliability Gateway
+**Phase 2 — Reliability Policies**
+Config-driven rules: `blockNullResponse`, `maxLatencyMs`, `retryAttempts`
 
-* Request validation
-* Response validation
-* Timeout detection
-* Retry logic
+**Phase 3 — Reliability Analytics**
+Operational visibility for MCP reliability across your fleet
 
-### Phase 2
-
-Reliability Policies
-
-Examples:
-
-```yaml
-blockNullResponse: true
-
-maxLatencyMs: 5000
-
-retryAttempts: 1
-```
-
-### Phase 3
-
-Reliability Analytics
-
-Operational visibility for MCP reliability.
-
-### Phase 4
-
-Trust Layer For AI Agents
-
-A reliability network powered by real-world MCP interactions.
-
----
-
-## Why We Built Vouqis
-
-We originally launched around MCP audits and trust scoring.
-
-The launch taught us something important.
-
-Developers don't actually want scores.
-
-They want fewer failures.
-
-The real problem isn't measuring reliability.
-
-The real problem is preventing failures during execution.
-
-That insight led to the gateway.
+**Phase 4 — Trust Layer**
+A reliability network powered by real-world MCP interactions
 
 ---
 
 ## Mission
 
-Cloudflare protects websites.
-
-Snyk protects software.
-
-Vouqis protects AI agents.
+Cloudflare protects websites. Snyk protects software. Vouqis protects AI agents.
 
 Our goal is to become the reliability layer between AI agents and the tools they depend on.
 
@@ -378,17 +308,12 @@ Our goal is to become the reliability layer between AI agents and the tools they
 
 ```bash
 git clone https://github.com/Sasisundar2211/Vouqis.git
-
 cd Vouqis
-
 npm install
-
 npm test
 ```
 
-Contributions are welcome.
-
-Open an issue or submit a pull request.
+Contributions are welcome. Open an issue or submit a pull request.
 
 ---
 

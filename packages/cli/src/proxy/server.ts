@@ -38,17 +38,19 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
   const server = http.createServer(async (req, res) => {
     const start = Date.now()
     let rpcMethod = 'unknown'
+    let rpcTool: string | undefined
     let rpcId: string | number | null | undefined
     let attempt = 0
 
     const emit = (decision: PolicyDecision, reason?: string) => {
       logger.log({
-        ts: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
         upstream: upstream.url,
         method: rpcMethod,
+        tool: rpcTool,
         requestId: rpcId,
         decision,
-        latencyMs: Date.now() - start,
+        latency_ms: Date.now() - start,
         reason,
         attempt,
       })
@@ -67,8 +69,13 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       let parsedBody: unknown
       try {
         parsedBody = JSON.parse(rawBody.toString())
-        rpcMethod = ((parsedBody as JsonRpcRequest).method as string) ?? 'unknown'
-        rpcId = (parsedBody as JsonRpcRequest).id
+        const r = parsedBody as JsonRpcRequest
+        rpcMethod = (r.method as string) ?? 'unknown'
+        rpcId = r.id
+        if (rpcMethod === 'tools/call') {
+          const p = r.params as Record<string, unknown> | null | undefined
+          if (p && typeof p['name'] === 'string') rpcTool = p['name']
+        }
       } catch {
         sendBlock(-32700, 'Gateway: request body is not valid JSON')
         return

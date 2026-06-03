@@ -41,16 +41,22 @@ export class AuditLogger {
   }
 
   private printToStderr(event: AuditEvent): void {
-    const prefix = this.formatPrefix(event.decision)
-    process.stderr.write(prefix + ' ' + JSON.stringify(event) + '\n')
+    const time = event.timestamp.slice(11, 19) // HH:MM:SS
+    const decision = this.colorDecision(event.decision)
+    const method = chalk.dim(event.method.padEnd(12))
+    const tool = event.tool ? chalk.white(event.tool.padEnd(24)) : ' '.repeat(24)
+    const latency = chalk.dim(`${event.latency_ms}ms`)
+    const reason = event.reason ? chalk.dim(`  ← ${event.reason}`) : ''
+    process.stderr.write(`  [${chalk.dim(time)}]  ${decision}  ${method}  ${tool}  ${latency}${reason}\n`)
   }
 
-  private formatPrefix(decision: AuditEvent['decision']): string {
+  private colorDecision(decision: AuditEvent['decision']): string {
+    const label = decision.toUpperCase().padEnd(7)
     switch (decision) {
-      case 'block':   return chalk.red('[block]  ')
-      case 'retry':   return chalk.yellow('[retry]  ')
-      case 'rewrite': return chalk.yellow('[rewrite]')
-      default:        return chalk.dim('[allow]  ')
+      case 'block':   return chalk.red(label)
+      case 'retry':   return chalk.yellow(label)
+      case 'rewrite': return chalk.yellow(label)
+      default:        return chalk.green(label)
     }
   }
 }

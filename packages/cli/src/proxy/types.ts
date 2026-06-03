@@ -27,12 +27,13 @@ export interface PolicyResult {
 }
 
 export interface AuditEvent {
-  ts: string
+  timestamp: string
   upstream: string
   method: string
+  tool?: string          // populated for tools/call — the tool name from params.name
   requestId?: string | number | null
   decision: PolicyDecision
-  latencyMs: number
+  latency_ms: number
   reason?: string
   attempt: number
 }

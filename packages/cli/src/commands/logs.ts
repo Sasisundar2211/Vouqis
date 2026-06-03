@@ -59,7 +59,7 @@ export default class Logs extends Command {
     for (const e of events) {
       counts[e.decision] = (counts[e.decision] ?? 0) + 1
       methodCounts[e.method] = (methodCounts[e.method] ?? 0) + 1
-      latencies.push(e.latencyMs)
+      latencies.push(e.latency_ms)
       if (e.decision === 'block' && e.reason) {
         blockReasons[e.reason] = (blockReasons[e.reason] ?? 0) + 1
       }
@@ -105,10 +105,11 @@ export default class Logs extends Command {
       console.log('')
       for (const e of tail) {
         const badge = this.badge(e.decision)
-        const ts = new Date(e.ts).toLocaleTimeString()
-        const latency = chalk.dim(`${e.latencyMs}ms`)
+        const ts = new Date(e.timestamp).toLocaleTimeString()
+        const target = e.tool ?? e.method
+        const latency = chalk.dim(`${e.latency_ms}ms`)
         const reason = e.reason ? chalk.dim(` — ${e.reason.slice(0, 60)}`) : ''
-        console.log(`  ${badge} ${chalk.dim(ts)} ${chalk.white(e.method.padEnd(20))} ${latency}${reason}`)
+        console.log(`  ${badge} ${chalk.dim(ts)} ${chalk.white(target.padEnd(24))} ${latency}${reason}`)
       }
     }
 
