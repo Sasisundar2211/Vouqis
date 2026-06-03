@@ -11,7 +11,7 @@
 <p align="center"><strong>Sits between your agent and every MCP server — blocks silent failures before they reach production</strong></p>
 
 <p align="center">
-  <a href="https://www.vouqis.tech">Website</a> ·
+  <a href="https://vouqis-page.vercel.app/">Website</a> ·
   <a href="https://www.vouqis.tech/proxy">Live Gateway</a> ·
   <a href="mailto:sasisundhar2211@gmail.com?subject=Founding%20Customer%20Application">Founding Customer (3 months free)</a> ·
   <a href="https://github.com/Sasisundar2211/Vouqis/issues">Issues</a>
