@@ -1,6 +1,6 @@
 {
   "name": "@vouqis/cli",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
   "type": "module",
   "author": "Vouqis <hello@vouqis.tech>",
@@ -15,7 +15,8 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "oclif.manifest.json"
   ],
   "oclif": {
     "bin": "vouqis",
@@ -29,7 +30,7 @@
     "build": "tsup",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepack": "npm run build"
+    "prepack": "npm run build && npx oclif manifest"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

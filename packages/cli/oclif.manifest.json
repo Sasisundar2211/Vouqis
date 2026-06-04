@@ -1,0 +1,334 @@
+{
+  "commands": {
+    "audit": {
+      "aliases": [],
+      "args": {
+        "url": {
+          "description": "URL of the MCP server to audit",
+          "name": "url",
+          "required": true
+        }
+      },
+      "description": "Audit an MCP server and get a trust verdict: APPROVED, RISKY, or DO NOT INTEGRATE",
+      "examples": [
+        "<%= config.bin %> audit https://your-mcp-server.example.com",
+        "<%= config.bin %> audit https://your-mcp-server.example.com --fail-below 80",
+        "<%= config.bin %> audit https://your-mcp-server.example.com --header \"Authorization: Bearer TOKEN\""
+      ],
+      "flags": {
+        "json-path": {
+          "description": "File path to write JSON report",
+          "name": "json-path",
+          "default": "./vouqis-report.json",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "fail-below": {
+          "description": "[PRO] Exit with code 1 if trust score is below this threshold (requires VOUQIS_API_KEY for CI/CD)",
+          "name": "fail-below",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "header": {
+          "char": "H",
+          "description": "Extra HTTP header to send (format: \"Key: Value\"). Repeatable.",
+          "name": "header",
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "report": {
+          "description": "Upload results to vouqis.tech and generate a shareable URL",
+          "name": "report",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "audit",
+      "pluginAlias": "@vouqis/cli",
+      "pluginName": "@vouqis/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "audit.js"
+      ]
+    },
+    "gateway": {
+      "aliases": [],
+      "args": {
+        "url": {
+          "description": "Target MCP server URL to proxy",
+          "name": "url",
+          "required": true
+        }
+      },
+      "description": "Start a local MCP proxy that enforces timeouts and normalises response schemas",
+      "examples": [
+        "<%= config.bin %> gateway https://your-mcp-server.example.com",
+        "<%= config.bin %> gateway https://your-mcp-server.example.com --port 4444 --timeout 3000",
+        "<%= config.bin %> gateway https://your-mcp-server.example.com --no-sanitize"
+      ],
+      "flags": {
+        "port": {
+          "char": "p",
+          "description": "Local port to listen on",
+          "name": "port",
+          "default": 4444,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "timeout": {
+          "char": "t",
+          "description": "Upstream request timeout in milliseconds",
+          "name": "timeout",
+          "default": 5000,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "sanitize": {
+          "description": "Normalise malformed MCP response schemas (enabled by default)",
+          "name": "sanitize",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "gateway",
+      "pluginAlias": "@vouqis/cli",
+      "pluginName": "@vouqis/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "gateway.js"
+      ]
+    },
+    "logs": {
+      "aliases": [],
+      "args": {},
+      "description": "View and summarise the Vouqis proxy audit log",
+      "examples": [
+        "<%= config.bin %> logs",
+        "<%= config.bin %> logs --tail 50",
+        "<%= config.bin %> logs --file ./my-audit.log"
+      ],
+      "flags": {
+        "tail": {
+          "char": "n",
+          "description": "Show last N events",
+          "name": "tail",
+          "default": 20,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "file": {
+          "char": "f",
+          "description": "Path to audit log file",
+          "name": "file",
+          "default": "./vouqis-audit.log",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "summary": {
+          "char": "s",
+          "description": "Print stats only, no event rows",
+          "name": "summary",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "logs",
+      "pluginAlias": "@vouqis/cli",
+      "pluginName": "@vouqis/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "logs.js"
+      ]
+    },
+    "proxy": {
+      "aliases": [],
+      "args": {
+        "upstream": {
+          "description": "Target MCP server URL (alternative to --config)",
+          "name": "upstream",
+          "required": false
+        }
+      },
+      "description": "Start a runtime MCP proxy — validates, rate-limits, retries, and audits every request",
+      "examples": [
+        "<%= config.bin %> proxy --upstream https://your-mcp-server.example.com",
+        "<%= config.bin %> proxy --upstream https://your-mcp-server.example.com --listen 127.0.0.1:8787",
+        "<%= config.bin %> proxy --config vouqis.yml"
+      ],
+      "flags": {
+        "upstream": {
+          "char": "u",
+          "description": "Target MCP server URL",
+          "name": "upstream",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "listen": {
+          "char": "l",
+          "description": "Local address to bind (host:port or just port)",
+          "name": "listen",
+          "default": "127.0.0.1:4444",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "timeout": {
+          "char": "t",
+          "description": "Upstream timeout in ms",
+          "name": "timeout",
+          "default": 5000,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "retry": {
+          "description": "Max retries on timeout (idempotent requests only)",
+          "name": "retry",
+          "default": 1,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "rate-limit": {
+          "description": "Max requests per second to upstream",
+          "name": "rate-limit",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "log-file": {
+          "description": "Audit log output path",
+          "name": "log-file",
+          "default": "./vouqis-audit.log",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "no-block-null": {
+          "description": "Allow null/empty tool call results through",
+          "name": "no-block-null",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "no-sanitize": {
+          "description": "Disable schema normalization",
+          "name": "no-sanitize",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "api-key": {
+          "char": "k",
+          "description": "Vouqis dashboard API key — enables live event streaming (or set VOUQIS_API_KEY)",
+          "name": "api-key",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "dashboard-url": {
+          "description": "Dashboard URL for live event streaming",
+          "name": "dashboard-url",
+          "default": "https://www.vouqis.tech",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "config": {
+          "char": "c",
+          "description": "Path to vouqis.yml config file",
+          "name": "config",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "proxy",
+      "pluginAlias": "@vouqis/cli",
+      "pluginName": "@vouqis/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "proxy.js"
+      ]
+    },
+    "score": {
+      "aliases": [],
+      "args": {
+        "url": {
+          "description": "URL of the MCP server to score",
+          "name": "url",
+          "required": true
+        }
+      },
+      "description": "Score an MCP server reliability and return a trust score from 0 to 100",
+      "examples": [
+        "<%= config.bin %> score https://your-mcp-server.example.com"
+      ],
+      "flags": {
+        "json-path": {
+          "description": "File path to write JSON report",
+          "name": "json-path",
+          "default": "./vouqis-report.json",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "report": {
+          "description": "Upload results to vouqis.tech and generate a shareable URL",
+          "name": "report",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "score",
+      "pluginAlias": "@vouqis/cli",
+      "pluginName": "@vouqis/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "score.js"
+      ]
+    }
+  },
+  "version": "0.4.3"
+}
