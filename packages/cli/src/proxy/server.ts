@@ -31,6 +31,13 @@ async function forwardToUpstream(
   })
 }
 
+async function forwardGetToUpstream(
+  upstream: UpstreamConfig,
+  headers: Record<string, string>,
+): Promise<Response> {
+  return fetch(upstream.url, {method: 'GET', headers})
+}
+
 export function createProxyServer(config: ProxyConfig, logger: AuditLogger): http.Server {
   const upstream = config.upstreams[0] // MVP: single upstream
   const bucket: TokenBucket | null = buildRateLimiter(upstream.rate_limit_rps)
@@ -62,8 +69,71 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       res.end(errorResponse(rpcId, code, message))
     }
 
+    // OPTIONS — CORS preflight (browser-based MCP clients)
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Max-Age': '86400',
+      })
+      res.end()
+      return
+    }
+
+    // GET — SSE stream passthrough (MCP Streamable HTTP transport)
+    // Clients open a GET /sse stream BEFORE sending any JSON-RPC POST.
+    // Trying to JSON.parse an empty GET body is the source of the BLOCK error.
+    if (req.method === 'GET') {
+      const fwdHeaders: Record<string, string> = {}
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (k.toLowerCase() === 'host') continue
+        fwdHeaders[k] = Array.isArray(v) ? v.join(', ') : (v ?? '')
+      }
+      try {
+        const sseRes = await forwardGetToUpstream(upstream, fwdHeaders)
+        const ct = sseRes.headers.get('content-type') ?? 'text/event-stream'
+        res.writeHead(sseRes.status, {
+          'Content-Type': ct,
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        })
+        const reader = sseRes.body?.getReader()
+        if (reader) {
+          try {
+            for (;;) {
+              const {done, value} = await reader.read()
+              if (done) break
+              res.write(value)
+            }
+          } finally {
+            res.end()
+          }
+        } else {
+          res.end()
+        }
+      } catch (err) {
+        res.writeHead(502, {'Content-Type': 'application/json'})
+        res.end(errorResponse(null, -32603, `Gateway: upstream unreachable — ${err instanceof Error ? err.message : String(err)}`))
+      }
+      return
+    }
+
+    // Non-POST methods → clean rejection
+    if (req.method !== 'POST') {
+      res.writeHead(405, {'Content-Type': 'application/json'})
+      res.end(errorResponse(null, -32600, `Gateway: HTTP ${req.method ?? 'unknown'} not allowed — MCP requests must be POST`))
+      return
+    }
+
     try {
       const rawBody = await readBody(req)
+
+      // Empty body check
+      if (rawBody.length === 0) {
+        sendBlock(-32700, 'Gateway: POST body is empty — expected JSON-RPC request')
+        return
+      }
 
       // Parse JSON-RPC envelope
       let parsedBody: unknown
