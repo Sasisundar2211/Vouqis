@@ -243,7 +243,7 @@ Vouqis is local-first.
 | What | When | Where |
 |:---|:---|:---|
 | JSON-RPC requests | Every run | Your MCP server only |
-| Audit results | Only with `--report` or `--api-key` | `vouqis.tech/api` |
+| Audit log | Written locally to `./vouqis-audit.log` | Your machine only |
 
 No telemetry. No account required. Nothing leaves your machine unless you explicitly opt in.
 

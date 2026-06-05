@@ -4,40 +4,18 @@ import type {AuditEvent} from './types.js'
 
 export class AuditLogger {
   private readonly stream: fs.WriteStream
-  private readonly dashboardUrl: string | null
-  private readonly apiKey: string | null
 
-  constructor(logFile: string, dashboardUrl?: string, apiKey?: string) {
+  constructor(logFile: string) {
     this.stream = fs.createWriteStream(logFile, {flags: 'a'})
-    this.dashboardUrl = dashboardUrl ?? null
-    this.apiKey = apiKey ?? null
   }
 
   log(event: AuditEvent): void {
-    const line = JSON.stringify(event)
-    this.stream.write(line + '\n')
+    this.stream.write(JSON.stringify(event) + '\n')
     this.printToStderr(event)
-    if (this.dashboardUrl && this.apiKey) {
-      this.uploadToDashboard(event)
-    }
   }
 
   close(): void {
     this.stream.end()
-  }
-
-  private uploadToDashboard(event: AuditEvent): void {
-    fetch(`${this.dashboardUrl}/api/events`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(event),
-      signal: AbortSignal.timeout(4000),
-    }).catch(() => {
-      // fire-and-forget — never affect proxy behaviour
-    })
   }
 
   private printToStderr(event: AuditEvent): void {

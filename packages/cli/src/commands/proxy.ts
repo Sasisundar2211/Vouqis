@@ -59,14 +59,6 @@ export default class Proxy extends Command {
       description: 'Disable schema normalization',
       default: false,
     }),
-    'api-key': Flags.string({
-      description: 'Vouqis dashboard API key — enables live event streaming (or set VOUQIS_API_KEY)',
-      char: 'k',
-    }),
-    'dashboard-url': Flags.string({
-      description: 'Dashboard URL for live event streaming',
-      default: 'https://www.vouqis.tech',
-    }),
     config: Flags.string({
       description: 'Path to vouqis.yml config file',
       char: 'c',
@@ -107,9 +99,7 @@ export default class Proxy extends Command {
     }
 
     const upstream = config.upstreams[0]
-    const apiKey = flags['api-key'] ?? process.env['VOUQIS_API_KEY']
-    const dashboardUrl = flags['dashboard-url']
-    const logger = new AuditLogger(config.log_file, apiKey ? dashboardUrl : undefined, apiKey)
+    const logger = new AuditLogger(config.log_file)
     const server = createProxyServer(config, logger)
 
     try {
@@ -132,11 +122,6 @@ export default class Proxy extends Command {
     console.log(`  Block null     ${upstream.policies.block_null_result ? chalk.green('yes') : chalk.dim('no')}`)
     console.log(`  Sanitize       ${upstream.policies.sanitize_schema ? chalk.green('yes') : chalk.dim('no')}`)
     console.log(`  Audit log      ${chalk.dim(config.log_file)}`)
-    if (apiKey) {
-      console.log(`  Dashboard      ${blue(dashboardUrl + '/proxy')} ${chalk.green('● live')}`)
-    } else {
-      console.log(`  Dashboard      ${chalk.dim('off  (pass --api-key to enable live streaming)')}`)
-    }
     console.log('')
     console.log(chalk.dim('  Point your agent at http://' + config.listen + ' instead of the real server.'))
     console.log(chalk.dim('  Every decision is logged to stderr and to ' + config.log_file + '.'))
