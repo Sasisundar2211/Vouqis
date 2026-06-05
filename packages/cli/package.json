@@ -1,7 +1,7 @@
 {
   "name": "@vouqis/cli",
   "version": "0.4.4",
-  "description": "The trust layer for MCP servers. Score, trace, and replay your AI agent tool calls.",
+  "description": "MCP reliability gateway — validates, retries, and audits every AI agent tool call.",
   "type": "module",
   "author": "Vouqis <hello@vouqis.tech>",
   "license": "MIT",
@@ -33,13 +33,12 @@
     "prepack": "npm run build && npx oclif manifest"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@oclif/core": "^4",
     "chalk": "^5",
-    "ora": "^9",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25",
     "tsup": "^8",
     "typescript": "^6",

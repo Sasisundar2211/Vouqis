@@ -3,7 +3,7 @@ import type {ProxyConfig, UpstreamConfig} from './config.js'
 import {validateRequest, validateResponse} from './validator.js'
 import {buildRateLimiter, TokenBucket} from './ratelimit.js'
 import {AuditLogger} from './audit.js'
-import type {JsonRpcRequest, JsonRpcResponse, PolicyDecision} from './types.js'
+import type {JsonRpcRequest, PolicyDecision} from './types.js'
 
 const RETRY_DELAY_MS = 300
 
@@ -41,6 +41,7 @@ async function forwardGetToUpstream(
 export function createProxyServer(config: ProxyConfig, logger: AuditLogger): http.Server {
   const upstream = config.upstreams[0] // MVP: single upstream
   const bucket: TokenBucket | null = buildRateLimiter(upstream.rate_limit_rps)
+  const serverId = new URL(upstream.url).hostname
 
   const server = http.createServer(async (req, res) => {
     const start = Date.now()
@@ -53,6 +54,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       logger.log({
         timestamp: new Date().toISOString(),
         upstream: upstream.url,
+        server_id: serverId,
         method: rpcMethod,
         tool: rpcTool,
         requestId: rpcId,

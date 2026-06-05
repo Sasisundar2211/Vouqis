@@ -164,7 +164,7 @@ Every decision is also saved to a file: `./vouqis-audit.log`
 Each line is a JSON object:
 
 ```json
-{"timestamp":"2026-06-03T14:23:19.000Z","upstream":"https://mcp.exa.ai/mcp","method":"tools/call","tool":"web_search_exa","requestId":5,"decision":"block","latency_ms":0,"reason":"tools/call content is empty or not an array","attempt":1}
+{"timestamp":"2026-06-03T14:23:19.000Z","upstream":"https://mcp.exa.ai/mcp","server_id":"mcp.exa.ai","method":"tools/call","tool":"web_search_exa","requestId":5,"decision":"block","latency_ms":0,"reason":"tools/call content is empty or not an array","attempt":1}
 ```
 
 Fields:
@@ -172,7 +172,8 @@ Fields:
 | Field | Description |
 |---|---|
 | `timestamp` | When the request happened (ISO 8601) |
-| `upstream` | Which MCP server it went to |
+| `upstream` | Full upstream URL (including any path) |
+| `server_id` | Hostname only — used for cross-deployment aggregation |
 | `method` | The JSON-RPC method (e.g. `tools/call`, `tools/list`) |
 | `tool` | The tool name — only present for `tools/call` |
 | `requestId` | The JSON-RPC request ID |

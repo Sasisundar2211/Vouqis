@@ -29,6 +29,7 @@ export interface PolicyResult {
 export interface AuditEvent {
   timestamp: string
   upstream: string
+  server_id: string      // hostname only — safe for cross-deployment aggregation
   method: string
   tool?: string          // populated for tools/call — the tool name from params.name
   requestId?: string | number | null
