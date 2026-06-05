@@ -4,11 +4,11 @@
   <img src="https://github.com/Sasisundar2211/Vouqis/blob/main/vouqis-logo.png" alt="Vouqis" width="560">
 </p>
 
-<p align="center">
-  <strong>AI Agent Reliability Gateway</strong>
-</p>
+<p align="center"><strong>MCP failures often look like success.</strong></p>
 
-<p align="center"><strong>Sits between your agent and every MCP server — blocks silent failures before they reach production</strong></p>
+<p align="center">HTTP 200 does not mean the tool worked. Vouqis sits between your AI agent and MCP servers, blocking silent failures before they reach production.</p>
+
+<p align="center"><code>Agent → Vouqis → MCP Server</code></p>
 
 <p align="center">
   <a href="https://vouqis-page.vercel.app/">Website</a> ·
@@ -181,37 +181,6 @@ VOUQIS ── audit log summary
 ```
 
 Options: `--tail 50`, `--summary` (stats only), `--file ./path/to/log`
-
----
-
-## Run A Reliability Audit
-
-Before deploying the gateway — run a one-off audit to test whether a server is safe to integrate. 10 protocol-level probes, 30 seconds, no LLM calls.
-
-```bash
-vouqis audit https://your-mcp-server.com
-```
-
-```
-  Vouqis — MCP Reliability Audit
-  Running 10 probes against your-mcp-server.com...
-
-  mal-01  ✓  malformed jsonrpc rejected           12ms
-  mis-01  ✓  missing params → error returned      340ms
-  tmo-01  ✓  cold-start response within 5s        487ms
-  sch-01  ✓  response conforms to content[] spec  691ms
-  nul-01  ✓  non-empty response returned          441ms
-  ...
-
-  Trust Score    90 / 100  ✅ APPROVED
-  Pass Rate      9 / 10
-```
-
-The audit answers: *should I integrate this server?*
-
-The gateway answers: *is it behaving correctly right now, on this specific call?*
-
-Use both.
 
 ---
 
