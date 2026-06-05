@@ -26,34 +26,6 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-          NEXT_PUBLIC_APP_URL: https://placeholder.example.com
-          NEXT_PUBLIC_FREE_REPORT_HISTORY_DAYS: "7"
-          SUPABASE_SERVICE_KEY: placeholder-service-key
-          RESEND_API_KEY: placeholder-resend-key
 
       - name: Test
         run: npm test
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel
-        run: vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: team_zDyGpe75QMKDLWjTrdXQgXUn
-          VERCEL_PROJECT_ID: prj_r1059VvKhgx02a3cbQAmu9NArh4s
