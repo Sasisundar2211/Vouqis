@@ -4,8 +4,25 @@ dist/
 .env.local
 *.log
 .DS_Store
-.claude/
-Claude.md
+# Claude Code local/session state (don't commit)
+.claude/settings.local.json
+.claude/sessions/
+.claude/state/
+.claude/memory/
+.claude/agent-memory/
+CLAUDE.local.md
+# gstack skill library (user-global, not project-specific)
+.claude/skills/*
+!.claude/skills/deploy/
+# gstack agent files (not project-specific)
+.claude/agents/ArchitectureReviewer.md
+.claude/agents/CodeReviewer.md
+.claude/agents/ComplianceReviewer.md
+.claude/agents/DocGenerator.md
+.claude/agents/Orchestrator.md
+.claude/agents/TestWriter.md
+.claude/AGENTS.md
+.claude/Claude.md
 .vercel
 .gstack/
 scripts/
