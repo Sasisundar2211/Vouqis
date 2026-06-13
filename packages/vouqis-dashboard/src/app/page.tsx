@@ -16,6 +16,13 @@ const FLOW = [
   { label: 'External System', note: null },
 ]
 
+const FOR_WHOM = [
+  'Founding Engineers',
+  'AI Infrastructure Teams',
+  'Platform Engineers',
+  'Technical Founders',
+]
+
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl px-6">
@@ -23,16 +30,18 @@ export default function HomePage() {
       <section className="py-28 lg:py-36">
         <div className="max-w-3xl">
           <span className="inline-block mb-6 text-xs font-mono tracking-widest uppercase text-muted-foreground border border-border px-3 py-1 rounded-full">
-            Early Access
+            Customer Discovery
           </span>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] mb-6">
             Prevent Silent AI Agent Failures{' '}
             <span className="text-muted-foreground">Before They Reach Users</span>
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed mb-10 max-w-2xl">
-            Vouqis is a reliability gateway between AI agents and MCP servers. It validates
-            requests, responses, timeouts, and execution outcomes — before failures become
-            customer-visible incidents.
+          <p className="text-lg text-muted-foreground leading-relaxed mb-4 max-w-2xl">
+            AI agents often report success while user workflows quietly fail.
+          </p>
+          <p className="text-base text-muted-foreground leading-relaxed mb-10 max-w-2xl">
+            Vouqis sits between agents and tools to detect timeouts, invalid responses, schema
+            mismatches, and execution failures before they become customer-visible incidents.
           </p>
 
           {/* CLI quickstart */}
@@ -42,26 +51,59 @@ export default function HomePage() {
               <span>npm install -g @vouqis/cli</span>
             </div>
             <div className="flex items-center gap-3">
+              <span className="text-muted-foreground select-none">#</span>
+              <span className="text-muted-foreground">Start a reliability gateway in front of your MCP server</span>
+            </div>
+            <div className="flex items-center gap-3">
               <span className="text-muted-foreground select-none">$</span>
               <span>vouqis proxy --upstream https://your-mcp-server.com</span>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <a
-              href="mailto:hello@vouqis.tech?subject=Discovery Call Request"
+              href="https://calendly.com/sasisundhar2211"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
             >
               Book a Discovery Call
             </a>
             <a
-              href="mailto:hello@vouqis.tech?subject=Founding Design Partner Program"
+              href="mailto:sasisundhar2211@gmail.com?subject=Reliability Challenges"
               className="inline-flex items-center justify-center h-10 px-5 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors"
             >
-              Join Founding Design Partner Program
+              Share Your Reliability Challenges
             </a>
           </div>
+
+          {/* Founder credibility */}
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
+            Building Vouqis after seeing AI agents report success while user workflows silently
+            failed. Currently speaking with AI infrastructure teams and technical founders running
+            production agent systems.
+          </p>
         </div>
+      </section>
+
+      <div className="border-t border-border" />
+
+      {/* Built For */}
+      <section className="py-20">
+        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-8">
+          Built For
+        </h2>
+        <div className="flex flex-col gap-2 mb-4">
+          {FOR_WHOM.map((role) => (
+            <div key={role} className="flex items-center gap-3 text-sm">
+              <span className="text-primary">✓</span>
+              <span className="font-medium">{role}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Running production AI agents and MCP integrations.
+        </p>
       </section>
 
       <div className="border-t border-border" />
@@ -103,6 +145,36 @@ export default function HomePage() {
 
       <div className="border-t border-border" />
 
+      {/* Concrete example */}
+      <section className="py-20">
+        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-10">
+          The Problem, Concretely
+        </h2>
+        <div className="rounded-lg border border-border bg-card p-6 max-w-xl space-y-3 font-mono text-sm">
+          <div className="flex items-baseline gap-4">
+            <span className="text-muted-foreground w-20 shrink-0">User</span>
+            <span>&quot;Create a meeting&quot;</span>
+          </div>
+          <div className="flex items-baseline gap-4">
+            <span className="text-muted-foreground w-20 shrink-0">Agent</span>
+            <span className="text-green-400">Success</span>
+          </div>
+          <div className="flex items-baseline gap-4">
+            <span className="text-muted-foreground w-20 shrink-0">Calendar</span>
+            <span className="text-green-400">Success</span>
+          </div>
+          <div className="border-t border-border pt-3 flex items-baseline gap-4">
+            <span className="text-muted-foreground w-20 shrink-0">Reality</span>
+            <span className="text-destructive">Meeting never created</span>
+          </div>
+        </div>
+        <p className="mt-6 text-sm text-muted-foreground max-w-xl">
+          Vouqis detects the failure before the user does.
+        </p>
+      </section>
+
+      <div className="border-t border-border" />
+
       {/* What Vouqis Detects */}
       <section className="py-20">
         <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-10">
@@ -122,16 +194,59 @@ export default function HomePage() {
 
       <div className="border-t border-border" />
 
-      {/* Social proof / status */}
-      <section className="py-20">
-        <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-          Currently speaking with AI infrastructure teams to understand production reliability
-          failures across MCP and agent workflows.{' '}
+      {/* Validation / proof */}
+      <section className="py-20 max-w-xl">
+        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-6">
+          Currently Validating
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+          Currently validating this problem with AI infrastructure teams. If you&apos;ve
+          experienced any of these:
+        </p>
+        <ul className="space-y-2 mb-8">
+          {[
+            'Tool success but task failure',
+            'Null responses from MCP servers',
+            'Retry loops you couldn\'t explain',
+            'State drift between agent steps',
+            'Schema mismatches breaking downstream logic',
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <a
+          href="mailto:sasisundhar2211@gmail.com?subject=Reliability Failure — I Want to Talk"
+          className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Share Your Worst Production Failure
+        </a>
+      </section>
+
+      <div className="border-t border-border" />
+
+      {/* Founder */}
+      <section className="py-20 max-w-xl">
+        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-6">
+          About
+        </h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+          I&apos;m Sasi Sundar, founder of Vouqis.
+        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+          I&apos;m researching why AI agents report success while real-world workflows fail.
+        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          If you&apos;re running production agents, I&apos;d love to learn from your experience.{' '}
           <a
-            href="mailto:hello@vouqis.tech?subject=Reliability Failure — I Want to Talk"
+            href="https://calendly.com/sasisundhar2211"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
           >
-            Tell us about a failure you&apos;ve hit.
+            Book 20 minutes.
           </a>
         </p>
       </section>
@@ -140,9 +255,19 @@ export default function HomePage() {
       <footer className="border-t border-border py-8 text-xs text-muted-foreground flex items-center justify-between gap-4 flex-wrap">
         <span>© 2026 Vouqis</span>
         <div className="flex items-center gap-4">
-          <a href="https://github.com/Sasisundar2211/vouqis/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Privacy</a>
-          <a href="mailto:hello@vouqis.tech" className="hover:text-foreground transition-colors">
-            hello@vouqis.tech
+          <a
+            href="https://github.com/Sasisundar2211/vouqis/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            Privacy
+          </a>
+          <a
+            href="mailto:sasisundhar2211@gmail.com"
+            className="hover:text-foreground transition-colors"
+          >
+            sasisundhar2211@gmail.com
           </a>
         </div>
       </footer>
