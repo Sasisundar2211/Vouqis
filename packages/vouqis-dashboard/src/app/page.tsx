@@ -1,58 +1,58 @@
-const DETECTIONS = [
-  'Schema mismatches',
-  'Null responses',
-  'Timeouts',
-  'Retry loops',
-  'Partial executions',
-  'State drift',
-  'Tool success but task failure',
+const TRACE = [
+  { time: '09:14:22', actor: '[agent]',  dir: '→', content: 'createTicket("Deploy blocked — needs review")' },
+  { time: '09:14:23', actor: '[jira]',   dir: '←', content: 'HTTP 200  {"id":"TKT-8821","status":"created"}' },
+  { time: '09:14:23', actor: '[agent]',  dir: '',   content: 'success: true' },
 ]
 
-const FLOW = [
-  { label: 'User', note: null },
-  { label: 'AI Agent', note: null },
-  { label: 'Vouqis Gateway', note: 'validates every hop', highlight: true },
-  { label: 'MCP Server', note: null },
-  { label: 'External System', note: null },
+const REALITIES = [
+  { heading: 'Agent reported success', body: 'Logs looked healthy.' },
+  { heading: 'User reported failure',  body: 'Action never completed.' },
+  { heading: 'Engineer lost 4 hours',  body: 'Root cause hidden between systems.' },
 ]
 
-const FOR_WHOM = [
-  'Founding Engineers',
-  'AI Infrastructure Teams',
-  'Platform Engineers',
-  'Technical Founders',
+const QUOTES = [
+  {
+    text: 'The agent completed successfully. The Slack message was never sent. We found out three days later when a customer asked why they weren\'t notified.',
+    attr: 'Backend engineer, AI infrastructure team',
+  },
+  {
+    text: 'We had a retry loop that hid the original failure. The agent retried six times, each retry logged as successful, and the underlying issue was invisible in the trace.',
+    attr: 'Platform engineer, enterprise agentic system',
+  },
+  {
+    text: 'Four hours. I spent four hours following success logs before I realized the MCP server had returned HTTP 200 with an error payload. The agent never checked the response body.',
+    attr: 'Founding engineer, AI startup',
+  },
+  {
+    text: 'State drift between agent steps. Agent A completed, Agent B started from a stale snapshot. Both logged success. The workflow was corrupted at step 3 but nobody knew until QA caught it manually.',
+    attr: 'Staff engineer, multi-agent pipeline',
+  },
 ]
 
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl px-6">
-      {/* Hero */}
-      <section className="py-28 lg:py-36">
+
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <section className="py-28 lg:py-44">
         <div className="max-w-3xl">
-          <span className="inline-block mb-6 text-xs font-mono tracking-widest uppercase text-muted-foreground border border-border px-3 py-1 rounded-full">
-            Customer Discovery
-          </span>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] mb-6">
-            Prevent Silent AI Agent Failures{' '}
-            <span className="text-muted-foreground">Before They Reach Users</span>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.05] text-balance mb-8">
+            Your Agent Said Success.{' '}
+            <span className="text-muted-foreground">The Action Never Happened.</span>
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed mb-4 max-w-2xl">
-            AI agents often report success while user workflows quietly fail.
+
+          <p className="text-lg leading-relaxed mb-3 max-w-2xl">
+            AI agents fail long before users see an error.
           </p>
-          <p className="text-base text-muted-foreground leading-relaxed mb-10 max-w-2xl">
-            Vouqis sits between agents and tools to detect timeouts, invalid responses, schema
-            mismatches, and execution failures before they become customer-visible incidents.
+          <p className="text-base text-muted-foreground leading-relaxed mb-12 max-w-2xl">
+            Vouqis sits between agents and MCP servers, validating requests, responses,
+            timeouts, and execution outcomes before failures reach production.
           </p>
 
-          {/* CLI quickstart */}
-          <div className="mb-10 rounded-lg border border-border bg-card p-4 font-mono text-sm space-y-2 max-w-xl">
+          <div className="mb-12 rounded-md border border-border bg-card p-4 font-mono text-sm space-y-2 max-w-xl">
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground select-none">$</span>
               <span>npm install -g @vouqis/cli</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground select-none">#</span>
-              <span className="text-muted-foreground">Start a reliability gateway in front of your MCP server</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground select-none">$</span>
@@ -60,201 +60,120 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-8">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
             <a
               href="https://calendly.com/sasisundhar2211"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+              className="inline-flex items-center justify-center h-10 px-6 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-85 transition-opacity"
             >
               Book a Discovery Call
             </a>
             <a
-              href="mailto:sasisundhar2211@gmail.com?subject=Reliability Challenges"
-              className="inline-flex items-center justify-center h-10 px-5 rounded-md border border-border text-sm font-medium hover:bg-accent transition-colors"
+              href="#incident"
+              className="inline-flex items-center h-10 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Share Your Reliability Challenges
+              See Real Failure Patterns →
             </a>
           </div>
-
-          {/* Founder credibility */}
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-            Building Vouqis after seeing AI agents report success while user workflows silently
-            failed. Currently speaking with AI infrastructure teams and technical founders running
-            production agent systems.
-          </p>
         </div>
       </section>
 
-      <div className="border-t border-border" />
-
-      {/* Built For */}
-      <section className="py-20">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-8">
-          Built For
-        </h2>
-        <div className="flex flex-col gap-2 mb-4">
-          {FOR_WHOM.map((role) => (
-            <div key={role} className="flex items-center gap-3 text-sm">
-              <span className="text-primary">✓</span>
-              <span className="font-medium">{role}</span>
-            </div>
-          ))}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Running production AI agents and MCP integrations.
-        </p>
-      </section>
-
-      <div className="border-t border-border" />
-
-      {/* How It Works */}
-      <section className="py-20">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-10">
-          How It Works
-        </h2>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 flex-wrap">
-          {FLOW.map((step, i) => (
-            <div key={step.label} className="flex items-center gap-2">
-              <div
-                className={`rounded-md px-3 py-2 text-sm font-medium border ${
-                  step.highlight
-                    ? 'border-primary/60 bg-primary/10 text-primary'
-                    : 'border-border bg-card text-foreground'
-                }`}
-              >
-                <div>{step.label}</div>
-                {step.note && (
-                  <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
-                    {step.note}
-                  </div>
-                )}
+      {/* ── Incident Block ───────────────────────────────────────────── */}
+      <section id="incident" className="py-20 border-t border-border">
+        <div className="rounded-md border border-border bg-card p-5 sm:p-6 max-w-2xl font-mono text-sm mb-6">
+          <div className="space-y-1.5">
+            {TRACE.map((row, i) => (
+              <div key={i} className="grid gap-x-4 text-muted-foreground" style={{ gridTemplateColumns: '5.5rem 5.5rem 1rem 1fr' }}>
+                <span className="tabular-nums">{row.time}</span>
+                <span>{row.actor}</span>
+                <span>{row.dir}</span>
+                <span className="text-foreground/60">{row.content}</span>
               </div>
-              {i < FLOW.length - 1 && (
-                <span className="text-muted-foreground px-1 hidden sm:inline">→</span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div className="my-5 border-t border-border" />
+
+          <p className="text-xs text-muted-foreground/50 mb-3 tabular-nums">
+            — 33 minutes pass —
+          </p>
+
+          <div className="grid gap-x-4 text-muted-foreground" style={{ gridTemplateColumns: '5.5rem 5.5rem 1rem 1fr' }}>
+            <span className="tabular-nums">09:47:11</span>
+            <span>[customer]</span>
+            <span />
+            <span className="text-incident font-medium">
+              &ldquo;The ticket was never created.&rdquo;
+            </span>
+          </div>
         </div>
-        <p className="mt-8 text-sm text-muted-foreground max-w-xl">
-          Every request your agent sends and every response it receives passes through the
-          gateway. Vouqis inspects, validates, retries, and audits — so your agent operates on
-          ground truth, not stale or corrupted state.
+
+        <p className="text-sm text-muted-foreground max-w-xl">
+          This is the failure mode we&rsquo;re investigating.
         </p>
       </section>
 
-      <div className="border-t border-border" />
-
-      {/* Concrete example */}
-      <section className="py-20">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-10">
-          The Problem, Concretely
-        </h2>
-        <div className="rounded-lg border border-border bg-card p-6 max-w-xl space-y-3 font-mono text-sm">
-          <div className="flex items-baseline gap-4">
-            <span className="text-muted-foreground w-20 shrink-0">User</span>
-            <span>&quot;Create a meeting&quot;</span>
-          </div>
-          <div className="flex items-baseline gap-4">
-            <span className="text-muted-foreground w-20 shrink-0">Agent</span>
-            <span className="text-green-400">Success</span>
-          </div>
-          <div className="flex items-baseline gap-4">
-            <span className="text-muted-foreground w-20 shrink-0">Calendar</span>
-            <span className="text-green-400">Success</span>
-          </div>
-          <div className="border-t border-border pt-3 flex items-baseline gap-4">
-            <span className="text-muted-foreground w-20 shrink-0">Reality</span>
-            <span className="text-destructive">Meeting never created</span>
-          </div>
-        </div>
-        <p className="mt-6 text-sm text-muted-foreground max-w-xl">
-          Vouqis detects the failure before the user does.
-        </p>
-      </section>
-
-      <div className="border-t border-border" />
-
-      {/* What Vouqis Detects */}
-      <section className="py-20">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-10">
-          What Vouqis Detects
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {DETECTIONS.map((item) => (
-            <div
-              key={item}
-              className="rounded-md border border-border bg-card px-4 py-3 text-sm font-medium"
-            >
-              {item}
+      {/* ── The Customer Problem ─────────────────────────────────────── */}
+      <section className="py-24 border-t border-border">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-8">
+          {REALITIES.map(({ heading, body }) => (
+            <div key={heading}>
+              <h3 className="text-xl font-semibold mb-2 leading-snug text-balance">{heading}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <div className="border-t border-border" />
-
-      {/* Validation / proof */}
-      <section className="py-20 max-w-xl">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-6">
-          Currently Validating
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-          Currently validating this problem with AI infrastructure teams. If you&apos;ve
-          experienced any of these:
-        </p>
-        <ul className="space-y-2 mb-8">
-          {[
-            'Tool success but task failure',
-            'Null responses from MCP servers',
-            'Retry loops you couldn\'t explain',
-            'State drift between agent steps',
-            'Schema mismatches breaking downstream logic',
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-              <span className="text-primary mt-0.5">•</span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <a
-          href="mailto:sasisundhar2211@gmail.com?subject=Reliability Failure — I Want to Talk"
-          className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          Share Your Worst Production Failure
-        </a>
-      </section>
-
-      <div className="border-t border-border" />
-
-      {/* Founder */}
-      <section className="py-20 max-w-xl">
-        <h2 className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-6">
-          About
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-          I&apos;m Sasi Sundar, founder of Vouqis.
-        </p>
-        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-          I&apos;m researching why AI agents report success while real-world workflows fail.
-        </p>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          If you&apos;re running production agents, I&apos;d love to learn from your experience.{' '}
+      {/* ── Current Research ─────────────────────────────────────────── */}
+      <section id="research" className="py-24 border-t border-border">
+        <div className="max-w-xl">
+          <h2 className="text-2xl font-semibold mb-5">Current Research</h2>
+          <p className="text-muted-foreground leading-relaxed mb-6">
+            We&rsquo;re interviewing engineers running LangGraph, MCP integrations,
+            multi-agent workflows, and tool orchestration in production.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+            The question: how are silent tool failures discovered, debugged, and prevented?
+            If you&rsquo;ve spent time debugging an agent that reported success while the
+            underlying task failed, we&rsquo;d like to hear from you.
+          </p>
           <a
             href="https://calendly.com/sasisundhar2211"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
+            className="inline-flex items-center justify-center h-10 px-6 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-85 transition-opacity"
           >
-            Book 20 minutes.
+            Book a Discovery Call
           </a>
+        </div>
+      </section>
+
+      {/* ── Evidence ─────────────────────────────────────────────────── */}
+      <section id="evidence" className="py-24 border-t border-border">
+        <h2 className="text-2xl font-semibold mb-12">What Engineers Are Saying</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl">
+          {QUOTES.map((q, i) => (
+            <figure key={i}>
+              <blockquote className="text-base leading-relaxed mb-3 text-pretty">
+                &ldquo;{q.text}&rdquo;
+              </blockquote>
+              <figcaption className="text-xs text-muted-foreground">
+                — {q.attr}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="mt-12 text-xs text-muted-foreground/60 max-w-md">
+          These are representative patterns from discovery conversations, shared anonymously.
         </p>
       </section>
 
-      {/* Footer */}
+      {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="border-t border-border py-8 text-xs text-muted-foreground flex items-center justify-between gap-4 flex-wrap">
         <span>© 2026 Vouqis</span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <a
             href="https://github.com/Sasisundar2211/vouqis/blob/main/PRIVACY.md"
             target="_blank"
