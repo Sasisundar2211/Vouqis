@@ -4,6 +4,7 @@ import chalk from 'chalk'
 import {loadConfigFile, inlineConfig} from '../proxy/config.js'
 import {AuditLogger} from '../proxy/audit.js'
 import {createProxyServer, startServer} from '../proxy/server.js'
+import {distinctId, posthog} from '../analytics.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
 const blue = chalk.hex('#60a5fa')
@@ -75,7 +76,15 @@ export default class Proxy extends Command {
     if (configPath) {
       try {
         config = loadConfigFile(configPath)
+        posthog.capture({
+          distinctId,
+          event: 'config_loaded',
+          properties: {config_path: configPath, upstream_count: config.upstreams.length},
+        })
       } catch (err) {
+        posthog.captureException(err, distinctId, {config_path: configPath})
+        posthog.capture({distinctId, event: 'proxy_config_error', properties: {config_path: configPath, error: err instanceof Error ? err.message : String(err)}})
+        await posthog.shutdown()
         this.error(`Failed to load config from ${configPath}: ${err instanceof Error ? err.message : String(err)}`)
       }
     } else {
@@ -105,8 +114,25 @@ export default class Proxy extends Command {
     try {
       await startServer(server, config.listen)
     } catch (err) {
+      posthog.captureException(err, distinctId, {listen: config.listen})
+      posthog.capture({distinctId, event: 'proxy_start_error', properties: {listen: config.listen, error: err instanceof Error ? err.message : String(err)}})
+      await posthog.shutdown()
       this.error(`Failed to start proxy: ${err instanceof Error ? err.message : String(err)}`)
     }
+
+    posthog.capture({
+      distinctId,
+      event: 'proxy_started',
+      properties: {
+        upstream: new URL(upstream.url).hostname,
+        listen: config.listen,
+        timeout_ms: upstream.timeout_ms,
+        retry: upstream.retry,
+        rate_limit_rps: upstream.rate_limit_rps ?? null,
+        block_null: upstream.policies.block_null_result,
+        sanitize_schema: upstream.policies.sanitize_schema,
+      },
+    })
 
     console.log('')
     console.log(chalk.bold.white('VOUQIS') + chalk.hex('#475569')(' ── proxy ── ') + blue(upstream.url))
@@ -130,8 +156,15 @@ export default class Proxy extends Command {
     console.log('')
 
     await new Promise<void>((resolve) => {
-      const shutdown = () => {
+      const proxyStart = Date.now()
+      const shutdown = async () => {
         console.log('\n' + chalk.dim('  Proxy stopped.'))
+        posthog.capture({
+          distinctId,
+          event: 'proxy_stopped',
+          properties: {upstream: new URL(upstream.url).hostname, uptime_ms: Date.now() - proxyStart},
+        })
+        await posthog.shutdown()
         logger.close()
         server.close()
         resolve()

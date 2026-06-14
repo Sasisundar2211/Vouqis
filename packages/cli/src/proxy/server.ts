@@ -4,8 +4,17 @@ import {validateRequest, validateResponse} from './validator.js'
 import {buildRateLimiter, TokenBucket} from './ratelimit.js'
 import {AuditLogger} from './audit.js'
 import type {JsonRpcRequest, PolicyDecision} from './types.js'
+import {distinctId, posthog} from '../analytics.js'
 
 const RETRY_DELAY_MS = 300
+
+// Baseline security headers applied to every response from this gateway.
+// HSTS/CSP are omitted intentionally — this is a local HTTP JSON-RPC proxy, not a TLS web app.
+const SEC = {
+  'Access-Control-Allow-Origin': '*',
+  'X-Content-Type-Options': 'nosniff',
+  'Cache-Control': 'no-store',
+} as const
 
 async function readBody(req: http.IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = []
@@ -51,6 +60,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
     let attempt = 0
 
     const emit = (decision: PolicyDecision, reason?: string) => {
+      const latency_ms = Date.now() - start
       logger.log({
         timestamp: new Date().toISOString(),
         upstream: upstream.url,
@@ -59,15 +69,40 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         tool: rpcTool,
         requestId: rpcId,
         decision,
-        latency_ms: Date.now() - start,
+        latency_ms,
         reason,
         attempt,
       })
+      if (decision === 'allow') {
+        posthog.capture({
+          distinctId,
+          event: 'request_allowed',
+          properties: {method: rpcMethod, tool: rpcTool, latency_ms, attempt, upstream: serverId},
+        })
+      } else if (decision === 'block') {
+        posthog.capture({
+          distinctId,
+          event: 'request_blocked',
+          properties: {method: rpcMethod, tool: rpcTool, latency_ms, reason, upstream: serverId},
+        })
+      } else if (decision === 'retry') {
+        posthog.capture({
+          distinctId,
+          event: 'request_retried',
+          properties: {method: rpcMethod, tool: rpcTool, attempt, reason, upstream: serverId},
+        })
+      } else if (decision === 'rewrite') {
+        posthog.capture({
+          distinctId,
+          event: 'response_rewritten',
+          properties: {method: rpcMethod, tool: rpcTool, reason, upstream: serverId},
+        })
+      }
     }
 
     const sendBlock = (code: number, message: string) => {
       emit('block', message)
-      res.writeHead(200, {'Content-Type': 'application/json'})
+      res.writeHead(200, {...SEC, 'Content-Type': 'application/json'})
       res.end(errorResponse(rpcId, code, message))
     }
 
@@ -76,8 +111,9 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Mcp-Session-Id, X-Api-Key',
         'Access-Control-Max-Age': '86400',
+        'X-Content-Type-Options': 'nosniff',
       })
       res.end()
       return
@@ -96,8 +132,9 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         const sseRes = await forwardGetToUpstream(upstream, fwdHeaders)
         const ct = sseRes.headers.get('content-type') ?? 'text/event-stream'
         res.writeHead(sseRes.status, {
+          ...SEC,
+          'Cache-Control': 'no-cache',  // streaming — override no-store
           'Content-Type': ct,
-          'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
         })
         const reader = sseRes.body?.getReader()
@@ -115,7 +152,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           res.end()
         }
       } catch (err) {
-        res.writeHead(502, {'Content-Type': 'application/json'})
+        res.writeHead(502, {...SEC, 'Content-Type': 'application/json'})
         res.end(errorResponse(null, -32603, `Gateway: upstream unreachable — ${err instanceof Error ? err.message : String(err)}`))
       }
       return
@@ -123,7 +160,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
 
     // Non-POST methods → clean rejection
     if (req.method !== 'POST') {
-      res.writeHead(405, {'Content-Type': 'application/json'})
+      res.writeHead(405, {...SEC, 'Content-Type': 'application/json'})
       res.end(errorResponse(null, -32600, `Gateway: HTTP ${req.method ?? 'unknown'} not allowed — MCP requests must be POST`))
       return
     }
@@ -219,9 +256,10 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       // SSE streams: pipe through without buffering
       if (contentType.includes('text/event-stream')) {
         res.writeHead(upstreamRes.status, {
+          ...SEC,
+          'Cache-Control': 'no-cache',  // streaming — override no-store
           'Content-Type': contentType,
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
+          'Connection': 'keep-alive',
         })
         const reader = upstreamRes.body?.getReader()
         if (reader) {
@@ -248,7 +286,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         parsedResponse = JSON.parse(responseText)
       } catch {
         // Not JSON — forward as-is
-        res.writeHead(upstreamRes.status, {'Content-Type': contentType || 'application/json'})
+        res.writeHead(upstreamRes.status, {...SEC, 'Content-Type': contentType || 'application/json'})
         res.end(responseText)
         emit('allow')
         return
@@ -271,6 +309,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           const rewritten = JSON.stringify(resPolicy.body)
           emit('rewrite', resPolicy.reason)
           res.writeHead(upstreamRes.status, {
+            ...SEC,
             'Content-Type': 'application/json',
             'Content-Length': String(Buffer.byteLength(rewritten)),
           })
@@ -282,11 +321,13 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       emit('allow')
       const outBuf = Buffer.from(responseText)
       res.writeHead(upstreamRes.status, {
+        ...SEC,
         'Content-Type': 'application/json',
         'Content-Length': String(outBuf.byteLength),
       })
       res.end(outBuf)
     } catch (err) {
+      posthog.captureException(err, distinctId, {method: rpcMethod, tool: rpcTool, upstream: serverId})
       sendBlock(-32603, `Gateway internal error: ${err instanceof Error ? err.message : String(err)}`)
     }
   })

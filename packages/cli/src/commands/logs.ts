@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 import * as readline from 'node:readline'
 import chalk from 'chalk'
 import type {AuditEvent} from '../proxy/types.js'
+import {distinctId, posthog} from '../analytics.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
 
@@ -44,6 +45,13 @@ export default class Logs extends Command {
     }
 
     const events = await this.readEvents(flags.file)
+
+    posthog.capture({
+      distinctId,
+      event: 'logs_command_run',
+      properties: {event_count: events.length, summary_mode: flags.summary},
+    })
+    await posthog.shutdown()
 
     if (events.length === 0) {
       this.log(chalk.dim('Audit log is empty.'))

@@ -37,3 +37,14 @@ VOUQIS-TARGETING.md
 agentdb.rvf
 agentdb.rvf.lock
 generate_source_proof.py
+# Per-package Claude Code local state (never commit)
+packages/cli/.claude/
+packages/vouqis-dashboard/.claude/
+# Local research and customer discovery artifacts
+.impeccable/
+graphify-out/
+PRODUCT.md
+linkedin-30-prospects.md
+notion-customer-truths.md
+prospect-list.md
+posthog-setup-report.md

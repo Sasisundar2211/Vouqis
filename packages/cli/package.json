@@ -35,6 +35,7 @@
   "dependencies": {
     "@oclif/core": "^4",
     "chalk": "^5",
+    "posthog-node": "^5.36.4",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
