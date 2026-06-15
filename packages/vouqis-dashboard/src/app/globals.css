@@ -86,7 +86,7 @@
 }
 
 .dark {
-  --background: oklch(0.12 0 0);
+  --background: oklch(0.12 0.008 50);
   --foreground: oklch(0.92 0 0);
   --card: oklch(0.18 0 0);
   --card-foreground: oklch(0.92 0 0);
@@ -130,4 +130,42 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Animation keyframes ─────────────────────────────────────────────── */
+
+@keyframes trace-in {
+  from { opacity: 0; transform: translateX(-5px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: -3px 0 12px oklch(0.72 0.18 28 / 0); }
+  50%       { box-shadow: -3px 0 20px oklch(0.72 0.18 28 / 0.35); }
+}
+
+/* ── Animation utilities ─────────────────────────────────────────────── */
+
+.trace-in {
+  opacity: 0;
+  animation: trace-in 0.3s ease-out both;
+}
+
+.cursor-blink {
+  animation: cursor-blink 1.1s step-end infinite;
+}
+
+.cta-pulse {
+  animation: cta-pulse 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-in    { animation: none; opacity: 1; transform: none; }
+  .cursor-blink { animation: none; opacity: 1; }
+  .cta-pulse   { animation: none; }
 }
