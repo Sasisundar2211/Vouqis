@@ -6,14 +6,21 @@ const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Vouqis — AI Agent Reliability Gateway',
+  metadataBase: new URL('https://vouqis.tech'),
+  title: 'Vouqis — Reliability Gateway for MCP Servers',
   description:
-    'Reliability gateway between AI agents and MCP servers. Validates requests, responses, timeouts, and execution outcomes before failures become customer-visible incidents.',
+    'Reliability Gateway for MCP Servers. Detect null responses, schema mismatches, timeouts, and silent failures before they reach users.',
+  keywords: [
+    'MCP', 'Model Context Protocol', 'AI agents', 'reliability gateway',
+    'agent infrastructure', 'MCP proxy', 'silent failures', 'agentops',
+    'LLM observability', 'AI reliability',
+  ],
   openGraph: {
-    title: 'Vouqis — AI Agent Reliability Gateway',
+    title: 'Vouqis — Reliability Gateway for MCP Servers',
     description:
-      'Reliability gateway between AI agents and MCP servers. Validates requests, responses, timeouts, and execution outcomes before failures become customer-visible incidents.',
+      'Reliability Gateway for MCP Servers. Detect null responses, schema mismatches, timeouts, and silent failures before they reach users.',
     type: 'website',
+    url: 'https://vouqis.tech',
   },
 }
 
@@ -40,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 How It Works
               </a>
               <a
-                href="https://github.com/Sasisundar2211/vouqis"
+                href="https://github.com/Sasisundar2211/Vouqis"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"

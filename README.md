@@ -1,6 +1,8 @@
 # Vouqis
 
-AI Agent Reliability Gateway
+**Reliability Gateway for MCP Servers**
+
+Website: [vouqis.tech](https://vouqis.tech) · [Quickstart](https://vouqis.tech/quickstart)
 
 Prevent MCP failures before they reach production.
 

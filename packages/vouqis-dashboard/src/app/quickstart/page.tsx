@@ -324,6 +324,14 @@ export default function QuickstartPage() {
         <span className="font-mono">© 2026 Vouqis</span>
         <div className="flex items-center gap-6">
           <a
+            href="https://github.com/Sasisundar2211/Vouqis"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground/75 transition-colors"
+          >
+            GitHub
+          </a>
+          <a
             href="https://github.com/Sasisundar2211/Vouqis/blob/main/PRIVACY.md"
             target="_blank"
             rel="noopener noreferrer"
