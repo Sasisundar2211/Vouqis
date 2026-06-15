@@ -23,15 +23,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}>
         <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between">
-            <span className="text-sm font-semibold tracking-tight">Vouqis</span>
-            <a
-              href="https://github.com/Sasisundar2211/vouqis"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              GitHub
+            <a href="/" className="text-sm font-semibold tracking-tight hover:opacity-80 transition-opacity">
+              Vouqis
             </a>
+            <div className="flex items-center gap-6">
+              <a
+                href="/quickstart"
+                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Quickstart
+              </a>
+              <a
+                href="/#how-it-works"
+                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                How It Works
+              </a>
+              <a
+                href="https://github.com/Sasisundar2211/vouqis"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                GitHub
+              </a>
+            </div>
           </div>
         </header>
         <main className="pt-14">{children}</main>
