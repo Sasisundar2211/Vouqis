@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import NavLinks from '@/components/nav-links'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -40,7 +39,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="text-sm font-semibold tracking-tight hover:opacity-80 transition-opacity">
               Vouqis
             </a>
-            <NavLinks />
+            <div className="flex items-center gap-6">
+              <a
+                href="/proxy"
+                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Quickstart
+              </a>
+              <a
+                href="https://github.com/Sasisundar2211/Vouqis"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                GitHub
+              </a>
+            </div>
           </div>
         </header>
         <main id="main-content" className="pt-14">{children}</main>
