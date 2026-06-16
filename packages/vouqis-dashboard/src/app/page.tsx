@@ -65,7 +65,7 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row gap-3 items-start">
               <a
-                href="https://calendly.com/sasisundhar2211"
+                href="https://calendly.com/sasisundar2211"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
@@ -254,7 +254,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 items-start">
             <a
-              href="https://calendly.com/sasisundhar2211"
+              href="https://calendly.com/sasisundar2211"
               target="_blank"
               rel="noopener noreferrer"
               className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
