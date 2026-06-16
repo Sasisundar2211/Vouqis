@@ -199,7 +199,7 @@ export default function HomePage() {
       {/* ── Failure Reports ──────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
         <div className="mb-10">
-          <h2 className="text-xl font-semibold mb-3 tracking-tight">
+          <h2 className="text-xl font-semibold mb-3 tracking-tight text-balance">
             Failure Reports We&rsquo;re Collecting
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-[52ch]">
@@ -243,7 +243,7 @@ export default function HomePage() {
       {/* ── Discovery CTA ────────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
         <div className="max-w-[44ch]">
-          <h2 className="text-xl font-semibold mb-4 tracking-tight">We&rsquo;re In Discovery</h2>
+          <h2 className="text-xl font-semibold mb-4 tracking-tight text-balance">We&rsquo;re In Discovery</h2>
           <p className="text-sm text-muted-foreground leading-relaxed mb-3">
             We&rsquo;re talking to engineers running LangGraph, MCP integrations, and
             multi-agent workflows in production.

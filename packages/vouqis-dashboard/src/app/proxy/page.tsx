@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import CopyButton from '@/components/copy-button'
 
 export const metadata: Metadata = {
-  title: 'Quickstart — Vouqis',
+  title: 'Get Started — Vouqis',
   description:
     'Get Vouqis running in 60 seconds. Route MCP traffic through the proxy and see exactly what your agents are sending, receiving, and silently mishandling.',
 }
@@ -18,20 +18,6 @@ const TRACE = [
   { ln: 5, time: '09:14:23', actor: '[vouqis]',   dir: ' ', content: '✗  result is null — expected {"id":string}',          role: 'fail' },
   { ln: 6, time: '09:14:23', actor: '[vouqis]',   dir: ' ', content: 'audit emitted  null_result_propagation  ref:9024',     role: 'audit' },
   { ln: 7, time: '09:14:24', actor: '[agent]',    dir: ' ', content: 'result.id  →  TypeError: cannot read "id" of null',   role: 'agent' },
-]
-
-const ARCH_NODES = [
-  { label: 'Agent',           note: 'your LLM-backed code',   highlight: false },
-  { label: 'Vouqis Gateway',  note: '← insert here',          highlight: true  },
-  { label: 'MCP Server',      note: 'your existing server',   highlight: false },
-]
-
-const ARCH_BULLETS = [
-  'Validates requests before forwarding',
-  'Validates responses before returning',
-  'Detects timeouts and retries failures',
-  'Emits structured audit logs',
-  'Catches null results, schema drift, and silent errors',
 ]
 
 const VALIDATING = [
@@ -51,19 +37,14 @@ function contentColor(role: string): string {
   }
 }
 
-function CommandBlock({ step, label, cmd }: { step: number; label: string; cmd: string }) {
+function CommandBlock({ step, cmd }: { step: number; cmd: string }) {
   return (
-    <div>
-      <div className="flex items-baseline gap-2.5 mb-2.5">
-        <span className="font-mono text-[0.6rem] tabular-nums text-muted-foreground/28 select-none w-[1.5ch]">
-          {step}
-        </span>
-        <span className="text-[0.63rem] font-mono text-muted-foreground/40 tracking-[0.07em] uppercase">
-          {label}
-        </span>
-      </div>
+    <div className="flex gap-4 items-start">
+      <span className="font-mono text-[0.65rem] tabular-nums text-muted-foreground/30 select-none mt-3 w-[1.5ch] shrink-0">
+        {step}
+      </span>
       <div
-        className="flex items-center justify-between gap-4 rounded-md px-4 py-3 font-mono text-[0.8rem] text-foreground/72"
+        className="flex-1 flex items-center justify-between gap-4 rounded-md px-4 py-3 font-mono text-[0.8rem] text-foreground/72"
         style={{ background: 'oklch(1 0 0 / 0.04)', border: '1px solid oklch(1 0 0 / 0.09)' }}
       >
         <span className="min-w-0 break-all">{cmd}</span>
@@ -82,89 +63,28 @@ export default function ProxyPage() {
         <h1 className="text-balance text-[2rem] sm:text-[2.5rem] font-bold tracking-[-0.03em] leading-[1.1] mb-4">
           Get started in 60 seconds
         </h1>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-[52ch]" style={{ textWrap: 'pretty' } as React.CSSProperties}>
-          Route MCP traffic through Vouqis and see exactly what your agents are
+        <p className="text-sm text-foreground/58 leading-relaxed max-w-[52ch]" style={{ textWrap: 'pretty' } as React.CSSProperties}>
+          Route MCP traffic through Vouqis. See exactly what your agents are
           sending, receiving, and silently mishandling.
         </p>
       </section>
 
-      {/* ── Where Vouqis sits ────────────────────────────────────────────── */}
-      <section className="pt-10 pb-14 border-t border-border/50">
-        <p className="text-[0.7rem] font-mono text-muted-foreground/40 tracking-[0.07em] uppercase mb-10">
-          Where Vouqis sits
-        </p>
-
-        <div className="grid lg:grid-cols-[300px_1fr] gap-x-12 gap-y-10 items-center">
-
-          {/* Flow diagram */}
-          <div className="font-mono text-[0.72rem] space-y-0">
-            {ARCH_NODES.map((node, i) => (
-              <div key={node.label}>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="px-3 py-1.5 rounded whitespace-nowrap min-w-[140px]"
-                    style={node.highlight
-                      ? {
-                          background: 'oklch(1 0 0 / 0.07)',
-                          border: '1px solid oklch(0.65 0.06 195 / 0.5)',
-                          color: 'oklch(0.78 0.04 195)',
-                        }
-                      : {
-                          background: 'oklch(1 0 0 / 0.025)',
-                          border: '1px solid oklch(1 0 0 / 0.07)',
-                          color: 'oklch(0.48 0 0)',
-                        }
-                    }
-                  >
-                    {node.label}
-                  </div>
-                  <span
-                    className="text-[0.6rem] tracking-[0.02em] whitespace-nowrap"
-                    style={{
-                      color: node.highlight ? 'oklch(0.55 0.04 195)' : 'oklch(0.38 0 0)',
-                    }}
-                  >
-                    {node.note}
-                  </span>
-                </div>
-                {i < ARCH_NODES.length - 1 && (
-                  <div className="pl-[0.85rem] py-1 text-muted-foreground/20 text-[0.65rem]">│</div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* What it does */}
-          <div className="space-y-2.5">
-            {ARCH_BULLETS.map((item) => (
-              <div key={item} className="flex items-start gap-2.5">
-                <span className="mt-[0.35rem] w-[3px] h-[3px] rounded-full shrink-0 bg-foreground/18" />
-                <span className="text-[0.8125rem] text-muted-foreground leading-snug">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Install + Run ────────────────────────────────────────────────── */}
-      <section className="pt-12 pb-14 border-t border-border/50">
-        <p className="text-[0.7rem] font-mono text-muted-foreground/40 tracking-[0.07em] uppercase mb-8">
-          Install and run
-        </p>
-        <div className="space-y-4 max-w-2xl">
-          <CommandBlock step={1} label="Install" cmd={INSTALL_CMD} />
-          <CommandBlock step={2} label="Run"     cmd={RUN_CMD} />
+      <section className="pt-10 pb-14 border-t border-border/50">
+        <div className="space-y-3 max-w-2xl">
+          <CommandBlock step={1} cmd={INSTALL_CMD} />
+          <CommandBlock step={2} cmd={RUN_CMD} />
         </div>
-        <p className="mt-4 text-[0.75rem] text-muted-foreground/45 max-w-2xl">
+        <p className="mt-5 ml-[calc(1.5ch+1rem)] text-[0.75rem] text-foreground/40 max-w-2xl">
           Listens on <span className="font-mono">127.0.0.1:4444</span> by default.
           Point your agent at that address instead of your MCP server directly.
         </p>
       </section>
 
-      {/* ── What Vouqis captures ─────────────────────────────────────────── */}
-      <section className="pt-14 pb-16 border-t border-border/50">
-        <h2 className="text-[0.9rem] font-semibold tracking-tight mb-8">
-          What Vouqis captures
+      {/* ── Live trace ───────────────────────────────────────────────────── */}
+      <section className="pt-12 pb-16 border-t border-border/50">
+        <h2 className="text-[0.9rem] font-semibold tracking-tight mb-8 text-balance">
+          What the audit log looks like
         </h2>
 
         <div
@@ -226,7 +146,7 @@ export default function ProxyPage() {
 
       {/* ── Example failure caught ───────────────────────────────────────── */}
       <section className="pt-12 pb-14 border-t border-border/50">
-        <h2 className="text-[0.9rem] font-semibold tracking-tight mb-7">
+        <h2 className="text-[0.9rem] font-semibold tracking-tight mb-7 text-balance">
           Example failure caught
         </h2>
 
@@ -258,33 +178,29 @@ export default function ProxyPage() {
         </div>
       </section>
 
-      {/* ── What we're validating ────────────────────────────────────────── */}
+      {/* ── What we catch ────────────────────────────────────────────────── */}
       <section className="pt-14 pb-16 border-t border-border/50">
         <div className="max-w-[50ch]">
-          <p className="text-[0.7rem] font-mono text-muted-foreground/40 tracking-[0.07em] uppercase mb-5">
-            What we&rsquo;re validating
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-            We&rsquo;re working with teams running MCP servers in staging and
-            production. Current focus:
-          </p>
+          <h2 className="text-[0.9rem] font-semibold tracking-tight mb-5 text-balance">
+            Failure patterns we intercept
+          </h2>
           <div className="space-y-2 mb-7">
             {VALIDATING.map((item) => (
               <div key={item} className="flex items-start gap-2.5">
                 <span className="font-mono text-muted-foreground/28 text-[0.68rem] mt-[0.15rem] select-none leading-none">
                   —
                 </span>
-                <span className="text-[0.8125rem] text-muted-foreground leading-snug">{item}</span>
+                <span className="text-[0.8125rem] text-foreground/62 leading-snug">{item}</span>
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">
-            Interested in testing?{' '}
+          <p className="text-sm text-foreground/55">
+            Working with teams running MCP servers in staging and production.{' '}
             <a
               href="mailto:sasisundhar2211@gmail.com"
-              className="text-foreground/62 underline underline-offset-2 decoration-border hover:text-foreground transition-colors"
+              className="text-foreground/70 underline underline-offset-2 decoration-border hover:text-foreground transition-colors"
             >
-              Talk to the founder.
+              Share a failure you&rsquo;ve hit.
             </a>
           </p>
         </div>
@@ -293,10 +209,10 @@ export default function ProxyPage() {
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
       <section className="pt-20 pb-20 border-t border-border/50">
         <div className="max-w-[44ch]">
-          <h2 className="text-xl font-semibold tracking-tight mb-3">
+          <h2 className="text-xl font-semibold tracking-tight mb-3 text-balance">
             Route traffic through Vouqis
           </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-9">
+          <p className="text-sm text-foreground/55 leading-relaxed mb-9">
             Five minutes with the proxy is worth more than any landing page.
             Install it, run it, and see your agent&rsquo;s actual behavior.
           </p>
@@ -311,7 +227,7 @@ export default function ProxyPage() {
             </a>
             <a
               href="mailto:sasisundhar2211@gmail.com"
-              className="inline-flex items-center h-10 px-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center h-10 px-1 text-sm text-foreground/45 hover:text-foreground transition-colors"
             >
               Email the Founder →
             </a>
@@ -320,14 +236,14 @@ export default function ProxyPage() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border/50 py-7 text-[0.68rem] text-muted-foreground/48 flex items-center justify-between gap-4 flex-wrap">
+      <footer className="border-t border-border/50 py-7 text-[0.68rem] text-foreground/38 flex items-center justify-between gap-4 flex-wrap">
         <span className="font-mono">© 2026 Vouqis</span>
         <div className="flex items-center gap-6">
           <a
             href="https://github.com/Sasisundar2211/Vouqis"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-foreground/75 transition-colors"
+            className="hover:text-foreground/65 transition-colors"
           >
             GitHub
           </a>
@@ -335,13 +251,13 @@ export default function ProxyPage() {
             href="https://github.com/Sasisundar2211/Vouqis/blob/main/PRIVACY.md"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-foreground/75 transition-colors"
+            className="hover:text-foreground/65 transition-colors"
           >
             Privacy
           </a>
           <a
             href="mailto:sasisundhar2211@gmail.com"
-            className="hover:text-foreground/75 transition-colors"
+            className="hover:text-foreground/65 transition-colors"
           >
             sasisundhar2211@gmail.com
           </a>
