@@ -1,10 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const LINKS = [
-  { href: '/proxy',                    label: 'Quickstart' },
-  { href: '/#how-it-works',            label: 'How It Works' },
+  { href: '/proxy',  label: 'Quickstart', external: false },
   { href: 'https://github.com/Sasisundar2211/Vouqis', label: 'GitHub', external: true },
 ]
 
@@ -13,23 +13,31 @@ export default function NavLinks() {
 
   return (
     <div className="flex items-center gap-6">
-      {LINKS.map(({ href, label, external }) => {
-        const isActive = !external && pathname === href
-        return (
+      {LINKS.map(({ href, label, external }) =>
+        external ? (
           <a
             key={href}
             href={href}
-            {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-            className={`text-sm transition-colors ${
-              isActive
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            } ${href === '/proxy' ? 'hidden sm:block' : href.startsWith('/#') ? 'hidden sm:block' : ''}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             {label}
           </a>
+        ) : (
+          <Link
+            key={href}
+            href={href}
+            className={`hidden sm:block text-sm transition-colors ${
+              pathname === href
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {label}
+          </Link>
         )
-      })}
+      )}
     </div>
   )
 }
