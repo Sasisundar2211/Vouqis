@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
             <div className="flex items-center gap-6">
               <a
-                href="/quickstart"
+                href="/proxy"
                 className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Quickstart
