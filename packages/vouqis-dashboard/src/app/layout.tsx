@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { ScrollReset } from '@/components/scroll-reset'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -29,6 +28,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Must run before browser scroll restoration */}
+        <script dangerouslySetInnerHTML={{ __html: "history.scrollRestoration='manual';window.scrollTo(0,0)" }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}>
         <a
           href="#main-content"
@@ -59,7 +62,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </header>
-        <ScrollReset />
         <main id="main-content" className="pt-14">{children}</main>
         <Analytics />
       </body>
