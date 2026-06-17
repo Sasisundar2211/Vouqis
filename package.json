@@ -1,10 +1,24 @@
 {
   "name": "vouqis",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
+  "overrides": {
+    "postcss": "8.5.15",
+    "next": {
+      "postcss": "8.5.15"
+    },
+    "tsup": {
+      "esbuild": "0.28.1"
+    }
+  },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

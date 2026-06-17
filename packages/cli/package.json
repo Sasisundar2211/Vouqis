@@ -41,6 +41,7 @@
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^25",
+    "esbuild": "^0.28.1",
     "tsup": "^8",
     "typescript": "^6",
     "vitest": "^4"
