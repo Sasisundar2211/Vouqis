@@ -1,3 +1,5 @@
+import { EmailCapture } from '@/components/email-capture'
+
 const TRACE = [
   { ln: 1, time: '09:14:22', actor: '[agent]',    dir: '→', content: 'createTicket("Deploy blocked")' },
   { ln: 2, time: '09:14:23', actor: '[jira]',     dir: '←', content: 'HTTP 200  {"id":"TKT-8821","status":"created"}' },
@@ -10,12 +12,36 @@ const STATUS_CELLS = [
   { dot: 'red',   label: 'Time to discovery', value: '33 min 48 sec' },
 ]
 
+const WORKFLOW = [
+  'Agent',
+  'Vouqis',
+  'MCP Server',
+  'Response Validation',
+  'Trust Decision',
+  'User',
+]
+
+const CAPABILITIES = [
+  { label: 'Detect',      detail: 'Null results, schema mismatches, HTTP 200 errors' },
+  { label: 'Classify',    detail: 'Tag failures by type before they propagate' },
+  { label: 'Block',       detail: 'Halt calls that violate defined contracts' },
+  { label: 'Retry',       detail: 'Re-attempt only idempotent methods within policy' },
+  { label: 'Trust Score', detail: 'Per-server reliability tracked over time' },
+]
+
+const BUILT_FOR = [
+  'Teams running production AI agents',
+  'Founding engineers',
+  'AI infrastructure teams',
+  'Developers managing MCP integrations',
+]
+
 const FAILURE_REPORTS = [
   {
     id: 'INC-001',
     type: 'Response Parse Failure',
     description:
-      'MCP server returns HTTP 200 with an error object in the result field. Agent reads the status code, not the payload. Silent failure propagates downstream.',
+      'MCP server returns HTTP 200 with an error object in the result field. Agent reads the status code, not the payload. Silent failure propagates downstream.',
     vector: 'tools/call → createTicket → HTTP 200 {"error":"quota_exceeded"} → agent: success',
   },
   {
@@ -29,16 +55,23 @@ const FAILURE_REPORTS = [
     id: 'INC-003',
     type: 'State Drift — Multi-Agent',
     description:
-      'Agent B reads shared state before Agent A finishes writing. Both log completion. The merge step processes a stale snapshot. Workflow corrupts silently at step 3.',
+      'Agent B reads shared state before Agent A finishes writing. Both log completion. The merge step processes a stale snapshot. Workflow corrupts silently at step 3.',
     vector: 'agent-A: writeState() → success | agent-B: readState(t−2s) → process(stale) → success',
   },
   {
     id: 'INC-004',
     type: 'Null Result Propagation',
     description:
-      'Tool returns {"result": null}. Agent passes null to the next step. Failure surfaces eight steps later as a TypeError with no reference to the original null.',
+      'Tool returns {"result": null}. Agent passes null to the next step. Failure surfaces eight steps later as a TypeError with no reference to the original null.',
     vector: 'fetchUser → {"result":null} → generateReport(null) → TypeError: cannot read "id" of null',
   },
+]
+
+const CREDIBILITY = [
+  { value: '100+',    label: 'Protocol tests' },
+  { value: '113',     label: 'Passing tests'  },
+  { value: 'Open',    label: 'Source'         },
+  { value: 'Founder', label: 'Led support'    },
 ]
 
 export default function HomePage() {
@@ -54,29 +87,29 @@ export default function HomePage() {
             <h1
               className="text-[2.6rem] sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] leading-[1.06] text-balance mb-6"
             >
-              Your Agent Said Success.{' '}
-              <span className="text-foreground/40">The Action Never Happened.</span>
+              Catch MCP failures{' '}
+              <span className="text-foreground/40">before your users do.</span>
             </h1>
 
             <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-10 max-w-[38ch]">
-              Vouqis sits between AI agents and MCP servers — validating requests,
-              responses, timeouts, and outcomes before silent failures reach production.
+              Route MCP traffic through Vouqis and detect null responses,
+              schema violations, timeouts, and silent failures in real time.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 items-start">
               <a
+                href="#early-access"
+                className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Get Early Access
+              </a>
+              <a
                 href="https://calendly.com/sasisundar2211"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                Book a Discovery Call
-              </a>
-              <a
-                href="mailto:sasisundhar2211@gmail.com"
                 className="inline-flex items-center h-10 px-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Share a Failure Report →
+                Book a Discovery Call →
               </a>
             </div>
           </div>
@@ -86,7 +119,6 @@ export default function HomePage() {
             className="rounded-lg border border-border/60 bg-card/70 overflow-hidden"
             style={{ boxShadow: '0 0 0 1px oklch(1 0 0 / 0.04), 0 16px 48px -8px oklch(0 0 0 / 0.5)' }}
           >
-            {/* Chrome bar */}
             <div className="flex items-center gap-2 px-3.5 h-9 border-b border-border/40 bg-muted/15">
               <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.55_0.18_25)]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.68_0.14_82)]" />
@@ -96,7 +128,6 @@ export default function HomePage() {
               </span>
             </div>
 
-            {/* Trace body */}
             <div className="px-4 py-4 font-mono text-[0.7rem] leading-[1.85]">
               {TRACE.map((row, i) => (
                 <div
@@ -120,7 +151,6 @@ export default function HomePage() {
                 </div>
               ))}
 
-              {/* Gap indicator */}
               <div
                 className="trace-in flex items-center gap-3 my-3.5"
                 style={{ animationDelay: '1.45s' }}
@@ -132,31 +162,20 @@ export default function HomePage() {
                 <div className="h-px flex-1 bg-incident/20" />
               </div>
 
-              {/* Customer complaint */}
               <div
                 className="trace-in flex"
                 style={{ animationDelay: '1.8s' }}
               >
-                <span className="w-[2ch] tabular-nums text-muted-foreground/25 select-none shrink-0 mr-2.5">
-                  4
-                </span>
-                <span className="w-[7.5ch] tabular-nums text-muted-foreground/40 shrink-0 mr-2.5">
-                  09:47:11
-                </span>
-                <span className="w-[9ch] text-muted-foreground/60 shrink-0 mr-2.5">
-                  [customer]
-                </span>
+                <span className="w-[2ch] tabular-nums text-muted-foreground/25 select-none shrink-0 mr-2.5">4</span>
+                <span className="w-[7.5ch] tabular-nums text-muted-foreground/40 shrink-0 mr-2.5">09:47:11</span>
+                <span className="w-[9ch] text-muted-foreground/60 shrink-0 mr-2.5">[customer]</span>
                 <span className="w-[1.5ch] shrink-0 mr-2.5" />
                 <span className="text-incident font-medium min-w-0">
                   &ldquo;The ticket was never created.&rdquo;
                 </span>
               </div>
 
-              {/* Blinking cursor */}
-              <div
-                className="trace-in mt-1 pl-4"
-                style={{ animationDelay: '2.15s' }}
-              >
+              <div className="trace-in mt-1 pl-4" style={{ animationDelay: '2.15s' }}>
                 <span className="cursor-blink text-muted-foreground/30">▋</span>
               </div>
             </div>
@@ -194,6 +213,121 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── The Problem ──────────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <div className="max-w-[52ch]">
+          <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-8">
+            The Problem
+          </p>
+          <div className="mb-10 space-y-1">
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight">Tool call succeeds.</p>
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/40">User outcome fails.</p>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The agent reports success.<br />
+              Your customer reports the bug.
+            </p>
+            <p className="text-sm text-foreground/60 leading-relaxed">
+              Most MCP failures aren&rsquo;t crashes.
+              They&rsquo;re silent failures.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Concrete Failure Example ─────────────────────────────────────── */}
+      <section className="pb-20 border-b border-border/50">
+        <div className="grid md:grid-cols-2 gap-8 max-w-2xl items-center">
+          <div
+            className="rounded-lg border border-border/60 overflow-hidden"
+            style={{ background: 'oklch(1 0 0 / 0.02)' }}
+          >
+            <div className="flex items-center px-3.5 h-8 border-b border-border/40">
+              <span className="text-[0.6rem] font-mono text-muted-foreground/40 tracking-wide">
+                MCP response
+              </span>
+            </div>
+            <pre className="px-4 py-4 font-mono text-[0.72rem] leading-relaxed text-foreground/55 overflow-x-auto">{`{
+  "success": true,
+  "result": null
+}`}</pre>
+          </div>
+          <div className="space-y-6">
+            <div>
+              <p className="text-[0.65rem] font-mono text-muted-foreground/40 tracking-[0.06em] uppercase mb-2">
+                Agent
+              </p>
+              <p className="text-sm text-foreground/70">&ldquo;Invoice created.&rdquo;</p>
+            </div>
+            <div className="h-px bg-border/40" />
+            <div>
+              <p className="text-[0.65rem] font-mono text-muted-foreground/40 tracking-[0.06em] uppercase mb-2">
+                Reality
+              </p>
+              <p className="text-sm text-incident font-medium">No invoice exists.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Workflow Diagram ─────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-10">
+          How It Works
+        </p>
+        <div className="flex flex-col items-start max-w-[14rem]">
+          {WORKFLOW.map((step, i) => (
+            <div key={step} className="flex flex-col items-start w-full">
+              <div
+                className={`px-4 py-2.5 rounded border text-sm font-mono w-full ${
+                  step === 'Vouqis'
+                    ? 'border-foreground/20 text-foreground/80 bg-foreground/5'
+                    : step === 'Response Validation' || step === 'Trust Decision'
+                    ? 'border-border/50 text-foreground/60'
+                    : 'border-border/35 text-muted-foreground/60'
+                }`}
+              >
+                {step}
+              </div>
+              {i < WORKFLOW.length - 1 && (
+                <div className="pl-[1.35rem] py-1">
+                  <span className="text-muted-foreground/30 text-xs leading-none">↓</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Capabilities ─────────────────────────────────────────────────── */}
+      <section className="pb-20 border-b border-border/50">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-10 gap-y-8">
+          {CAPABILITIES.map(({ label, detail }) => (
+            <div key={label}>
+              <p className="text-sm font-semibold text-foreground/80 mb-1.5">{label}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Built For ────────────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-8">
+          Built For
+        </p>
+        <div className="space-y-4 mb-8">
+          {BUILT_FOR.map((item) => (
+            <div key={item} className="flex items-center gap-3">
+              <span className="text-foreground/45 text-xs font-mono shrink-0">✓</span>
+              <span className="text-sm text-foreground/75">{item}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground/40 font-mono">Not for hobby projects.</p>
       </section>
 
       {/* ── Failure Reports ──────────────────────────────────────────────── */}
@@ -240,35 +374,70 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Discovery CTA ────────────────────────────────────────────────── */}
+      {/* ── Founder Credibility ──────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <div className="max-w-[44ch]">
-          <h2 className="text-xl font-semibold mb-4 tracking-tight text-balance">We&rsquo;re In Discovery</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-            We&rsquo;re talking to engineers running LangGraph, MCP integrations, and
-            multi-agent workflows in production.
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-9">
-            If you&rsquo;ve spent time debugging an agent that logged success while the
-            underlying task failed — we want the details.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <p className="text-sm text-muted-foreground leading-relaxed mb-10">
+          Built after observing repeated MCP reliability failures.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+          {CREDIBILITY.map(({ value, label }) => (
+            <div key={label}>
+              <p className="text-2xl font-semibold font-mono tabular-nums text-foreground/80 mb-1">
+                {value}
+              </p>
+              <p className="text-[0.65rem] font-mono text-muted-foreground/50 uppercase tracking-[0.06em]">
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Early Access + Discovery CTA ─────────────────────────────────── */}
+      <section id="early-access" className="py-20 border-t border-border/50">
+        <div className="grid md:grid-cols-2 gap-16 items-start">
+          <div>
+            <h2 className="text-xl font-semibold mb-3 tracking-tight">Get Early Access</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              We&rsquo;ll reach out when Vouqis opens for the next cohort.
+            </p>
+            <EmailCapture />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold mb-3 tracking-tight">
+              Have you seen an MCP failure reach a user?
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              Tell us what happened. This may be more valuable than another signup.
+            </p>
             <a
-              href="https://calendly.com/sasisundar2211"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Book a Discovery Call
-            </a>
-            <a
-              href="mailto:sasisundhar2211@gmail.com"
+              href="mailto:sasisundhar2211@gmail.com?subject=MCP failure report"
               className="inline-flex items-center h-10 px-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Share a Failure Report →
+              Share the details →
             </a>
           </div>
         </div>
+      </section>
+
+      {/* ── Closing ──────────────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <div className="max-w-[40ch] mb-10">
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
+            MCP servers fail silently.
+          </p>
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/40">
+            Vouqis helps you catch failures before users do.
+          </p>
+        </div>
+        <a
+          href="https://calendly.com/sasisundar2211"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Book a Discovery Call
+        </a>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}

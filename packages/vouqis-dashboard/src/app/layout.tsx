@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { ScrollReset } from '@/components/scroll-reset'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -7,18 +9,18 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://vouqis.tech'),
-  title: 'Vouqis — Reliability Gateway for MCP Servers',
+  title: 'Vouqis — Catch MCP Failures Before Your Users Do',
   description:
-    'Reliability Gateway for MCP Servers. Detect null responses, schema mismatches, timeouts, and silent failures before they reach users.',
+    'Route MCP traffic through Vouqis and detect null responses, schema violations, timeouts, and silent failures before they reach users.',
   keywords: [
     'MCP', 'Model Context Protocol', 'AI agents', 'reliability gateway',
     'agent infrastructure', 'MCP proxy', 'silent failures', 'agentops',
     'LLM observability', 'AI reliability',
   ],
   openGraph: {
-    title: 'Vouqis — Reliability Gateway for MCP Servers',
+    title: 'Vouqis — Catch MCP Failures Before Your Users Do',
     description:
-      'Reliability Gateway for MCP Servers. Detect null responses, schema mismatches, timeouts, and silent failures before they reach users.',
+      'Route MCP traffic through Vouqis and detect null responses, schema violations, timeouts, and silent failures before they reach users.',
     type: 'website',
     url: 'https://vouqis.tech',
   },
@@ -57,7 +59,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </header>
+        <ScrollReset />
         <main id="main-content" className="pt-14">{children}</main>
+        <Analytics />
       </body>
     </html>
   )
