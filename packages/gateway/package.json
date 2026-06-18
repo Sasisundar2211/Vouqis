@@ -1,0 +1,35 @@
+{
+  "name": "@vouqis/gateway",
+  "version": "0.1.0",
+  "description": "Detect and classify silent MCP failures.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Vouqis <hello@vouqis.tech>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sasisundar2211/vouqis.git"
+  },
+  "devDependencies": {
+    "@types/node": "^25",
+    "tsup": "^8",
+    "typescript": "^6",
+    "vitest": "^4"
+  }
+}
