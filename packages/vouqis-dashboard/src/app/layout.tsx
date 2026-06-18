@@ -9,20 +9,24 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://vouqis.tech'),
-  title: 'Vouqis — MCP Reliability Gateway',
+  title: 'Vouqis — Catch MCP Failures Before Your Users Do',
   description:
-    'Vouqis sits between your AI agent and MCP server. Every tool call is validated. Every failure is classified. Nothing propagates silently.',
+    'Catch silent MCP failures before your users discover them. Vouqis sits between your AI agent and MCP server, validating every tool call and blocking failures that appear successful but never complete.',
   keywords: [
-    'MCP', 'Model Context Protocol', 'AI agents', 'reliability gateway',
-    'agent infrastructure', 'MCP proxy', 'silent failures', 'agentops',
-    'LLM observability', 'AI reliability',
+    'MCP', 'Model Context Protocol', 'MCP reliability', 'MCP gateway',
+    'MCP proxy', 'AI agents', 'agent reliability', 'silent failures',
+    'MCP monitoring', 'AI infrastructure',
   ],
   openGraph: {
-    title: 'Vouqis — MCP Reliability Gateway',
+    title: 'Your Agent Said Success. The Action Never Happened.',
     description:
-      'Vouqis sits between your AI agent and MCP server. Every tool call is validated. Every failure is classified. Nothing propagates silently.',
+      'Catch silent MCP failures before your users do.',
     type: 'website',
     url: 'https://vouqis.tech',
+    images: ['/opengraph-image.png'],
+  },
+  alternates: {
+    canonical: 'https://vouqis.tech',
   },
 }
 
@@ -54,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 href="/proxy"
                 className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Quickstart
+                Audit
               </Link>
               <a
                 href="https://github.com/Sasisundar2211/Vouqis"
@@ -63,6 +67,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 GitHub
+              </a>
+              <a
+                href="#design-partner"
+                className="hidden sm:inline-flex h-8 px-3 items-center rounded-md bg-foreground text-background text-xs font-medium hover:opacity-90 transition-colors"
+              >
+                Join Design Partner Program
               </a>
             </div>
           </div>

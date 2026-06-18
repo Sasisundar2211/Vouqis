@@ -35,8 +35,6 @@ const WORKFLOW = [
   'Agent',
   'Vouqis',
   'MCP Server',
-  'Response Validation',
-  'Trust Decision',
   'User',
 ]
 
@@ -45,16 +43,10 @@ const CAPABILITIES = [
   { label: 'Classify',    detail: 'Tag failures by type before they propagate' },
   { label: 'Block',       detail: 'Halt calls that violate defined contracts' },
   { label: 'Retry',       detail: 'Re-attempt only idempotent methods within policy' },
-  { label: 'Trust Score', detail: 'Per-server reliability tracked over time' },
   { label: 'Audit Log',   detail: 'Structured NDJSON record of every interaction' },
 ]
 
-const BUILT_FOR = [
-  'Teams running production AI agents',
-  'Founding engineers',
-  'AI infrastructure teams',
-  'Developers managing MCP integrations',
-]
+const BUILT_FOR = 'Founding Engineers running MCP-powered agents in production.'
 
 const FAILURE_REPORTS = [
   {
@@ -87,69 +79,24 @@ const FAILURE_REPORTS = [
   },
 ]
 
-const PRICING_TIERS = [
-  {
-    name: 'MCP Reliability Audit',
-    badge: 'Free',
-    price: '$0',
-    period: false,
-    tagline: 'Run a point-in-time reliability check on any MCP server.',
-    features: [
-      'Trust Score (0–100)',
-      'Failure report with classified issues',
-      'Response time analysis',
-      'JSON export',
-    ],
-    cta: 'Run a Free Audit',
-    ctaLink: '/proxy',
-    highlighted: false,
-  },
-  {
-    name: 'Vouqis Cloud',
-    badge: 'Early Access',
-    price: '$49–$299',
-    period: true,
-    tagline: 'Runtime reliability protection for production MCP traffic.',
-    features: [
-      'Proxy-based request + response validation',
-      'Real-time failure classification',
-      'Team dashboard with per-server trust scores',
-      'Failure alerts via email or Slack',
-      '90-day audit log retention',
-    ],
-    cta: 'Join Early Access',
-    ctaLink: '#early-access',
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    badge: 'Custom',
-    price: 'Contact',
-    period: false,
-    tagline: 'Private deployment with compliance and dedicated support.',
-    features: [
-      'On-premises or VPC deployment',
-      'Custom schema registry',
-      'SLA and dedicated support',
-      'SSO and audit compliance',
-      'Failure intelligence across fleet',
-    ],
-    cta: 'Talk to the Founder',
-    ctaLink: 'mailto:sasisundhar2211@gmail.com',
-    highlighted: false,
-  },
+const DESIGN_PARTNER_FEATURES = [
+  'Proxy-based request + response validation',
+  'Real-time failure classification and blocking',
+  'Team dashboard with per-server reliability history',
+  'Failure alerts via email or Slack',
+  'Direct-to-founder support',
 ]
 
 const FAQ_ITEMS = [
   {
     question: 'What exactly is Vouqis?',
     answer:
-      'Vouqis is a proxy gateway that sits between your AI agent and your MCP server. Every tool call routes through Vouqis, which validates the request, forwards it upstream, validates the response, and classifies any failure before it reaches your agent. You get structured failure data and a trust score per server — without changing your agent code.',
+      'Vouqis is a proxy gateway that sits between your AI agent and your MCP server. Every tool call routes through Vouqis, which validates the request, forwards it upstream, validates the response, and classifies any failure before it reaches your agent. You get structured failure data and a reliability score per server — without changing your agent code.',
   },
   {
     question: 'Do I have to change my agent to use it?',
     answer:
-      'No. You point your agent at `127.0.0.1:4444` (or the Vouqis Cloud endpoint) instead of your MCP server directly. The proxy is transparent — your agent never knows it exists. Install takes under 60 seconds.',
+      'No. The proxy is transparent — your agent never knows it exists. Deploy in under 60 seconds with no application code changes.',
   },
   {
     question: 'What failure types does Vouqis detect?',
@@ -199,18 +146,22 @@ export default function HomePage() {
               Your agent said success.<br />The action never happened.
             </p>
 
-            <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-10 max-w-[38ch]">
+            <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-6 max-w-[38ch]">
               Vouqis sits between your AI agent and MCP server. Every tool
               call is validated. Every failure is classified. Nothing propagates
               silently.
             </p>
 
+            <p className="font-mono text-[0.65rem] text-muted-foreground/50 mb-8">
+              For Founding Engineers running MCP-powered agents in production.
+            </p>
+
             <div className="flex flex-col sm:flex-row gap-3 items-start">
               <a
-                href="#early-access"
+                href="#design-partner"
                 className="inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
               >
-                Get Early Access
+                Join Design Partner Program
               </a>
               <a
                 href="https://calendly.com/sasisundar2211"
@@ -389,8 +340,6 @@ export default function HomePage() {
                 className={`px-4 py-2.5 rounded border text-sm font-mono w-full ${
                   step === 'Vouqis'
                     ? 'border-foreground/20 text-foreground/80 bg-foreground/5'
-                    : step === 'Response Validation' || step === 'Trust Decision'
-                    ? 'border-border/50 text-foreground/60'
                     : 'border-border/35 text-muted-foreground/60'
                 }`}
               >
@@ -420,15 +369,10 @@ export default function HomePage() {
 
       {/* ── Built For ────────────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <div className="space-y-4 mb-8">
-          {BUILT_FOR.map((item) => (
-            <div key={item} className="flex items-center gap-3">
-              <span className="text-foreground/45 text-xs font-mono shrink-0">✓</span>
-              <span className="text-sm text-foreground/75">{item}</span>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground/40 font-mono">Not for hobby projects.</p>
+        <p className="text-sm text-foreground/75 leading-relaxed max-w-[45ch]">
+          {BUILT_FOR}
+        </p>
+        <p className="text-xs text-muted-foreground/40 font-mono mt-3">Not for hobby projects.</p>
       </section>
 
       {/* ── Failure Reports ──────────────────────────────────────────────── */}
@@ -488,66 +432,50 @@ export default function HomePage() {
           >
             Open source.
           </a>{' '}
-          Founder-led support during early access.
+           Founder-led support for design partners.
         </p>
       </section>
 
-      {/* ── Pricing ───────────────────────────────────────────────────────── */}
+      {/* ── Design Partner Program ────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <h2 className="text-2xl font-semibold mb-4 tracking-tight text-balance">
-          Deployment options
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8 mt-12">
-          {PRICING_TIERS.map((tier) => (
-            <div
-              key={tier.name}
-              className={`rounded-lg border ${
-                tier.highlighted
-                  ? 'border-foreground/30 bg-foreground/5'
-                  : 'border-border/60 hover:border-border/80 hover:bg-muted/10 transition-colors'
-              }`}
-            >
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">{tier.name}</h3>
-                  <span
-                    className={`text-xs font-mono px-2 py-1 rounded ${
-                      tier.highlighted
-                        ? 'bg-foreground/20 text-foreground/80'
-                        : 'bg-muted/20 text-muted-foreground'
-                    }`}
-                  >
-                    {tier.badge}
-                  </span>
-                </div>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold">{tier.price}</span>
-                  {tier.period && (
-                    <span className="text-muted-foreground ml-2">/ month</span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mb-8">{tier.tagline}</p>
-                <ul className="space-y-3 mb-8">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="text-sm flex items-start gap-2">
-                      <span className="text-foreground/60 mt-0.5">•</span>
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={tier.ctaLink}
-                  className={`inline-flex items-center justify-center w-full h-10 px-4 rounded-md text-sm font-medium transition-colors ${
-                    tier.highlighted
-                      ? 'bg-foreground text-background hover:opacity-90'
-                      : 'border border-border/60 text-foreground hover:bg-muted/10'
-                  }`}
-                >
-                  {tier.cta}
-                </a>
-              </div>
+        <div className="max-w-lg">
+          <h2 className="text-2xl font-semibold mb-3 tracking-tight text-balance">
+            Join the Design Partner Program
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+            We are looking for teams running MCP-powered agents in production.
+            You get early access and direct-to-founder support. We learn from
+            your failure patterns.
+          </p>
+          <div className="rounded-lg border border-foreground/30 bg-foreground/5 p-8 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold">Design Partner</h3>
+              <span className="text-xs font-mono bg-foreground/20 text-foreground/80 px-2 py-1 rounded">
+                Free during discovery
+              </span>
             </div>
-          ))}
+            <ul className="space-y-3 mb-8">
+              {DESIGN_PARTNER_FEATURES.map((feature, i) => (
+                <li key={i} className="text-sm flex items-start gap-2">
+                  <span className="text-foreground/60 mt-0.5">•</span>
+                  <span className="text-muted-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <a
+              href="#design-partner"
+              className="inline-flex items-center justify-center w-full h-10 px-4 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-colors"
+            >
+              Apply for Design Partner
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground/50">
+            Or{' '}
+            <a href="/proxy" className="underline underline-offset-2 decoration-border hover:text-foreground transition-colors">
+              run a one-time MCP reliability audit
+            </a>{' '}
+            — no commitment required.
+          </p>
         </div>
       </section>
 
@@ -580,13 +508,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Early Access + Discovery CTA ─────────────────────────────────── */}
-      <section id="early-access" className="py-20 border-t border-border/50">
+      {/* ── Design Partner + Discovery CTA ──────────────────────────────────── */}
+      <section id="design-partner" className="py-20 border-t border-border/50">
         <div className="grid md:grid-cols-2 gap-16 items-start">
           <div>
-            <h2 className="text-xl font-semibold mb-3 tracking-tight">Get Early Access</h2>
+            <h2 className="text-xl font-semibold mb-3 tracking-tight">Join the Design Partner Program</h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              We&rsquo;ll reach out when Vouqis opens for the next cohort.
+              Route MCP traffic through Vouqis. Shape the product. We&rsquo;ll help you set it up.
             </p>
             <EmailCapture />
           </div>
