@@ -27,6 +27,7 @@ const CAPABILITIES = [
   { label: 'Block',       detail: 'Halt calls that violate defined contracts' },
   { label: 'Retry',       detail: 'Re-attempt only idempotent methods within policy' },
   { label: 'Trust Score', detail: 'Per-server reliability tracked over time' },
+  { label: 'Audit Log',   detail: 'Structured NDJSON record of every interaction' },
 ]
 
 const BUILT_FOR = [
@@ -67,11 +68,95 @@ const FAILURE_REPORTS = [
   },
 ]
 
-const CREDIBILITY = [
-  { value: '100+',    label: 'Protocol tests' },
-  { value: '113',     label: 'Passing tests'  },
-  { value: 'Open',    label: 'Source'         },
-  { value: 'Founder', label: 'Led support'    },
+const PRICING_TIERS = [
+  {
+    name: 'MCP Reliability Audit',
+    badge: 'Free',
+    price: '$0',
+    period: false,
+    tagline: 'Run a point-in-time reliability check on any MCP server.',
+    features: [
+      'Trust Score (0–100)',
+      'Failure report with classified issues',
+      'Response time analysis',
+      'JSON export',
+    ],
+    cta: 'Run a Free Audit',
+    ctaLink: '/proxy',
+    highlighted: false,
+  },
+  {
+    name: 'Vouqis Cloud',
+    badge: 'Early Access',
+    price: '$49–$299',
+    period: true,
+    tagline: 'Runtime reliability protection for production MCP traffic.',
+    features: [
+      'Proxy-based request + response validation',
+      'Real-time failure classification',
+      'Team dashboard with per-server trust scores',
+      'Failure alerts via email or Slack',
+      '90-day audit log retention',
+    ],
+    cta: 'Join Early Access',
+    ctaLink: '#early-access',
+    highlighted: true,
+  },
+  {
+    name: 'Enterprise',
+    badge: 'Custom',
+    price: 'Contact',
+    period: false,
+    tagline: 'Private deployment with compliance and dedicated support.',
+    features: [
+      'On-premises or VPC deployment',
+      'Custom schema registry',
+      'SLA and dedicated support',
+      'SSO and audit compliance',
+      'Failure intelligence across fleet',
+    ],
+    cta: 'Talk to the Founder',
+    ctaLink: 'mailto:sasisundhar2211@gmail.com',
+    highlighted: false,
+  },
+]
+
+const FAQ_ITEMS = [
+  {
+    question: 'What exactly is Vouqis?',
+    answer:
+      'Vouqis is a proxy gateway that sits between your AI agent and your MCP server. Every tool call routes through Vouqis, which validates the request, forwards it upstream, validates the response, and classifies any failure before it reaches your agent. You get structured failure data and a trust score per server — without changing your agent code.',
+  },
+  {
+    question: 'Do I have to change my agent to use it?',
+    answer:
+      'No. You point your agent at `127.0.0.1:4444` (or the Vouqis Cloud endpoint) instead of your MCP server directly. The proxy is transparent — your agent never knows it exists. Install takes under 60 seconds.',
+  },
+  {
+    question: 'What failure types does Vouqis detect?',
+    answer:
+      'Null result propagation — `result: null` despite HTTP 200. Schema violations — JSON-RPC 2.0 envelope or tool schema mismatch. Timeout failures — upstream did not respond within SLA. Parse errors — response is not valid JSON. Retry masking — retried requests where the original failure is hidden. More failure signatures are added based on design partner incidents.',
+  },
+  {
+    question: 'Does the proxy add latency?',
+    answer:
+      'Less than 10ms on the happy path at p95. Validation and audit logging are asynchronous — they do not block the response pipeline. Benchmark numbers are available in the repository.',
+  },
+  {
+    question: 'What data does Vouqis log or store?',
+    answer:
+      'The audit log captures: timestamp, method, upstream hostname, latency, failure classification, and an internal ref ID. It never captures request/response content, full URLs, authentication tokens, or PII. The local proxy writes logs to your machine only. The cloud tier stores logs in your isolated workspace.',
+  },
+  {
+    question: 'Is this open source?',
+    answer:
+      'The CLI proxy is open source: `github.com/Sasisundar2211/Vouqis`. The cloud dashboard and reliability intelligence are commercial products. You can run the proxy locally indefinitely at no cost.',
+  },
+  {
+    question: 'We already use LangSmith. Why do we need this?',
+    answer:
+      'LangSmith traces LLM calls — prompts, tokens, agent chains, model outputs. It does not inspect MCP protocol behavior. Vouqis validates at the transport layer: JSON-RPC envelopes, response schemas, null results, timeout handling. They are complementary, not competing.',
+  },
 ]
 
 export default function HomePage() {
@@ -87,13 +172,14 @@ export default function HomePage() {
             <h1
               className="text-[2.6rem] sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] leading-[1.06] text-balance mb-6"
             >
-              Catch MCP failures{' '}
-              <span className="text-foreground/40">before your users do.</span>
+              Your agent said success.{' '}
+              <span className="text-foreground/50">The action never happened.</span>
             </h1>
 
             <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-10 max-w-[38ch]">
-              Route MCP traffic through Vouqis and detect null responses,
-              schema violations, timeouts, and silent failures in real time.
+              Vouqis sits between your AI agent and MCP server. Every tool
+              call is validated. Every failure is classified. Nothing propagates
+              silently.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 items-start">
@@ -218,12 +304,9 @@ export default function HomePage() {
       {/* ── The Problem ──────────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
         <div className="max-w-[52ch]">
-          <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-8">
-            The Problem
-          </p>
           <div className="mb-10 space-y-1">
             <p className="text-2xl sm:text-3xl font-semibold tracking-tight">Tool call succeeds.</p>
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/40">User outcome fails.</p>
+            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/50">User outcome fails.</p>
           </div>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -275,9 +358,9 @@ export default function HomePage() {
 
       {/* ── Workflow Diagram ─────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-10">
-          How It Works
-        </p>
+        <h2 className="text-[0.9rem] font-semibold tracking-[-0.015em] leading-[1.4] mb-10 text-balance">
+          How it works
+        </h2>
         <div className="flex flex-col items-start max-w-[14rem]">
           {WORKFLOW.map((step, i) => (
             <div key={step} className="flex flex-col items-start w-full">
@@ -316,9 +399,6 @@ export default function HomePage() {
 
       {/* ── Built For ────────────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <p className="text-[0.6875rem] font-mono text-muted-foreground/40 tracking-[0.08em] uppercase mb-8">
-          Built For
-        </p>
         <div className="space-y-4 mb-8">
           {BUILT_FOR.map((item) => (
             <div key={item} className="flex items-center gap-3">
@@ -374,19 +454,105 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Founder Credibility ──────────────────────────────────────────── */}
+      {/* ── Credibility ──────────────────────────────────────────────────── */}
       <section className="py-20 border-t border-border/50">
-        <p className="text-sm text-muted-foreground leading-relaxed mb-10">
-          Built after observing repeated MCP reliability failures.
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-[52ch]">
+          Built after observing repeated MCP reliability failures in production.
+          113 tests passing across 100+ protocol scenarios.{' '}
+          <a
+            href="https://github.com/Sasisundar2211/Vouqis"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-foreground/65 underline underline-offset-2 decoration-border hover:text-foreground transition-colors"
+          >
+            Open source.
+          </a>{' '}
+          Founder-led support during early access.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-          {CREDIBILITY.map(({ value, label }) => (
-            <div key={label}>
-              <p className="text-2xl font-semibold font-mono tabular-nums text-foreground/80 mb-1">
-                {value}
+      </section>
+
+      {/* ── Pricing ───────────────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <h2 className="text-2xl font-semibold mb-4 tracking-tight text-balance">
+          Deployment options
+        </h2>
+        <div className="grid md:grid-cols-3 gap-8 mt-12">
+          {PRICING_TIERS.map((tier) => (
+            <div
+              key={tier.name}
+              className={`rounded-lg border ${
+                tier.highlighted
+                  ? 'border-foreground/30 bg-foreground/5'
+                  : 'border-border/60 hover:border-border/80 hover:bg-muted/10 transition-colors'
+              }`}
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">{tier.name}</h3>
+                  <span
+                    className={`text-xs font-mono px-2 py-1 rounded ${
+                      tier.highlighted
+                        ? 'bg-foreground/20 text-foreground/80'
+                        : 'bg-muted/20 text-muted-foreground'
+                    }`}
+                  >
+                    {tier.badge}
+                  </span>
+                </div>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold">{tier.price}</span>
+                  {tier.period && (
+                    <span className="text-muted-foreground ml-2">/ month</span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mb-8">{tier.tagline}</p>
+                <ul className="space-y-3 mb-8">
+                  {tier.features.map((feature, i) => (
+                    <li key={i} className="text-sm flex items-start gap-2">
+                      <span className="text-foreground/60 mt-0.5">•</span>
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={tier.ctaLink}
+                  className={`inline-flex items-center justify-center w-full h-10 px-4 rounded-md text-sm font-medium transition-colors ${
+                    tier.highlighted
+                      ? 'bg-foreground text-background hover:opacity-90'
+                      : 'border border-border/60 text-foreground hover:bg-muted/10'
+                  }`}
+                >
+                  {tier.cta}
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section className="py-20 border-t border-border/50">
+        <h2 className="text-2xl font-semibold mb-10 tracking-tight text-balance">
+          Common questions
+        </h2>
+        <div className="max-w-3xl divide-y divide-border/40">
+          {FAQ_ITEMS.map((item, index) => (
+            <div key={index} className="py-7 first:pt-0">
+              <p className="text-sm font-semibold text-foreground/80 mb-3 leading-snug">
+                {item.question}
               </p>
-              <p className="text-[0.65rem] font-mono text-muted-foreground/50 uppercase tracking-[0.06em]">
-                {label}
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {item.answer.includes('`')
+                  ? item.answer.split('`').map((part, i) =>
+                      i % 2 === 0 ? (
+                        <span key={i}>{part}</span>
+                      ) : (
+                        <code key={i} className="font-mono text-xs bg-muted/50 px-1.5 py-0.5 rounded">
+                          {part}
+                        </code>
+                      )
+                    )
+                  : item.answer}
               </p>
             </div>
           ))}
@@ -426,8 +592,8 @@ export default function HomePage() {
           <p className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
             MCP servers fail silently.
           </p>
-          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/40">
-            Vouqis helps you catch failures before users do.
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/50">
+            Vouqis surfaces the evidence.
           </p>
         </div>
         <a
