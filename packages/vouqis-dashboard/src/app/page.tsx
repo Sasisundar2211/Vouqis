@@ -1,15 +1,34 @@
 import { EmailCapture } from '@/components/email-capture'
 
 const TRACE = [
-  { ln: 1, time: '09:14:22', actor: '[agent]',    dir: '→', content: 'createTicket("Deploy blocked")' },
-  { ln: 2, time: '09:14:23', actor: '[jira]',     dir: '←', content: 'HTTP 200  {"id":"TKT-8821","status":"created"}' },
-  { ln: 3, time: '09:14:23', actor: '[agent]',    dir: ' ', content: 'result.success === true' },
+  {
+    ln: 1, time: '09:14:22',
+    actor: '[agent]',   actorType: 'default' as const,
+    dir: '→', content: 'tools/call  createInvoice({ "amount": 840 })',    contentType: 'default' as const,
+  },
+  {
+    ln: 2, time: '09:14:23',
+    actor: '[jira]',    actorType: 'default' as const,
+    dir: '←', content: 'HTTP 200  { "success": true, "result": null }',   contentType: 'default' as const,
+  },
+  {
+    ln: 3, time: '09:14:23',
+    actor: '[vouqis]',  actorType: 'vouqis' as const,
+    dir: ' ', content: '✓  envelope  jsonrpc: "2.0"  valid',              contentType: 'ok' as const,
+  },
+  {
+    ln: 4, time: '09:14:23',
+    actor: '[vouqis]',  actorType: 'vouqis' as const,
+    dir: ' ', content: 'BLOCK  null_result  severity: HIGH',              contentType: 'incident' as const,
+  },
 ]
 
+const TRACE_REF = 'ref: TRC-8821  ·  tool: createInvoice  ·  upstream: jira.api'
+
 const STATUS_CELLS = [
-  { dot: 'green', label: 'Agent reported',    value: 'success: true' },
-  { dot: 'amber', label: 'Action completed',  value: 'false' },
-  { dot: 'red',   label: 'Time to discovery', value: '33 min 48 sec' },
+  { dot: 'dim',   label: 'Agent logged',        value: 'success: true' },
+  { dot: 'amber', label: 'Action completed',    value: 'false' },
+  { dot: 'amber', label: 'Time to discovery',   value: '33 min 48 sec' },
 ]
 
 const WORKFLOW = [
@@ -170,11 +189,15 @@ export default function HomePage() {
           {/* Left: statement + CTAs */}
           <div>
             <h1
-              className="text-[2.6rem] sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] leading-[1.06] text-balance mb-6"
+              className="text-[2.6rem] sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] leading-[1.06] text-balance mb-5"
             >
-              Your agent said success.{' '}
-              <span className="text-foreground/50">The action never happened.</span>
+              Catch MCP failures{' '}
+              <span className="text-foreground/45">before your users do.</span>
             </h1>
+
+            <p className="font-mono text-[0.7rem] text-muted-foreground/40 mb-6 leading-relaxed border-l border-border/40 pl-3 max-w-[34ch]">
+              Your agent said success.<br />The action never happened.
+            </p>
 
             <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-10 max-w-[38ch]">
               Vouqis sits between your AI agent and MCP server. Every tool
@@ -185,7 +208,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-3 items-start">
               <a
                 href="#early-access"
-                className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
               >
                 Get Early Access
               </a>
@@ -227,41 +250,40 @@ export default function HomePage() {
                   <span className="w-[7.5ch] tabular-nums text-muted-foreground/40 shrink-0 mr-2.5">
                     {row.time}
                   </span>
-                  <span className="w-[9ch] text-muted-foreground/60 shrink-0 mr-2.5">
+                  <span
+                    className={`w-[9ch] shrink-0 mr-2.5 ${
+                      row.actorType === 'vouqis' ? 'text-vouqis-actor' : 'text-muted-foreground/60'
+                    }`}
+                  >
                     {row.actor}
                   </span>
                   <span className="w-[1.5ch] text-muted-foreground/40 shrink-0 mr-2.5 text-center">
                     {row.dir}
                   </span>
-                  <span className="text-foreground/55 min-w-0 break-words">{row.content}</span>
+                  <span
+                    className={`min-w-0 break-words ${
+                      row.contentType === 'ok'
+                        ? 'text-ok'
+                        : row.contentType === 'incident'
+                        ? 'text-incident font-medium'
+                        : 'text-foreground/55'
+                    }`}
+                  >
+                    {row.content}
+                  </span>
                 </div>
               ))}
 
               <div
-                className="trace-in flex items-center gap-3 my-3.5"
-                style={{ animationDelay: '1.45s' }}
+                className="trace-in mt-0.5"
+                style={{ animationDelay: '1.85s', paddingLeft: 'calc(20ch + 2.5rem)' }}
               >
-                <div className="h-px flex-1 bg-incident/20" />
-                <span className="text-incident/55 text-[0.6rem] tabular-nums tracking-[0.06em] whitespace-nowrap">
-                  33 min 48 sec
-                </span>
-                <div className="h-px flex-1 bg-incident/20" />
-              </div>
-
-              <div
-                className="trace-in flex"
-                style={{ animationDelay: '1.8s' }}
-              >
-                <span className="w-[2ch] tabular-nums text-muted-foreground/25 select-none shrink-0 mr-2.5">4</span>
-                <span className="w-[7.5ch] tabular-nums text-muted-foreground/40 shrink-0 mr-2.5">09:47:11</span>
-                <span className="w-[9ch] text-muted-foreground/60 shrink-0 mr-2.5">[customer]</span>
-                <span className="w-[1.5ch] shrink-0 mr-2.5" />
-                <span className="text-incident font-medium min-w-0">
-                  &ldquo;The ticket was never created.&rdquo;
+                <span className="text-muted-foreground/30 text-[0.62rem]">
+                  {TRACE_REF}
                 </span>
               </div>
 
-              <div className="trace-in mt-1 pl-4" style={{ animationDelay: '2.15s' }}>
+              <div className="trace-in mt-1 pl-4" style={{ animationDelay: '2.2s' }}>
                 <span className="cursor-blink text-muted-foreground/30">▋</span>
               </div>
             </div>
@@ -280,9 +302,8 @@ export default function HomePage() {
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{
                     background:
-                      dot === 'green' ? 'oklch(0.65 0.17 145)' :
                       dot === 'amber' ? 'var(--incident)' :
-                      'oklch(0.55 0.22 25)',
+                      'oklch(0.38 0 0)',
                   }}
                 />
                 <span className="text-[0.65rem] font-mono text-muted-foreground/55 tracking-[0.05em] uppercase">
@@ -291,7 +312,7 @@ export default function HomePage() {
               </div>
               <div
                 className={`text-[1.35rem] font-mono font-medium tabular-nums ${
-                  dot === 'red' ? 'text-incident' : 'text-foreground/75'
+                  dot === 'amber' ? 'text-incident' : 'text-foreground/30'
                 }`}
               >
                 {value}
@@ -600,7 +621,7 @@ export default function HomePage() {
           href="https://calendly.com/sasisundar2211"
           target="_blank"
           rel="noopener noreferrer"
-          className="cta-pulse inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+          className="inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
         >
           Book a Discovery Call
         </a>
@@ -608,7 +629,9 @@ export default function HomePage() {
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="border-t border-border/50 py-7 text-[0.68rem] text-muted-foreground/50 flex items-center justify-between gap-4 flex-wrap">
-        <span className="font-mono">© 2026 Vouqis</span>
+        <span className="font-sans font-medium" style={{ letterSpacing: '0.2em', fontSize: '0.65rem' }}>
+          © 2026 VOUQIS
+        </span>
         <div className="flex items-center gap-6">
           <a
             href="https://github.com/Sasisundar2211/Vouqis"

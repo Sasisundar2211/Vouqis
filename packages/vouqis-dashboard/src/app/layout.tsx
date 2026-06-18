@@ -42,8 +42,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between">
-            <Link href="/" className="text-sm font-semibold tracking-tight hover:opacity-80 transition-opacity text-foreground">
-              Vouqis
+            <Link
+              href="/"
+              className="font-sans font-medium text-foreground hover:opacity-80 transition-opacity"
+              style={{ letterSpacing: '0.34em', fontSize: '0.8125rem' }}
+            >
+              VOUQIS
             </Link>
             <div className="flex items-center gap-6">
               <Link
