@@ -15,6 +15,21 @@ type ApplicationBody = {
   why_now?: unknown
 }
 
+async function saveToAirtable(fields: Record<string, string>): Promise<void> {
+  const token = process.env.AIRTABLE_TOKEN
+  const baseId = process.env.AIRTABLE_BASE_ID
+  if (!token || !baseId) return
+
+  await fetch(`https://api.airtable.com/v0/${baseId}/Applications`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fields }),
+  })
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: ApplicationBody
   try {
@@ -31,6 +46,22 @@ export async function POST(request: Request): Promise<Response> {
   if (typeof name !== 'string' || name.trim().length < 2) {
     return NextResponse.json({ error: 'Name required' }, { status: 400 })
   }
+
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+
+  // Save to Airtable (non-blocking — email still sends even if Airtable fails)
+  await saveToAirtable({
+    Name:             str(name),
+    Email:            str(email),
+    Company:          str(company),
+    Role:             str(role),
+    'Team Size':      str(team_size),
+    'MCP Servers':    str(mcp_servers),
+    'Failure Types':  str(failure_types),
+    'Current Approach': str(current_approach),
+    'Why Now':        str(why_now),
+    'Submitted At':   new Date().toISOString(),
+  }).catch(() => {})
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
