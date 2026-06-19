@@ -71,7 +71,7 @@ const FOOTER_COLS = [
     items: [
       { label: 'Design partners', href: '/design-partner' },
       { label: 'Blog',            href: '/blog' },
-      { label: 'Contact',         href: 'mailto:hello@vouqis.tech' },
+      { label: 'Contact',         href: 'mailto:sasisundhar2211@gmail.com' },
     ],
   },
 ]
