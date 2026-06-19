@@ -22,6 +22,7 @@ export default class Logs extends Command {
       description: 'Show last N events',
       default: 20,
       char: 'n',
+      aliases: ['last'],
     }),
     file: Flags.string({
       description: 'Path to audit log file',
