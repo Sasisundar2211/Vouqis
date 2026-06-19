@@ -1,35 +1,25 @@
 import { CopyButton } from '@/components/copy-button'
 import { TerminalDemo } from '@/components/terminal-demo'
 
-const TICKER_SIGS = [
-  'NULL_RESULT', 'EMPTY_CONTENT', 'MALFORMED_JSON', 'SCHEMA_DRIFT',
-  'TIMEOUT_AS_SUCCESS', 'TRUNCATED_PAYLOAD', 'WRONG_TYPE',
-  'STALE_DATA', 'PARTIAL_BATCH', 'SILENT_RETRY',
+const CATCHES = [
+  {
+    code: 'NULL_RESULT',
+    title: 'Null Responses',
+    desc: 'The response succeeds but contains no usable result. HTTP 200 with result: null. The agent reads it as truth.',
+  },
+  {
+    code: 'SCHEMA_DRIFT',
+    title: 'Schema Violations',
+    desc: 'The response shape changes unexpectedly. Required fields disappear. Field types silently change. The agent processes corrupt data.',
+  },
+  {
+    code: 'TIMEOUT_AS_SUCCESS',
+    title: 'Timeouts',
+    desc: 'The tool never completes successfully but returns 200. The agent says "done." The action never happened.',
+  },
 ]
 
-const FAILURES = [
-  {
-    n: '01',
-    title: 'The null that passes review',
-    envelope: 'HTTP 200 · success',
-    payload: '{\n  "jsonrpc": "2.0",\n  "result": null\n}',
-    consequence: 'Your agent reads it as "record not found." The record exists. The tool just failed — and nothing in the response says so.',
-  },
-  {
-    n: '02',
-    title: 'The empty array dressed as an answer',
-    envelope: 'HTTP 200 · success',
-    payload: '{\n  "result": {\n    "content": []\n  }\n}',
-    consequence: 'The agent reports "no results." Your user makes a decision on data that was never actually fetched.',
-  },
-  {
-    n: '03',
-    title: 'The timeout wearing a success badge',
-    envelope: 'HTTP 200 · after 30,041 ms',
-    payload: '{\n  "result": {\n    "status": "ok"\n  }\n}',
-    consequence: 'The action never completed. The agent says "done." Nobody finds out until a customer does.',
-  },
-]
+const OUTPUTS = ['Failure Type', 'Severity', 'Tool Name', 'Timestamp']
 
 const CHECKS = [
   { k: '01', t: 'Validates the JSON-RPC request' },
@@ -39,32 +29,51 @@ const CHECKS = [
   { k: '05', t: 'Emits protocol-aware reliability telemetry' },
 ]
 
-const FAILURE_CLASSES = [
-  { name: 'NULL_RESULT',    pct: '41%', color: '#FF6A4D' },
-  { name: 'TIMEOUT_AS_OK', pct: '22%', color: '#E8915A' },
-  { name: 'SCHEMA_DRIFT',  pct: '18%', color: '#D8B24A' },
-  { name: 'EMPTY_CONTENT', pct: '12%', color: '#8C8473' },
-  { name: 'MALFORMED_JSON', pct: '7%', color: '#6E6657' },
+const GATEWAY_STATS = [
+  { label: 'Requests',        value: '1,284', sub: 'last 24 hours',         alert: false },
+  { label: 'Blocked',         value: '23',    sub: 'silent failures caught', alert: true  },
+  { label: 'Failure rate',    value: '1.8%',  sub: 'of all tool calls',     alert: false },
+  { label: 'Vouqis overhead', value: '4 ms',  sub: 'p95 latency added',     alert: false },
 ]
 
-const SLIS = [
-  { label: 'SUCCESS w/ CONTENT', value: '91.4%', target: 'target 99.9%',  color: '#FF6A4D' },
-  { label: 'P95 LATENCY',        value: '142 ms', target: 'budget 250 ms', color: '#E9E3D5' },
-  { label: 'SCHEMA STABILITY',   value: '97.2%', target: 'trailing 7d',    color: '#E9E3D5' },
-  { label: 'SILENT-FAILURE RATE', value: '8.6%', target: 'target < 0.5%', color: '#FF6A4D' },
+const REQUEST_FEED = [
+  { id: '#1284', tool: 'create_invoice',   status: 'BLOCKED', reason: 'Missing Required Field', ts: '12:31:05', ms: null    },
+  { id: '#1283', tool: 'search_documents', status: 'PASSED',  reason: null,                      ts: '12:31:04', ms: '84 ms' },
+  { id: '#1282', tool: 'query_orders',     status: 'BLOCKED', reason: 'NULL_RESULT',             ts: '12:31:01', ms: null    },
+  { id: '#1281', tool: 'get_user_profile', status: 'PASSED',  reason: null,                      ts: '12:30:58', ms: '61 ms' },
+  { id: '#1280', tool: 'update_record',    status: 'BLOCKED', reason: 'SCHEMA_DRIFT',            ts: '12:30:55', ms: null    },
 ]
 
-const SERVER_ROWS = [
-  { name: 'mcp.acme.dev/db',     spark: '▆▅▆▄▅▃▄▂▃▂', score: '72', verdict: 'DEGRADED', color: '#C23A1E' },
-  { name: 'mcp.payments.io',     spark: '▇▇▆▇▇█▇▇▆▇', score: '98', verdict: 'TRUSTED',  color: '#2E8B5E' },
-  { name: 'mcp.search.dev',      spark: '▅▆▅▆▇▆▅▆▅▆', score: '85', verdict: 'WATCH',    color: '#B07A1E' },
-  { name: 'mcp.legacy.internal', spark: '▃▂▃▁▂▁▂▁▁▂', score: '54', verdict: 'CRITICAL', color: '#C23A1E' },
+const FAILURE_BREAKDOWN = [
+  { type: 'Schema Violations', count: 12, pct: '52%' },
+  { type: 'Null Responses',    count: 7,  pct: '30%' },
+  { type: 'Timeouts',          count: 4,  pct: '18%' },
+]
+
+const PARTNER_BENEFITS = [
+  'Founder support — direct access to the Vouqis team',
+  'Early access — shape the product before it ships',
+  'Direct feedback loop — weekly check-ins during onboarding',
+  'Product influence — your failures define the roadmap',
 ]
 
 const FOOTER_COLS = [
-  { h: 'Product',   items: ['Reliability Audit', 'Gateway Cloud', 'Telemetry'] },
-  { h: 'Resources', items: ['Docs', 'GitHub', 'Changelog'] },
-  { h: 'Company',   items: ['Design partners', 'Blog', 'Contact'] },
+  {
+    h: 'Resources',
+    items: [
+      { label: 'Docs',       href: '/docs' },
+      { label: 'GitHub',     href: 'https://github.com/Sasisundar2211/Vouqis' },
+      { label: 'Changelog',  href: '/changelog' },
+    ],
+  },
+  {
+    h: 'Company',
+    items: [
+      { label: 'Design partners', href: '/design-partner' },
+      { label: 'Blog',            href: '/blog' },
+      { label: 'Contact',         href: 'mailto:hello@vouqis.tech' },
+    ],
+  },
 ]
 
 const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
@@ -124,21 +133,21 @@ export default function HomePage() {
                 fontSize: 'clamp(46px,6.4vw,94px)',
                 lineHeight: 0.96,
                 letterSpacing: '-0.012em',
-                maxWidth: '13ch',
+                maxWidth: '14ch',
                 margin: '0 0 28px',
                 color: '#15120E',
               }}
             >
-              Your agent is{' '}
-              <span
+              Catch MCP failures{' '}
+              <em
                 style={{
                   position: 'relative',
-                  whiteSpace: 'nowrap',
                   fontStyle: 'italic',
                   color: '#ED4B2A',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                lying
+                before
                 <span
                   style={{
                     position: 'absolute',
@@ -147,13 +156,11 @@ export default function HomePage() {
                     bottom: '0.08em',
                     height: 3,
                     background: '#ED4B2A',
-                    opacity: 0.32,
+                    opacity: 0.28,
                   }}
                 />
-              </span>{' '}
-              to you.
-              <br />
-              It doesn&apos;t know it yet.
+              </em>{' '}
+              your users do.
             </h1>
 
             {/* Body */}
@@ -167,51 +174,56 @@ export default function HomePage() {
                 margin: '0 0 32px',
               }}
             >
-              MCP tools return{' '}
-              <code
-                style={{
-                  fontFamily: MONO,
-                  fontSize: '0.86em',
-                  background: 'rgba(21,18,14,0.06)',
-                  padding: '2px 6px',
-                  borderRadius: 3,
-                }}
-              >
-                200 OK
-              </code>{' '}
-              with null, empty, or malformed payloads. Your agent reads the
-              garbage as truth and answers your user with total confidence.
-              Vouqis sits in the path and catches the failure{' '}
-              <em style={{ fontStyle: 'italic', color: '#15120E' }}>
-                before it ever reaches the agent.
-              </em>
+              Vouqis is a reliability gateway for MCP servers. It sits between your
+              AI agent and MCP server, detecting silent failures — null results,
+              schema drift, timeouts — before they reach production.
             </p>
 
             {/* CTA row */}
             <div
+              className="vq-cta-row"
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                gap: 16,
+                gap: 14,
                 marginBottom: 28,
               }}
             >
-              <CopyButton size="sm" />
               <a
-                href="#demo"
+                href="/design-partner"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  height: 52,
+                  padding: '0 24px',
+                  background: '#15120E',
+                  color: '#E9E3D5',
+                  fontFamily: MONO,
+                  fontSize: 13,
+                  letterSpacing: '0.02em',
+                  textDecoration: 'none',
+                  borderRadius: 3,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Join Design Partners →
+              </a>
+              <a
+                href="/docs"
                 className="vq-text-link"
                 style={{
                   fontFamily: MONO,
                   fontSize: 13,
                   color: '#15120E',
                   textDecoration: 'none',
-                  borderBottom: '1px solid #ED4B2A',
+                  borderBottom: '1px solid rgba(21,18,14,0.3)',
                   paddingBottom: 3,
                   transition: 'opacity 150ms ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                read the diagnostic →
+                Read Documentation →
               </a>
             </div>
 
@@ -226,14 +238,14 @@ export default function HomePage() {
                 color: '#6B6557',
               }}
             >
-              {['Free', 'Open source (AGPL)', 'Design-partner program open', 'Microseconds of overhead'].map((b) => (
+              {['Free', 'Open source (MIT)', 'Design-partner program open', 'Microseconds of overhead'].map((b) => (
                 <span key={b}>{b}</span>
               ))}
             </div>
           </div>
 
           {/* Right column — Response Inspector */}
-          <div style={{ flex: '1 1 380px', minWidth: 320, display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="vq-hero-rhs" style={{ flex: '1 1 380px', minWidth: 320, display: 'flex', justifyContent: 'flex-end' }}>
             <div
               style={{
                 background: '#16130E',
@@ -406,46 +418,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── TICKER ──────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          borderTop: '1px solid rgba(21,18,14,0.12)',
-          borderBottom: '1px solid rgba(21,18,14,0.12)',
-          padding: '15px 0',
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          maskImage: 'linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)',
-          WebkitMaskImage: 'linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)',
-        }}
-      >
-        <div
-          style={{
-            display: 'inline-flex',
-            animation: 'vq-marquee 38s linear infinite',
-            willChange: 'transform',
-          }}
-        >
-          {[...TICKER_SIGS, ...TICKER_SIGS].map((sig, i) => (
-            <span
-              key={i}
-              style={{
-                fontFamily: MONO,
-                fontSize: 12.5,
-                letterSpacing: '0.08em',
-                color: '#5C564A',
-                padding: '0 26px',
-                display: 'inline-flex',
-                gap: 26,
-                alignItems: 'center',
-              }}
-            >
-              {sig}
-              <span style={{ color: '#ED4B2A', opacity: 0.5 }}>/</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* ── PROBLEM ─────────────────────────────────────────────────────────── */}
       <section
         id="problem"
@@ -457,149 +429,125 @@ export default function HomePage() {
           borderTop: '1px solid rgba(21,18,14,0.12)',
         }}
       >
-        {/* Header row */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-end',
             flexWrap: 'wrap',
-            gap: 24,
+            gap: 32,
             marginBottom: 'clamp(48px,5vw,80px)',
           }}
         >
           <div>
-            <div
-              style={{
-                fontFamily: MONO,
-                fontSize: 12.5,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: '#ED4B2A',
-                marginBottom: 20,
-              }}
-            >
-              01 — The failure mode
-            </div>
             <h2
               style={{
                 fontFamily: SERIF,
                 fontWeight: 400,
-                fontSize: 'clamp(34px,4.4vw,60px)',
-                maxWidth: '22ch',
-                margin: 0,
+                fontSize: 'clamp(38px,5vw,68px)',
+                lineHeight: 1.0,
                 color: '#15120E',
-                lineHeight: 1.05,
+                margin: '0 0 4px',
               }}
             >
-              Anatomy of a silent failure
+              Your agent reported success.
+            </h2>
+            <h2
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                fontSize: 'clamp(38px,5vw,68px)',
+                lineHeight: 1.0,
+                color: '#ED4B2A',
+                fontStyle: 'italic',
+                margin: 0,
+              }}
+            >
+              The action never happened.
             </h2>
           </div>
           <p
             style={{
               fontFamily: SANS,
               fontSize: 'clamp(16px,1.2vw,18.5px)',
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               color: '#5C564A',
-              maxWidth: '38ch',
+              maxWidth: '42ch',
               margin: 0,
             }}
           >
-            Every tool call is a contract between your agent and the outside
-            world. Most tools break that contract{' '}
-            <em style={{ fontStyle: 'italic', color: '#3B362C' }}>quietly</em> —
-            with a success code and a body full of nothing.
+            MCP servers can return null responses, schema violations, or timeouts
+            while the agent continues as if everything succeeded. Most teams
+            discover these failures after a customer reports them.
           </p>
         </div>
 
-        {/* Failures list */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {FAILURES.map((f) => (
+        {/* Failure evidence blocks */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 1,
+            background: 'rgba(21,18,14,0.10)',
+            border: '1px solid rgba(21,18,14,0.10)',
+            borderRadius: 6,
+            overflow: 'hidden',
+          }}
+        >
+          {[
+            { label: 'HTTP status', value: '200 OK', color: '#69B98D' },
+            { label: 'Result',      value: 'null',   color: '#FF6A4D' },
+            { label: 'Agent verdict', value: '"No orders found."', color: '#C9C2B2' },
+          ].map((item) => (
             <div
-              key={f.n}
+              key={item.label}
               style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 'clamp(20px,4vw,64px)',
-                padding: 'clamp(28px,3.4vw,44px) 0',
-                borderTop: '1px solid rgba(21,18,14,0.13)',
+                background: '#EFEAE0',
+                padding: 'clamp(20px,2.5vw,30px) clamp(20px,2.5vw,28px)',
               }}
             >
-              {/* Number */}
               <div
                 style={{
-                  fontFamily: SERIF,
-                  fontSize: 'clamp(48px,5vw,76px)',
-                  lineHeight: 0.8,
-                  color: '#ED4B2A',
-                  flex: '0 0 auto',
-                  width: 84,
-                }}
-              >
-                {f.n}
-              </div>
-
-              {/* Text block */}
-              <div style={{ flex: '1 1 280px' }}>
-                <h3
-                  style={{
-                    fontFamily: SERIF,
-                    fontWeight: 400,
-                    fontSize: 'clamp(24px,2.4vw,33px)',
-                    margin: '0 0 12px',
-                    color: '#15120E',
-                    lineHeight: 1.15,
-                  }}
-                >
-                  {f.title}
-                </h3>
-                <p
-                  style={{
-                    fontFamily: SANS,
-                    fontSize: 16.5,
-                    color: '#46402F',
-                    maxWidth: '46ch',
-                    margin: 0,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {f.consequence}
-                </p>
-              </div>
-
-              {/* Code block */}
-              <div
-                style={{
-                  flex: '1 1 300px',
-                  background: '#16130E',
-                  borderRadius: 5,
-                  padding: '18px 20px',
                   fontFamily: MONO,
-                  fontSize: 13,
-                  lineHeight: 1.75,
-                  color: '#C9C2B2',
-                  overflowX: 'auto',
+                  fontSize: 10,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: '#9A9486',
+                  marginBottom: 10,
                 }}
               >
-                <div
-                  style={{
-                    color: '#69B98D',
-                    fontSize: 11,
-                    letterSpacing: '0.1em',
-                    marginBottom: 10,
-                  }}
-                >
-                  {f.envelope}
-                </div>
-                <pre style={{ margin: 0, whiteSpace: 'pre', color: '#D8D1C1' }}>{f.payload}</pre>
+                {item.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 'clamp(18px,2vw,26px)',
+                  color: item.color,
+                  lineHeight: 1.2,
+                }}
+              >
+                {item.value}
               </div>
             </div>
           ))}
         </div>
-        <div style={{ borderTop: '1px solid rgba(21,18,14,0.13)' }} />
+
+        <p
+          style={{
+            fontFamily: SERIF,
+            fontSize: 'clamp(18px,1.8vw,24px)',
+            lineHeight: 1.4,
+            color: '#5C564A',
+            margin: 'clamp(28px,3vw,40px) 0 0',
+            maxWidth: '52ch',
+          }}
+        >
+          The HTTP layer said success. The JSON-RPC layer said success. The agent
+          acted on nothing. Vouqis sits in the middle and catches it.
+        </p>
       </section>
 
-      {/* ── ARCHITECTURE ────────────────────────────────────────────────────── */}
+      {/* ── HOW IT WORKS ────────────────────────────────────────────────────── */}
       <section
         id="how"
         style={{
@@ -612,18 +560,6 @@ export default function HomePage() {
       >
         {/* Header */}
         <div style={{ marginBottom: 'clamp(40px,5vw,64px)' }}>
-          <div
-            style={{
-              fontFamily: MONO,
-              fontSize: 12.5,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: '#ED4B2A',
-              marginBottom: 20,
-            }}
-          >
-            02 — The gateway
-          </div>
           <h2
             style={{
               fontFamily: SERIF,
@@ -635,9 +571,7 @@ export default function HomePage() {
               maxWidth: '24ch',
             }}
           >
-            A trust decision on{' '}
-            <em style={{ fontStyle: 'italic', color: '#ED4B2A' }}>every</em>{' '}
-            response.
+            How it works
           </h2>
           <p
             style={{
@@ -663,7 +597,6 @@ export default function HomePage() {
             background: '#F7F4EC',
             padding: 'clamp(24px,3vw,44px) clamp(20px,3vw,40px)',
             overflowX: 'auto',
-            marginBottom: 'clamp(40px,4vw,56px)',
             margin: `0 0 clamp(40px,4vw,56px)`,
           }}
         >
@@ -708,30 +641,25 @@ export default function HomePage() {
                 marginBottom: 26,
               }}
             >
-              {/* Node: Agent */}
               <div style={railNode('light')}>
                 <div style={railNodeKey}>AGENT</div>
                 <div style={railNodeVal('light')}>claude-3.7</div>
               </div>
-              {/* Connector */}
               <div style={connectorWrapper}>
                 <div style={connectorChip('normal')}>tools/call · query_orders</div>
                 <div style={arrowLine('normal')} />
               </div>
-              {/* Node: Vouqis */}
               <div style={railNode('dark')}>
                 <div style={railNodeKey}>VOUQIS</div>
-                <div style={railNodeVal('dark')}>gateway :7070</div>
+                <div style={railNodeVal('dark')}>gateway :4444</div>
               </div>
-              {/* Connector */}
               <div style={connectorWrapper}>
                 <div style={connectorChip('normal')}>schema ✓ · forwarded</div>
                 <div style={arrowLine('normal')} />
               </div>
-              {/* Node: MCP */}
               <div style={railNode('light')}>
                 <div style={railNodeKey}>MCP SERVER</div>
-                <div style={railNodeVal('light')}>acme.dev/db</div>
+                <div style={railNodeVal('light')}>127.0.0.1:3010</div>
               </div>
             </div>
 
@@ -749,27 +677,22 @@ export default function HomePage() {
               RESPONSE →
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              {/* Node: MCP */}
               <div style={railNode('light')}>
                 <div style={railNodeKey}>MCP SERVER</div>
-                <div style={railNodeVal('light')}>acme.dev/db</div>
+                <div style={railNodeVal('light')}>127.0.0.1:3010</div>
               </div>
-              {/* Connector BAD */}
               <div style={connectorWrapper}>
                 <div style={connectorChip('bad')}>200 · result: null</div>
                 <div style={arrowLine('bad')} />
               </div>
-              {/* Node: Vouqis */}
               <div style={railNode('dark')}>
                 <div style={railNodeKey}>VOUQIS</div>
                 <div style={railNodeVal('dark')}>inspect envelope</div>
               </div>
-              {/* Connector BAD */}
               <div style={connectorWrapper}>
                 <div style={connectorChip('bad')}>✕ NULL_RESULT · held</div>
                 <div style={arrowLine('bad')} />
               </div>
-              {/* Node: Agent */}
               <div style={railNode('light')}>
                 <div style={railNodeKey}>AGENT</div>
                 <div style={railNodeVal('light')}>blocked</div>
@@ -787,8 +710,8 @@ export default function HomePage() {
               borderTop: '1px solid rgba(21,18,14,0.12)',
             }}
           >
-            FIG.02 — One round trip. The request is validated and forwarded; the
-            response is inspected and{' '}
+            One round trip. The request is validated and forwarded; the response is
+            inspected and{' '}
             <span style={{ color: '#ED4B2A' }}>held</span> before the agent can
             act on it.
           </figcaption>
@@ -802,7 +725,6 @@ export default function HomePage() {
             gap: 'clamp(28px,4vw,56px)',
           }}
         >
-          {/* LEFT — Protocol inspection */}
           <div style={{ flex: '1 1 420px' }}>
             <div
               style={{
@@ -829,14 +751,7 @@ export default function HomePage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              <div
-                style={{
-                  fontSize: 11,
-                  letterSpacing: '0.1em',
-                  color: '#8C8473',
-                  marginBottom: 12,
-                }}
-              >
+              <div style={{ fontSize: 11, letterSpacing: '0.1em', color: '#8C8473', marginBottom: 12 }}>
                 ↩ response frame · jsonrpc 2.0
               </div>
               <div style={{ color: '#8C8473' }}>{'{'}</div>
@@ -852,7 +767,6 @@ export default function HomePage() {
                 {': 41,      '}
                 <span style={{ color: '#69B98D' }}>✓ id match</span>
               </div>
-              {/* Highlighted null row */}
               <div
                 style={{
                   background: 'color-mix(in srgb, #ED4B2A 18%, transparent)',
@@ -879,13 +793,11 @@ export default function HomePage() {
                   whiteSpace: 'normal',
                 }}
               >
-                verdict —{' '}
-                <strong>NULL_RESULT</strong> · held, not forwarded
+                verdict — <strong>NULL_RESULT</strong> · held, not forwarded
               </div>
             </div>
           </div>
 
-          {/* RIGHT — Inline checks */}
           <div style={{ flex: '1 1 320px' }}>
             <div
               style={{
@@ -936,9 +848,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── TRUST SCORE ─────────────────────────────────────────────────────── */}
+      {/* ── WHAT VOUQIS CATCHES ─────────────────────────────────────────────── */}
       <section
-        id="trust"
+        id="catches"
         style={{
           ...SECTION_ANIM,
           padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
@@ -947,20 +859,7 @@ export default function HomePage() {
           borderTop: '1px solid rgba(21,18,14,0.12)',
         }}
       >
-        {/* Header */}
         <div style={{ marginBottom: 'clamp(40px,5vw,60px)' }}>
-          <div
-            style={{
-              fontFamily: MONO,
-              fontSize: 12.5,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: '#ED4B2A',
-              marginBottom: 20,
-            }}
-          >
-            03 — Trust intelligence
-          </div>
           <h2
             style={{
               fontFamily: SERIF,
@@ -969,10 +868,9 @@ export default function HomePage() {
               margin: '0 0 20px',
               color: '#15120E',
               lineHeight: 1.05,
-              maxWidth: '28ch',
             }}
           >
-            Every server earns a reliability score.
+            What Vouqis catches
           </h2>
           <p
             style={{
@@ -980,314 +878,341 @@ export default function HomePage() {
               fontSize: 'clamp(16px,1.2vw,18.5px)',
               lineHeight: 1.6,
               color: '#5C564A',
-              maxWidth: '48ch',
+              maxWidth: '52ch',
               margin: 0,
             }}
           >
-            Vouqis builds a reliability history for every MCP server it touches.
-            Scores trend over time, fail classes are tracked, and SLIs surface
-            the real health of your tool infrastructure.
+            Three failure classes. One gateway. Every blocked response is a
+            structured audit entry your team can act on.
           </p>
         </div>
 
-        {/* Dark scorecard */}
-        <div
-          style={{
-            background: '#16130E',
-            borderRadius: 10,
-            padding: 'clamp(24px,3vw,40px)',
-            color: '#E9E3D5',
-            boxShadow: '0 30px 70px -36px rgba(21,18,14,0.5)',
-          }}
-        >
-          {/* Top bar */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '10px 20px',
-              paddingBottom: 20,
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            <span style={{ fontFamily: MONO, fontSize: 14, color: '#E9E3D5', flex: '0 0 auto' }}>
-              mcp.acme.dev/db
-            </span>
-            <span
+        {/* Failure type rows */}
+        <div>
+          {CATCHES.map((c, i) => (
+            <div
+              key={c.code}
               style={{
-                fontFamily: MONO,
-                fontSize: 10.5,
-                letterSpacing: '0.14em',
-                color: '#FF6A4D',
-                border: '1px solid color-mix(in srgb, #ED4B2A 55%, transparent)',
-                borderRadius: 2,
-                padding: '4px 8px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'clamp(20px,3vw,48px)',
+                padding: 'clamp(24px,3vw,36px) 0',
+                borderTop: '1px solid rgba(21,18,14,0.12)',
+                borderBottom: i === CATCHES.length - 1 ? '1px solid rgba(21,18,14,0.12)' : undefined,
+                alignItems: 'flex-start',
               }}
             >
-              DEGRADED
-            </span>
-            <span style={{ fontFamily: MONO, fontSize: 11, color: '#8C8473' }}>
-              trailing 30-day window · 1.2M requests
-            </span>
-          </div>
-
-          {/* Main content */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 'clamp(28px,4vw,56px)',
-              padding: '28px 0',
-            }}
-          >
-            {/* LEFT — Score */}
-            <div style={{ flex: '1 1 300px' }}>
-              <div
+              <code
                 style={{
                   fontFamily: MONO,
                   fontSize: 11,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: '#8C8473',
-                  marginBottom: 10,
-                }}
-              >
-                RELIABILITY SCORE
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                <span
-                  style={{
-                    fontFamily: SERIF,
-                    fontSize: 'clamp(64px,8vw,104px)',
-                    lineHeight: 0.8,
-                    color: '#fff',
-                  }}
-                >
-                  72
-                </span>
-                <span style={{ fontFamily: MONO, fontSize: 20, color: '#8C8473' }}>/100</span>
-                <span style={{ fontFamily: MONO, fontSize: 13, color: '#FF6A4D' }}>▼ 11 pts</span>
-              </div>
-
-              {/* Sparkline SVG */}
-              <svg
-                viewBox="0 0 320 70"
-                style={{ width: '100%', height: 64, marginTop: 18, display: 'block' }}
-              >
-                <polyline
-                  fill="none"
-                  stroke="#FF6A4D"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                  points="0,16 12,14 24,20 36,13 48,22 60,18 72,26 84,20 96,29 108,24 120,33 132,27 144,37 156,31 168,41 180,34 192,44 204,38 216,47 228,41 240,51 252,45 264,54 276,48 288,57 300,51 312,60 320,55"
-                />
-                <line
-                  x1="0" y1="62" x2="320" y2="62"
-                  stroke="rgba(255,255,255,0.08)"
-                  strokeWidth="1"
-                />
-              </svg>
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontFamily: MONO,
-                  fontSize: 10,
-                  color: '#6E6657',
+                  letterSpacing: '0.08em',
+                  color: '#FF6A4D',
+                  background: 'color-mix(in srgb, #FF6A4D 10%, #EFEAE0)',
+                  padding: '4px 10px',
+                  borderRadius: 3,
+                  flex: '0 0 auto',
+                  alignSelf: 'flex-start',
                   marginTop: 4,
                 }}
               >
-                <span>30d ago · 83</span>
-                <span>today · 72</span>
-              </div>
-            </div>
-
-            {/* RIGHT — Failure breakdown */}
-            <div style={{ flex: '1 1 320px' }}>
-              <div
-                style={{
-                  fontFamily: MONO,
-                  fontSize: 11,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: '#8C8473',
-                  marginBottom: 14,
-                }}
-              >
-                FAILURE CLASS BREAKDOWN
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {FAILURE_CLASSES.map((fc) => (
-                  <div key={fc.name} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span
-                      style={{
-                        fontFamily: MONO,
-                        fontSize: 11.5,
-                        color: '#C9C2B2',
-                        width: 148,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {fc.name}
-                    </span>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 7,
-                        background: 'rgba(255,255,255,0.07)',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: fc.pct,
-                          height: '100%',
-                          background: fc.color,
-                          transformOrigin: 'left',
-                          animation: 'vq-growX 1.2s cubic-bezier(0.16,1,0.3,1) both',
-                          animationTimeline: 'view()',
-                          animationRange: 'entry 8% cover 36%',
-                        } as React.CSSProperties}
-                      />
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: MONO,
-                        fontSize: 11.5,
-                        color: '#8C8473',
-                        width: 36,
-                        textAlign: 'right',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {fc.pct}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* SLI grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: 1,
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 5,
-              overflow: 'hidden',
-            }}
-          >
-            {SLIS.map((s) => (
-              <div
-                key={s.label}
-                style={{
-                  background: '#16130E',
-                  padding: '16px 18px',
-                }}
-              >
-                <div
+                {c.code}
+              </code>
+              <div style={{ flex: '1 1 260px' }}>
+                <h3
                   style={{
-                    fontFamily: MONO,
-                    fontSize: 10,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: '#8C8473',
-                    marginBottom: 8,
+                    fontFamily: SERIF,
+                    fontWeight: 400,
+                    fontSize: 'clamp(22px,2.2vw,30px)',
+                    color: '#15120E',
+                    margin: '0 0 10px',
+                    lineHeight: 1.15,
                   }}
                 >
-                  {s.label}
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 19, color: s.color }}>
-                  {s.value}
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 10.5, color: '#6E6657', marginTop: 4 }}>
-                  {s.target}
-                </div>
+                  {c.title}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: SANS,
+                    fontSize: 16,
+                    lineHeight: 1.65,
+                    color: '#5C564A',
+                    margin: 0,
+                    maxWidth: '50ch',
+                  }}
+                >
+                  {c.desc}
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Server table */}
-        <div
-          style={{
-            marginTop: 'clamp(28px,3vw,40px)',
-            border: '1px solid rgba(21,18,14,0.16)',
-            borderRadius: 8,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Table header */}
-          <div
-            style={{
-              background: '#EDE8DD',
-              display: 'grid',
-              gridTemplateColumns: '1.6fr 1.2fr 0.5fr 0.9fr',
-              gap: 16,
-              padding: `14px clamp(18px,2.5vw,28px)`,
-              fontFamily: MONO,
-              fontSize: 10.5,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: '#7A7464',
-            }}
-          >
-            <span>MCP SERVER</span>
-            <span>30-DAY TREND</span>
-            <span style={{ textAlign: 'right' }}>SCORE</span>
-            <span style={{ textAlign: 'right' }}>VERDICT</span>
-          </div>
-
-          {/* Table rows */}
-          {SERVER_ROWS.map((r) => (
-            <div
-              key={r.name}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1.6fr 1.2fr 0.5fr 0.9fr',
-                gap: 16,
-                alignItems: 'center',
-                padding: `16px clamp(18px,2.5vw,28px)`,
-                borderTop: '1px solid rgba(21,18,14,0.10)',
-              }}
-            >
-              <span style={{ fontFamily: MONO, fontSize: 13, color: '#15120E' }}>{r.name}</span>
-              <span style={{ fontFamily: MONO, fontSize: 15, letterSpacing: '0.04em', color: r.color }}>{r.spark}</span>
-              <span
-                style={{
-                  fontFamily: SERIF,
-                  fontSize: 24,
-                  textAlign: 'right',
-                  color: '#15120E',
-                }}
-              >
-                {r.score}
-              </span>
-              <span
-                style={{
-                  fontFamily: MONO,
-                  fontSize: 10.5,
-                  letterSpacing: '0.1em',
-                  textAlign: 'right',
-                  color: r.color,
-                }}
-              >
-                {r.verdict}
-              </span>
             </div>
           ))}
         </div>
 
-        {/* Footnote */}
-        <div style={{ fontFamily: MONO, fontSize: 11.5, color: '#7A7464', marginTop: 16 }}>
-          FIG.03 — Server reliability history, trailing 30 days.{' '}
-          <span style={{ color: '#9A9486' }}>Illustrative; your fleet, your numbers.</span>
+        {/* Outputs */}
+        <div style={{ marginTop: 'clamp(32px,4vw,48px)' }}>
+          <div
+            style={{
+              fontFamily: MONO,
+              fontSize: 10.5,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#9A9486',
+              marginBottom: 16,
+            }}
+          >
+            Every blocked response includes
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px' }}>
+            {OUTPUTS.map((o) => (
+              <span
+                key={o}
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 12.5,
+                  color: '#38332A',
+                  background: 'rgba(21,18,14,0.05)',
+                  border: '1px solid rgba(21,18,14,0.12)',
+                  padding: '6px 14px',
+                  borderRadius: 3,
+                }}
+              >
+                {o}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── GATEWAY INTEL ───────────────────────────────────────────────────── */}
+      <section
+        id="intel"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        <div style={{ marginBottom: 'clamp(40px,5vw,60px)' }}>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(34px,4.4vw,60px)',
+              margin: '0 0 20px',
+              color: '#15120E',
+              lineHeight: 1.05,
+              maxWidth: '26ch',
+            }}
+          >
+            Every blocked response has a paper trail.
+          </h2>
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '52ch',
+              margin: 0,
+            }}
+          >
+            Vouqis intercepts every tool call, validates the response, and blocks
+            anything your agent shouldn&apos;t act on — with a structured record
+            of what it caught and why.
+          </p>
+        </div>
+
+        {/* Metrics bar */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: 1,
+            background: 'rgba(21,18,14,0.10)',
+            border: '1px solid rgba(21,18,14,0.12)',
+            borderRadius: 6,
+            overflow: 'hidden',
+            marginBottom: 'clamp(20px,3vw,32px)',
+          }}
+        >
+          {GATEWAY_STATS.map((s) => (
+            <div key={s.label} style={{ background: '#EFEAE0', padding: 'clamp(14px,2vw,20px) clamp(16px,2vw,22px)' }}>
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 10,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#8C8473',
+                  marginBottom: 6,
+                }}
+              >
+                {s.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 'clamp(26px,3vw,38px)',
+                  color: s.alert ? '#ED4B2A' : '#15120E',
+                  lineHeight: 0.95,
+                  marginBottom: 4,
+                }}
+              >
+                {s.value}
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: 10.5, color: '#8C8473' }}>
+                {s.sub}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Request feed */}
+        <div
+          style={{
+            background: '#16130E',
+            borderRadius: 8,
+            overflow: 'hidden',
+            marginBottom: 'clamp(20px,3vw,32px)',
+            boxShadow: '0 30px 70px -36px rgba(21,18,14,0.45)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8,
+              padding: '13px clamp(16px,2vw,22px)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8C8473' }}>
+              Live gateway log
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.12em', color: '#69B98D' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#69B98D', animation: 'vq-pulse 2s ease-in-out infinite', display: 'inline-block' }} />
+              INTERCEPTING
+            </span>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 560 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '72px 1.4fr 110px 1fr 80px',
+                  gap: 12,
+                  padding: '10px clamp(16px,2vw,22px)',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  fontFamily: MONO,
+                  fontSize: 10,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#4A4540',
+                }}
+              >
+                <span>REQ</span>
+                <span>TOOL</span>
+                <span>STATUS</span>
+                <span>REASON</span>
+                <span style={{ textAlign: 'right' }}>TIME</span>
+              </div>
+
+              {REQUEST_FEED.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '72px 1.4fr 110px 1fr 80px',
+                    gap: 12,
+                    alignItems: 'center',
+                    padding: `14px clamp(16px,2vw,22px)`,
+                    borderTop: '1px solid rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: '#4A4540' }}>{r.id}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 13, color: '#C9C2B2' }}>{r.tool}</span>
+                  <span
+                    style={{
+                      fontFamily: MONO,
+                      fontSize: 11,
+                      letterSpacing: '0.08em',
+                      color: r.status === 'BLOCKED' ? '#FF6A4D' : '#69B98D',
+                      fontWeight: r.status === 'BLOCKED' ? 600 : 400,
+                    }}
+                  >
+                    {r.status === 'BLOCKED' ? '✕  BLOCKED' : '✓  PASSED'}
+                  </span>
+                  <span style={{ fontFamily: MONO, fontSize: 11.5, color: r.status === 'BLOCKED' ? '#C46A52' : '#4A4540' }}>
+                    {r.reason ?? (r.ms ? r.ms : '—')}
+                  </span>
+                  <span style={{ fontFamily: MONO, fontSize: 11, color: '#4A4540', textAlign: 'right' }}>
+                    {r.ts}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom row */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(24px,4vw,56px)' }}>
+          <div style={{ flex: '1 1 260px' }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 10.5,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: '#9A9486',
+                marginBottom: 14,
+              }}
+            >
+              Failure breakdown · last 24 h
+            </div>
+            {FAILURE_BREAKDOWN.map((f) => (
+              <div
+                key={f.type}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 0',
+                  borderTop: '1px solid rgba(21,18,14,0.10)',
+                }}
+              >
+                <span style={{ fontFamily: MONO, fontSize: 13, color: '#38332A', flex: '1 1 auto' }}>
+                  {f.type}
+                </span>
+                <span style={{ fontFamily: SERIF, fontSize: 26, color: '#15120E' }}>{f.count}</span>
+                <span style={{ fontFamily: MONO, fontSize: 11, color: '#9A9486', width: 36, textAlign: 'right', flexShrink: 0 }}>
+                  {f.pct}
+                </span>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid rgba(21,18,14,0.10)' }} />
+          </div>
+
+          <div style={{ flex: '1 1 300px', display: 'flex', alignItems: 'center' }}>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 'clamp(22px,2.4vw,32px)',
+                lineHeight: 1.22,
+                color: '#15120E',
+                margin: 0,
+                maxWidth: '26ch',
+              }}
+            >
+              23 responses blocked in 24 hours.{' '}
+              <em style={{ fontStyle: 'italic', color: '#ED4B2A' }}>None</em>{' '}
+              reached the agent.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -1303,18 +1228,6 @@ export default function HomePage() {
         }}
       >
         <div style={{ marginBottom: 'clamp(40px,5vw,56px)' }}>
-          <div
-            style={{
-              fontFamily: MONO,
-              fontSize: 12.5,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: '#ED4B2A',
-              marginBottom: 20,
-            }}
-          >
-            04 — See it run
-          </div>
           <h2
             style={{
               fontFamily: SERIF,
@@ -1343,93 +1256,125 @@ export default function HomePage() {
         </div>
 
         <TerminalDemo />
+
+        <div style={{ marginTop: 32 }}>
+          <CopyButton size="sm" />
+        </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────────────────── */}
+      {/* ── DESIGN PARTNER PROGRAM ──────────────────────────────────────────── */}
       <section
-        id="cta"
+        id="partners"
         style={{
           ...SECTION_ANIM,
           padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
           maxWidth: 1100,
           margin: '0 auto',
           borderTop: '1px solid rgba(21,18,14,0.12)',
-          textAlign: 'left',
         }}
       >
-        <h2
-          style={{
-            fontFamily: SERIF,
-            fontWeight: 400,
-            fontSize: 'clamp(40px,6.2vw,90px)',
-            lineHeight: 0.98,
-            letterSpacing: '-0.015em',
-            maxWidth: '15ch',
-            marginBottom: 'clamp(40px,5vw,60px)',
-            color: '#15120E',
-          }}
-        >
-          Catch silent failures{' '}
-          <em style={{ fontStyle: 'italic', color: '#ED4B2A' }}>before</em>
-          {' '}your users do.
-        </h2>
-
         <div
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 18,
-            marginBottom: 30,
+            gap: 'clamp(40px,6vw,88px)',
+            alignItems: 'flex-start',
           }}
         >
-          <CopyButton size="lg" />
-          <a
-            href="#cta"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              height: 56,
-              padding: '0 26px',
-              background: '#ED4B2A',
-              color: '#FCEFE9',
-              fontFamily: MONO,
-              fontSize: 14,
-              letterSpacing: '0.02em',
-              borderRadius: 3,
-              textDecoration: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            Join the design-partner program →
-          </a>
-          <a
-            href="#"
-            className="vq-text-link"
-            style={{
-              fontFamily: MONO,
-              fontSize: 13,
-              color: '#15120E',
-              textDecoration: 'none',
-              borderBottom: '1px solid rgba(21,18,14,0.3)',
-              paddingBottom: 3,
-              transition: 'opacity 150ms ease',
-            }}
-          >
-            read the docs
-          </a>
-        </div>
+          <div style={{ flex: '1 1 340px' }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: '#ED4B2A',
+                marginBottom: 20,
+              }}
+            >
+              Design partner program
+            </div>
+            <h2
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                fontSize: 'clamp(34px,4.4vw,58px)',
+                lineHeight: 1.02,
+                color: '#15120E',
+                margin: '0 0 20px',
+                maxWidth: '18ch',
+              }}
+            >
+              We&apos;re working with teams that have real failures.
+            </h2>
+            <p
+              style={{
+                fontFamily: SANS,
+                fontSize: 'clamp(15px,1.1vw,18px)',
+                lineHeight: 1.65,
+                color: '#5C564A',
+                maxWidth: '44ch',
+                margin: 0,
+              }}
+            >
+              We&apos;re working with a small number of teams running MCP-powered
+              systems in production. If your agents are failing silently today,
+              this is for you.
+            </p>
+          </div>
 
-        <div
-          style={{
-            fontFamily: MONO,
-            fontSize: 12.5,
-            letterSpacing: '0.04em',
-            color: '#6B6557',
-          }}
-        >
-          Free · Open source (AGPL-3.0) · Microseconds of overhead · 10 seconds to try
+          <div style={{ flex: '1 1 300px' }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 10.5,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: '#9A9486',
+                marginBottom: 16,
+              }}
+            >
+              What you get
+            </div>
+            {PARTNER_BENEFITS.map((b, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  padding: '13px 0',
+                  borderTop: '1px solid rgba(21,18,14,0.12)',
+                  fontFamily: SANS,
+                  fontSize: 15.5,
+                  color: '#38332A',
+                  lineHeight: 1.55,
+                }}
+              >
+                <span style={{ color: '#69B98D', fontFamily: MONO, fontSize: 13, flexShrink: 0, marginTop: 2 }}>→</span>
+                <span>{b}</span>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid rgba(21,18,14,0.12)', marginBottom: 28 }} />
+
+            <a
+              href="/design-partner"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: 52,
+                padding: '0 26px',
+                background: '#ED4B2A',
+                color: '#FCEFE9',
+                fontFamily: MONO,
+                fontSize: 13,
+                letterSpacing: '0.02em',
+                textDecoration: 'none',
+                borderRadius: 3,
+              }}
+            >
+              Apply now →
+            </a>
+          </div>
         </div>
       </section>
 
@@ -1488,14 +1433,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: footer cols */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '48px 64px',
-            }}
-          >
+          {/* Footer columns */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px 64px' }}>
             {FOOTER_COLS.map((col) => (
               <div key={col.h} style={{ fontFamily: MONO, fontSize: 12.5, lineHeight: 2.2 }}>
                 <div
@@ -1510,17 +1449,19 @@ export default function HomePage() {
                   {col.h}
                 </div>
                 {col.items.map((item) => (
-                  <div key={item}>
+                  <div key={item.label}>
                     <a
-                      href="#"
+                      href={item.href}
                       className="vq-text-link"
+                      target={item.href.startsWith('http') ? '_blank' : undefined}
+                      rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                       style={{
                         color: '#9A9387',
                         textDecoration: 'none',
                         transition: 'color 150ms ease',
                       }}
                     >
-                      {item}
+                      {item.label}
                     </a>
                   </div>
                 ))}
@@ -1545,7 +1486,7 @@ export default function HomePage() {
             justifyContent: 'space-between',
           }}
         >
-          <span>© 2026 Vouqis · AGPL-3.0</span>
+          <span>© 2026 Vouqis · MIT</span>
           <span>built for engineers tired of debugging silent agent failures</span>
         </div>
       </footer>

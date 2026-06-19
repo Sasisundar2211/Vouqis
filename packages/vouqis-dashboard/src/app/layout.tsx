@@ -118,16 +118,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* Center: nav links */}
             <nav
+              className="vq-nav-center"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 32,
               }}
             >
-              {(['problem', 'architecture', 'trust score', 'demo'] as const).map((label) => (
+              {[
+                { label: 'docs',       href: '/docs' },
+                { label: 'blog',       href: '/blog' },
+                { label: 'changelog',  href: '/changelog' },
+                { label: 'GitHub',     href: 'https://github.com/Sasisundar2211/Vouqis' },
+              ].map(({ label, href }) => (
                 <a
                   key={label}
-                  href={`/#${label === 'trust score' ? 'trust' : label === 'architecture' ? 'how' : label}`}
+                  href={href}
+                  target={href.startsWith('http') ? '_blank' : undefined}
+                  rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   className="vq-nav-link"
                   style={{
                     fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
@@ -143,27 +151,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </nav>
 
-            {/* Right: buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Right: CTA */}
+            <div className="vq-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <a
-                href="https://github.com/Sasisundar2211/Vouqis"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
-                  fontSize: 13,
-                  color: '#3B362C',
-                  textDecoration: 'none',
-                  border: '1px solid rgba(21,18,14,0.18)',
-                  borderRadius: 2,
-                  padding: '9px 13px',
-                  lineHeight: 1,
-                }}
-              >
-                GitHub
-              </a>
-              <a
-                href="#cta"
+                href="/design-partner"
                 style={{
                   fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
                   fontSize: 13,
@@ -173,9 +164,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   borderRadius: 2,
                   padding: '10px 16px',
                   lineHeight: 1,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                Get the audit →
+                Join Design Partners →
               </a>
             </div>
           </div>

@@ -99,3 +99,34 @@
 .vq-btn-outline:hover { background: rgba(21,18,14,0.05); }
 .vq-btn-dark:hover { background: #221d15; }
 .vq-text-link:hover { opacity: 0.65; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+/* Hide centre nav on screens too narrow to fit it comfortably */
+@media (max-width: 860px) {
+  .vq-nav-center { display: none; }
+}
+
+/* Stack header buttons on very small phones */
+@media (max-width: 400px) {
+  .vq-header-actions {
+    gap: 6px;
+  }
+  .vq-header-actions a {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Hero: hide right-panel inspector below 540px — hero copy is the primary message */
+@media (max-width: 540px) {
+  .vq-hero-rhs { display: none; }
+}
+
+/* CTA buttons: stack vertically on small screens */
+@media (max-width: 480px) {
+  .vq-cta-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -10,8 +10,8 @@ type Line = {
 }
 
 const LINES: Line[] = [
-  { text: '$ vouqis proxy --upstream https://mcp.acme.dev/db', color: '#E9E3D5', weight: '500', style: 'normal' },
-  { text: '→ gateway listening on :7070   ·   upstream healthy', color: '#69B98D', weight: '400', style: 'normal' },
+  { text: '$ vouqis proxy --upstream http://127.0.0.1:3010', color: '#E9E3D5', weight: '500', style: 'normal' },
+  { text: '→ gateway listening on :4444   ·   upstream healthy', color: '#69B98D', weight: '400', style: 'normal' },
   { text: ' ', color: '#8C8473', weight: '400', style: 'normal' },
   { text: '[12:04:01]  tools/call  query_orders  args {"id":"ord_88134"}', color: '#C9C2B2', weight: '400', style: 'normal' },
   { text: '            request valid · jsonrpc 2.0 · forwarded', color: '#8C8473', weight: '400', style: 'normal' },

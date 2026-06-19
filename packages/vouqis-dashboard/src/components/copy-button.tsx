@@ -13,7 +13,7 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   function handleClick() {
-    navigator.clipboard?.writeText(text ?? 'npm i -g vouqis').catch(() => {})
+    navigator.clipboard?.writeText(text ?? 'npm i -g @vouqis/cli').catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }
@@ -69,7 +69,7 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
       }}
     >
       <span style={{ color: '#ED4B2A' }}>$</span>
-      <span>npm i -g vouqis</span>
+      <span>npm i -g @vouqis/cli</span>
       <span
         style={{
           display: 'inline-flex',
