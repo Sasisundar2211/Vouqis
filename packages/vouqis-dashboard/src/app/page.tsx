@@ -1,591 +1,1633 @@
-import { EmailCapture } from '@/components/email-capture'
+import { CopyButton } from '@/components/copy-button'
+import { TerminalDemo } from '@/components/terminal-demo'
 
-const TRACE = [
+const TICKER_SIGS = [
+  'NULL_RESULT', 'EMPTY_CONTENT', 'MALFORMED_JSON', 'SCHEMA_DRIFT',
+  'TIMEOUT_AS_SUCCESS', 'TRUNCATED_PAYLOAD', 'WRONG_TYPE',
+  'STALE_DATA', 'PARTIAL_BATCH', 'SILENT_RETRY',
+]
+
+const FAILURES = [
   {
-    ln: 1, time: '09:14:22',
-    actor: '[agent]',   actorType: 'default' as const,
-    dir: '→', content: 'tools/call  createInvoice({ "amount": 840 })',    contentType: 'default' as const,
+    n: '01',
+    title: 'The null that passes review',
+    envelope: 'HTTP 200 · success',
+    payload: '{\n  "jsonrpc": "2.0",\n  "result": null\n}',
+    consequence: 'Your agent reads it as "record not found." The record exists. The tool just failed — and nothing in the response says so.',
   },
   {
-    ln: 2, time: '09:14:23',
-    actor: '[jira]',    actorType: 'default' as const,
-    dir: '←', content: 'HTTP 200  { "success": true, "result": null }',   contentType: 'default' as const,
+    n: '02',
+    title: 'The empty array dressed as an answer',
+    envelope: 'HTTP 200 · success',
+    payload: '{\n  "result": {\n    "content": []\n  }\n}',
+    consequence: 'The agent reports "no results." Your user makes a decision on data that was never actually fetched.',
   },
   {
-    ln: 3, time: '09:14:23',
-    actor: '[vouqis]',  actorType: 'vouqis' as const,
-    dir: ' ', content: '✓  envelope  jsonrpc: "2.0"  valid',              contentType: 'ok' as const,
-  },
-  {
-    ln: 4, time: '09:14:23',
-    actor: '[vouqis]',  actorType: 'vouqis' as const,
-    dir: ' ', content: 'BLOCK  null_result  severity: HIGH',              contentType: 'incident' as const,
+    n: '03',
+    title: 'The timeout wearing a success badge',
+    envelope: 'HTTP 200 · after 30,041 ms',
+    payload: '{\n  "result": {\n    "status": "ok"\n  }\n}',
+    consequence: 'The action never completed. The agent says "done." Nobody finds out until a customer does.',
   },
 ]
 
-const TRACE_REF = 'ref: TRC-8821  ·  tool: createInvoice  ·  upstream: jira.api'
-
-const STATUS_CELLS = [
-  { dot: 'dim',   label: 'Agent logged',        value: 'success: true' },
-  { dot: 'amber', label: 'Action completed',    value: 'false' },
-  { dot: 'amber', label: 'Time to discovery',   value: '33 min 48 sec' },
+const CHECKS = [
+  { k: '01', t: 'Validates the JSON-RPC request' },
+  { k: '02', t: 'Validates the response envelope' },
+  { k: '03', t: 'Detects null / empty / malformed / timeout' },
+  { k: '04', t: 'Classifies the failure (NULL_RESULT, SCHEMA_DRIFT…)' },
+  { k: '05', t: 'Emits protocol-aware reliability telemetry' },
 ]
 
-const WORKFLOW = [
-  'Agent',
-  'Vouqis',
-  'MCP Server',
-  'User',
+const FAILURE_CLASSES = [
+  { name: 'NULL_RESULT',    pct: '41%', color: '#FF6A4D' },
+  { name: 'TIMEOUT_AS_OK', pct: '22%', color: '#E8915A' },
+  { name: 'SCHEMA_DRIFT',  pct: '18%', color: '#D8B24A' },
+  { name: 'EMPTY_CONTENT', pct: '12%', color: '#8C8473' },
+  { name: 'MALFORMED_JSON', pct: '7%', color: '#6E6657' },
 ]
 
-const CAPABILITIES = [
-  { label: 'Detect',      detail: 'Null results, schema mismatches, HTTP 200 errors' },
-  { label: 'Classify',    detail: 'Tag failures by type before they propagate' },
-  { label: 'Block',       detail: 'Halt calls that violate defined contracts' },
-  { label: 'Retry',       detail: 'Re-attempt only idempotent methods within policy' },
-  { label: 'Audit Log',   detail: 'Structured NDJSON record of every interaction' },
+const SLIS = [
+  { label: 'SUCCESS w/ CONTENT', value: '91.4%', target: 'target 99.9%',  color: '#FF6A4D' },
+  { label: 'P95 LATENCY',        value: '142 ms', target: 'budget 250 ms', color: '#E9E3D5' },
+  { label: 'SCHEMA STABILITY',   value: '97.2%', target: 'trailing 7d',    color: '#E9E3D5' },
+  { label: 'SILENT-FAILURE RATE', value: '8.6%', target: 'target < 0.5%', color: '#FF6A4D' },
 ]
 
-const BUILT_FOR = 'Founding Engineers running MCP-powered agents in production.'
-
-const FAILURE_REPORTS = [
-  {
-    id: 'INC-001',
-    type: 'Response Parse Failure',
-    description:
-      'MCP server returns HTTP 200 with an error object in the result field. Agent reads the status code, not the payload. Silent failure propagates downstream.',
-    vector: 'tools/call → createTicket → HTTP 200 {"error":"quota_exceeded"} → agent: success',
-  },
-  {
-    id: 'INC-002',
-    type: 'Retry Masking',
-    description:
-      'Agent retries on timeout and logs each attempt independently. Upstream service deduplicates. Agent emits success×6 with no trace of the original failure or retry count.',
-    vector: 'sendEmail → TIMEOUT → retry×6 → HTTP 200 (dedup) → logged: success',
-  },
-  {
-    id: 'INC-003',
-    type: 'State Drift — Multi-Agent',
-    description:
-      'Agent B reads shared state before Agent A finishes writing. Both log completion. The merge step processes a stale snapshot. Workflow corrupts silently at step 3.',
-    vector: 'agent-A: writeState() → success | agent-B: readState(t−2s) → process(stale) → success',
-  },
-  {
-    id: 'INC-004',
-    type: 'Null Result Propagation',
-    description:
-      'Tool returns {"result": null}. Agent passes null to the next step. Failure surfaces eight steps later as a TypeError with no reference to the original null.',
-    vector: 'fetchUser → {"result":null} → generateReport(null) → TypeError: cannot read "id" of null',
-  },
+const SERVER_ROWS = [
+  { name: 'mcp.acme.dev/db',     spark: '▆▅▆▄▅▃▄▂▃▂', score: '72', verdict: 'DEGRADED', color: '#C23A1E' },
+  { name: 'mcp.payments.io',     spark: '▇▇▆▇▇█▇▇▆▇', score: '98', verdict: 'TRUSTED',  color: '#2E8B5E' },
+  { name: 'mcp.search.dev',      spark: '▅▆▅▆▇▆▅▆▅▆', score: '85', verdict: 'WATCH',    color: '#B07A1E' },
+  { name: 'mcp.legacy.internal', spark: '▃▂▃▁▂▁▂▁▁▂', score: '54', verdict: 'CRITICAL', color: '#C23A1E' },
 ]
 
-const DESIGN_PARTNER_FEATURES = [
-  'Proxy-based request + response validation',
-  'Real-time failure classification and blocking',
-  'Team dashboard with per-server reliability history',
-  'Failure alerts via email or Slack',
-  'Direct-to-founder support',
+const FOOTER_COLS = [
+  { h: 'Product',   items: ['Reliability Audit', 'Gateway Cloud', 'Telemetry'] },
+  { h: 'Resources', items: ['Docs', 'GitHub', 'Changelog'] },
+  { h: 'Company',   items: ['Design partners', 'Blog', 'Contact'] },
 ]
 
-const FAQ_ITEMS = [
-  {
-    question: 'What exactly is Vouqis?',
-    answer:
-      'Vouqis is a proxy gateway that sits between your AI agent and your MCP server. Every tool call routes through Vouqis, which validates the request, forwards it upstream, validates the response, and classifies any failure before it reaches your agent. You get structured failure data and a reliability score per server — without changing your agent code.',
-  },
-  {
-    question: 'Do I have to change my agent to use it?',
-    answer:
-      'No. The proxy is transparent — your agent never knows it exists. Deploy in under 60 seconds with no application code changes.',
-  },
-  {
-    question: 'What failure types does Vouqis detect?',
-    answer:
-      'Null result propagation — `result: null` despite HTTP 200. Schema violations — JSON-RPC 2.0 envelope or tool schema mismatch. Timeout failures — upstream did not respond within SLA. Parse errors — response is not valid JSON. Retry masking — retried requests where the original failure is hidden. More failure signatures are added based on design partner incidents.',
-  },
-  {
-    question: 'Does the proxy add latency?',
-    answer:
-      'Less than 10ms on the happy path at p95. Validation and audit logging are asynchronous — they do not block the response pipeline. Benchmark numbers are available in the repository.',
-  },
-  {
-    question: 'What data does Vouqis log or store?',
-    answer:
-      'The audit log captures: timestamp, method, upstream hostname, latency, failure classification, and an internal ref ID. It never captures request/response content, full URLs, authentication tokens, or PII. The local proxy writes logs to your machine only. The cloud tier stores logs in your isolated workspace.',
-  },
-  {
-    question: 'Is this open source?',
-    answer:
-      'The CLI proxy is open source: `github.com/Sasisundar2211/Vouqis`. The cloud dashboard and reliability intelligence are commercial products. You can run the proxy locally indefinitely at no cost.',
-  },
-  {
-    question: 'We already use LangSmith. Why do we need this?',
-    answer:
-      'LangSmith traces LLM calls — prompts, tokens, agent chains, model outputs. It does not inspect MCP protocol behavior. Vouqis validates at the transport layer: JSON-RPC envelopes, response schemas, null results, timeout handling. They are complementary, not competing.',
-  },
-]
+const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
+const SERIF = 'var(--font-instrument-serif), Georgia, serif'
+const SANS = 'var(--font-space-grotesk), system-ui, sans-serif'
+
+const SECTION_ANIM = {
+  animation: 'vq-revealUp 0.8s cubic-bezier(0.16,1,0.3,1) both',
+  animationTimeline: 'view()',
+  animationRange: 'entry 2% cover 18%',
+} as React.CSSProperties
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-5xl px-6">
-
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="pt-28 pb-24 lg:pt-44 lg:pb-32">
-        <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-start">
-
-          {/* Left: statement + CTAs */}
-          <div>
-            <h1
-              className="text-[2.6rem] sm:text-5xl lg:text-[3.4rem] font-bold tracking-[-0.03em] leading-[1.06] text-balance mb-5"
+    <>
+      {/* ── HERO ──────────────────────────────────────────────────────────── */}
+      <section
+        style={{
+          padding: 'clamp(48px,8vw,104px) clamp(20px,5vw,72px) clamp(40px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'clamp(40px,5vw,76px)',
+            alignItems: 'center',
+          }}
+        >
+          {/* Left column */}
+          <div style={{ flex: '1 1 460px', minWidth: 330 }}>
+            {/* Eyebrow */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 28,
+                fontFamily: MONO,
+                fontSize: 12.5,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: '#5C564A',
+              }}
             >
-              Catch MCP failures{' '}
-              <span className="text-foreground/45">before your users do.</span>
-            </h1>
-
-            <p className="font-mono text-[0.7rem] text-muted-foreground/40 mb-6 leading-relaxed border-l border-border/40 pl-3 max-w-[34ch]">
-              Your agent said success.<br />The action never happened.
-            </p>
-
-            <p className="text-[0.9375rem] leading-relaxed text-foreground/60 mb-6 max-w-[38ch]">
-              Vouqis sits between your AI agent and MCP server. Every tool
-              call is validated. Every failure is classified. Nothing propagates
-              silently.
-            </p>
-
-            <p className="font-mono text-[0.65rem] text-muted-foreground/50 mb-8">
-              For Founding Engineers running MCP-powered agents in production.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 items-start">
-              <a
-                href="#design-partner"
-                className="inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                Join Design Partner Program
-              </a>
-              <a
-                href="https://calendly.com/sasisundar2211"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center h-10 px-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Book a Discovery Call →
-              </a>
-            </div>
-          </div>
-
-          {/* Right: terminal trace panel */}
-          <div
-            className="rounded-lg border border-border/60 bg-card/70 overflow-hidden"
-            style={{ boxShadow: '0 0 0 1px oklch(1 0 0 / 0.04), 0 16px 48px -8px oklch(0 0 0 / 0.5)' }}
-          >
-            <div className="flex items-center gap-2 px-3.5 h-9 border-b border-border/40 bg-muted/15">
-              <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.55_0.18_25)]" />
-              <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.68_0.14_82)]" />
-              <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.60_0.17_145)]" />
-              <span className="ml-3 text-[0.625rem] font-mono text-muted-foreground/45 tracking-wide">
-                agent-session · vouqis/trace
-              </span>
+              <span style={{ height: 1, width: 34, background: '#ED4B2A', flexShrink: 0 }} />
+              Reliability gateway for MCP
             </div>
 
-            <div className="px-4 py-4 font-mono text-[0.7rem] leading-[1.85]">
-              {TRACE.map((row, i) => (
-                <div
-                  key={row.ln}
-                  className="trace-in flex"
-                  style={{ animationDelay: `${0.45 + i * 0.3}s` }}
-                >
-                  <span className="w-[2ch] tabular-nums text-muted-foreground/25 select-none shrink-0 mr-2.5">
-                    {row.ln}
-                  </span>
-                  <span className="w-[7.5ch] tabular-nums text-muted-foreground/40 shrink-0 mr-2.5">
-                    {row.time}
-                  </span>
-                  <span
-                    className={`w-[9ch] shrink-0 mr-2.5 ${
-                      row.actorType === 'vouqis' ? 'text-vouqis-actor' : 'text-muted-foreground/60'
-                    }`}
-                  >
-                    {row.actor}
-                  </span>
-                  <span className="w-[1.5ch] text-muted-foreground/40 shrink-0 mr-2.5 text-center">
-                    {row.dir}
-                  </span>
-                  <span
-                    className={`min-w-0 break-words ${
-                      row.contentType === 'ok'
-                        ? 'text-ok'
-                        : row.contentType === 'incident'
-                        ? 'text-incident font-medium'
-                        : 'text-foreground/55'
-                    }`}
-                  >
-                    {row.content}
-                  </span>
-                </div>
-              ))}
-
-              <div
-                className="trace-in mt-0.5"
-                style={{ animationDelay: '1.85s', paddingLeft: 'calc(20ch + 2.5rem)' }}
+            {/* H1 */}
+            <h1
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                fontSize: 'clamp(46px,6.4vw,94px)',
+                lineHeight: 0.96,
+                letterSpacing: '-0.012em',
+                maxWidth: '13ch',
+                margin: '0 0 28px',
+                color: '#15120E',
+              }}
+            >
+              Your agent is{' '}
+              <span
+                style={{
+                  position: 'relative',
+                  whiteSpace: 'nowrap',
+                  fontStyle: 'italic',
+                  color: '#ED4B2A',
+                }}
               >
-                <span className="text-muted-foreground/30 text-[0.62rem]">
-                  {TRACE_REF}
-                </span>
-              </div>
-
-              <div className="trace-in mt-1 pl-4" style={{ animationDelay: '2.2s' }}>
-                <span className="cursor-blink text-muted-foreground/30">▋</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ── Status cells ─────────────────────────────────────────────────── */}
-      <section className="border-t border-border/50">
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y divide-border/50 sm:divide-y-0 sm:divide-x sm:divide-border/50">
-          {STATUS_CELLS.map(({ dot, label, value }) => (
-            <div key={label} className="py-9 sm:px-10 first:sm:pl-0 last:sm:pr-0">
-              <div className="flex items-center gap-2 mb-3">
+                lying
                 <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{
-                    background:
-                      dot === 'amber' ? 'var(--incident)' :
-                      'oklch(0.38 0 0)',
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: '0.08em',
+                    height: 3,
+                    background: '#ED4B2A',
+                    opacity: 0.32,
                   }}
                 />
-                <span className="text-[0.65rem] font-mono text-muted-foreground/55 tracking-[0.05em] uppercase">
-                  {label}
+              </span>{' '}
+              to you.
+              <br />
+              It doesn&apos;t know it yet.
+            </h1>
+
+            {/* Body */}
+            <p
+              style={{
+                fontFamily: SANS,
+                fontSize: 'clamp(17px,1.35vw,20px)',
+                lineHeight: 1.55,
+                color: '#3B362C',
+                maxWidth: '50ch',
+                margin: '0 0 32px',
+              }}
+            >
+              MCP tools return{' '}
+              <code
+                style={{
+                  fontFamily: MONO,
+                  fontSize: '0.86em',
+                  background: 'rgba(21,18,14,0.06)',
+                  padding: '2px 6px',
+                  borderRadius: 3,
+                }}
+              >
+                200 OK
+              </code>{' '}
+              with null, empty, or malformed payloads. Your agent reads the
+              garbage as truth and answers your user with total confidence.
+              Vouqis sits in the path and catches the failure{' '}
+              <em style={{ fontStyle: 'italic', color: '#15120E' }}>
+                before it ever reaches the agent.
+              </em>
+            </p>
+
+            {/* CTA row */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 16,
+                marginBottom: 28,
+              }}
+            >
+              <CopyButton size="sm" />
+              <a
+                href="#demo"
+                className="vq-text-link"
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 13,
+                  color: '#15120E',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid #ED4B2A',
+                  paddingBottom: 3,
+                  transition: 'opacity 150ms ease',
+                }}
+              >
+                read the diagnostic →
+              </a>
+            </div>
+
+            {/* Footer badges */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px 22px',
+                fontFamily: MONO,
+                fontSize: 12,
+                color: '#6B6557',
+              }}
+            >
+              {['Free', 'Open source (AGPL)', 'Design-partner program open', 'Microseconds of overhead'].map((b) => (
+                <span key={b}>{b}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column — Response Inspector */}
+          <div style={{ flex: '1 1 380px', minWidth: 320, display: 'flex', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                background: '#16130E',
+                borderRadius: 6,
+                padding: 8,
+                boxShadow: '0 34px 70px -28px rgba(21,18,14,0.5), 0 2px 0 rgba(255,255,255,0.04) inset',
+                width: '100%',
+                maxWidth: 480,
+              }}
+            >
+              {/* Header bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px 10px',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 11,
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: '#8C8473',
+                  }}
+                >
+                  Response inspector
+                </span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: MONO,
+                    fontSize: 10.5,
+                    letterSpacing: '0.12em',
+                    color: '#69B98D',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#69B98D',
+                      animation: 'vq-pulse 2s ease-in-out infinite',
+                      display: 'inline-block',
+                    }}
+                  />
+                  LIVE
                 </span>
               </div>
+
+              {/* Code area */}
               <div
-                className={`text-[1.35rem] font-mono font-medium tabular-nums ${
-                  dot === 'amber' ? 'text-incident' : 'text-foreground/30'
-                }`}
+                style={{
+                  background: '#0E0C08',
+                  borderRadius: 3,
+                  padding: '18px 20px',
+                  fontFamily: MONO,
+                  fontSize: 13,
+                  lineHeight: 1.9,
+                  color: '#C9C2B2',
+                }}
               >
-                {value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── The Problem ──────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <div className="max-w-[52ch]">
-          <div className="mb-10 space-y-1">
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight">Tool call succeeds.</p>
-            <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/50">User outcome fails.</p>
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              The agent reports success.<br />
-              Your customer reports the bug.
-            </p>
-            <p className="text-sm text-foreground/60 leading-relaxed">
-              Most MCP failures aren&rsquo;t crashes.
-              They&rsquo;re silent failures.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Concrete Failure Example ─────────────────────────────────────── */}
-      <section className="pb-20 border-b border-border/50">
-        <div className="grid md:grid-cols-2 gap-8 max-w-2xl items-center">
-          <div
-            className="rounded-lg border border-border/60 overflow-hidden"
-            style={{ background: 'oklch(1 0 0 / 0.02)' }}
-          >
-            <div className="flex items-center px-3.5 h-8 border-b border-border/40">
-              <span className="text-[0.6rem] font-mono text-muted-foreground/40 tracking-wide">
-                MCP response
-              </span>
-            </div>
-            <pre className="px-4 py-4 font-mono text-[0.72rem] leading-relaxed text-foreground/55 overflow-x-auto">{`{
-  "success": true,
-  "result": null
-}`}</pre>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <p className="text-[0.65rem] font-mono text-muted-foreground/40 tracking-[0.06em] uppercase mb-2">
-                Agent
-              </p>
-              <p className="text-sm text-foreground/70">&ldquo;Invoice created.&rdquo;</p>
-            </div>
-            <div className="h-px bg-border/40" />
-            <div>
-              <p className="text-[0.65rem] font-mono text-muted-foreground/40 tracking-[0.06em] uppercase mb-2">
-                Reality
-              </p>
-              <p className="text-sm text-incident font-medium">No invoice exists.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Workflow Diagram ─────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <h2 className="text-[0.9rem] font-semibold tracking-[-0.015em] leading-[1.4] mb-10 text-balance">
-          How it works
-        </h2>
-        <div className="flex flex-col items-start max-w-[14rem]">
-          {WORKFLOW.map((step, i) => (
-            <div key={step} className="flex flex-col items-start w-full">
-              <div
-                className={`px-4 py-2.5 rounded border text-sm font-mono w-full ${
-                  step === 'Vouqis'
-                    ? 'border-foreground/20 text-foreground/80 bg-foreground/5'
-                    : 'border-border/35 text-muted-foreground/60'
-                }`}
-              >
-                {step}
-              </div>
-              {i < WORKFLOW.length - 1 && (
-                <div className="pl-[1.35rem] py-1">
-                  <span className="text-muted-foreground/30 text-xs leading-none">↓</span>
+                <div>
+                  <span style={{ color: '#8C8473' }}>tools/call</span>
+                  {' → '}
+                  <span style={{ color: '#E9E3D5' }}>query_orders</span>
                 </div>
-              )}
+                <div>
+                  <span style={{ color: '#8C8473' }}>status</span>
+                  {'   '}
+                  <span style={{ color: '#69B98D' }}>200 OK ✓</span>
+                </div>
+                <div>
+                  <span style={{ color: '#8C8473' }}>latency</span>
+                  {'  '}
+                  <span>142 ms</span>
+                </div>
+                <div>
+                  <span style={{ color: '#8C8473' }}>jsonrpc</span>
+                  {'  '}
+                  <span>2.0 · valid</span>
+                </div>
+
+                <div
+                  style={{
+                    borderTop: '1px dashed rgba(255,255,255,0.1)',
+                    margin: '10px 0',
+                  }}
+                />
+
+                <div>
+                  <span style={{ color: '#8C8473' }}>result</span>
+                  {'   '}
+                  <span style={{ color: '#FF6A4D', position: 'relative', display: 'inline-block' }}>
+                    null
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: 1,
+                        height: 1,
+                        background: '#FF6A4D',
+                      }}
+                    />
+                  </span>
+                </div>
+              </div>
+
+              {/* Alert bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  margin: '8px 0 0',
+                  padding: '13px 15px',
+                  background: 'color-mix(in srgb, #ED4B2A 16%, #16130E)',
+                  border: '1px solid color-mix(in srgb, #ED4B2A 50%, transparent)',
+                  borderRadius: 3,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.14em',
+                    color: '#FF6A4D',
+                    border: '1.5px solid #FF6A4D',
+                    padding: '5px 9px',
+                    borderRadius: 2,
+                    transform: 'rotate(-3deg)',
+                    display: 'inline-block',
+                    animation: 'vq-stamp 0.7s cubic-bezier(.2,.8,.2,1) 0.5s both',
+                    flexShrink: 0,
+                  }}
+                >
+                  SILENT FAILURE
+                </span>
+                <div>
+                  <div style={{ fontFamily: MONO, fontSize: 12, color: '#FF6A4D', fontWeight: 500 }}>
+                    NULL_RESULT on success envelope
+                  </div>
+                  <div style={{ fontFamily: MONO, fontSize: 11, color: '#9A8E84', marginTop: 3 }}>
+                    blocked before the agent saw it
+                  </div>
+                </div>
+              </div>
+
+              {/* Comment line */}
+              <div
+                style={{
+                  padding: '10px 10px 4px',
+                  fontFamily: MONO,
+                  fontSize: 11,
+                  fontStyle: 'italic',
+                  color: '#6E6657',
+                }}
+              >
+                {`// without vouqis: agent answers "No orders found."`}
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      {/* ── Capabilities ─────────────────────────────────────────────────── */}
-      <section className="pb-20 border-b border-border/50">
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-x-10 gap-y-8">
-          {CAPABILITIES.map(({ label, detail }) => (
-            <div key={label}>
-              <p className="text-sm font-semibold text-foreground/80 mb-1.5">{label}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{detail}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Built For ────────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <p className="text-sm text-foreground/75 leading-relaxed max-w-[45ch]">
-          {BUILT_FOR}
-        </p>
-        <p className="text-xs text-muted-foreground/40 font-mono mt-3">Not for hobby projects.</p>
-      </section>
-
-      {/* ── Failure Reports ──────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <div className="mb-10">
-          <h2 className="text-xl font-semibold mb-3 tracking-tight text-balance">
-            Failure Reports We&rsquo;re Collecting
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-[52ch]">
-            Documented MCP failure patterns. Real failure modes, not marketing
-            scenarios.{' '}
-            <a
-              href="mailto:sasisundhar2211@gmail.com"
-              className="text-foreground/65 underline underline-offset-2 decoration-border hover:text-foreground transition-colors"
+      {/* ── TICKER ──────────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+          borderBottom: '1px solid rgba(21,18,14,0.12)',
+          padding: '15px 0',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          maskImage: 'linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)',
+          WebkitMaskImage: 'linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)',
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-flex',
+            animation: 'vq-marquee 38s linear infinite',
+            willChange: 'transform',
+          }}
+        >
+          {[...TICKER_SIGS, ...TICKER_SIGS].map((sig, i) => (
+            <span
+              key={i}
+              style={{
+                fontFamily: MONO,
+                fontSize: 12.5,
+                letterSpacing: '0.08em',
+                color: '#5C564A',
+                padding: '0 26px',
+                display: 'inline-flex',
+                gap: 26,
+                alignItems: 'center',
+              }}
             >
-              Send us one you&rsquo;ve encountered.
-            </a>
+              {sig}
+              <span style={{ color: '#ED4B2A', opacity: 0.5 }}>/</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── PROBLEM ─────────────────────────────────────────────────────────── */}
+      <section
+        id="problem"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        {/* Header row */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap',
+            gap: 24,
+            marginBottom: 'clamp(48px,5vw,80px)',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 12.5,
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: '#ED4B2A',
+                marginBottom: 20,
+              }}
+            >
+              01 — The failure mode
+            </div>
+            <h2
+              style={{
+                fontFamily: SERIF,
+                fontWeight: 400,
+                fontSize: 'clamp(34px,4.4vw,60px)',
+                maxWidth: '22ch',
+                margin: 0,
+                color: '#15120E',
+                lineHeight: 1.05,
+              }}
+            >
+              Anatomy of a silent failure
+            </h2>
+          </div>
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '38ch',
+              margin: 0,
+            }}
+          >
+            Every tool call is a contract between your agent and the outside
+            world. Most tools break that contract{' '}
+            <em style={{ fontStyle: 'italic', color: '#3B362C' }}>quietly</em> —
+            with a success code and a body full of nothing.
           </p>
         </div>
 
-        <div className="divide-y divide-border/40">
-          {FAILURE_REPORTS.map((r) => (
-            <div key={r.id} className="py-8 grid md:grid-cols-[8rem_1fr] gap-x-8 gap-y-3">
-              <div className="pt-0.5">
-                <span className="font-mono text-[0.65rem] text-muted-foreground/40 tabular-nums">
-                  {r.id}
-                </span>
+        {/* Failures list */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {FAILURES.map((f) => (
+            <div
+              key={f.n}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'clamp(20px,4vw,64px)',
+                padding: 'clamp(28px,3.4vw,44px) 0',
+                borderTop: '1px solid rgba(21,18,14,0.13)',
+              }}
+            >
+              {/* Number */}
+              <div
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 'clamp(48px,5vw,76px)',
+                  lineHeight: 0.8,
+                  color: '#ED4B2A',
+                  flex: '0 0 auto',
+                  width: 84,
+                }}
+              >
+                {f.n}
+              </div>
+
+              {/* Text block */}
+              <div style={{ flex: '1 1 280px' }}>
+                <h3
+                  style={{
+                    fontFamily: SERIF,
+                    fontWeight: 400,
+                    fontSize: 'clamp(24px,2.4vw,33px)',
+                    margin: '0 0 12px',
+                    color: '#15120E',
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {f.title}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: SANS,
+                    fontSize: 16.5,
+                    color: '#46402F',
+                    maxWidth: '46ch',
+                    margin: 0,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {f.consequence}
+                </p>
+              </div>
+
+              {/* Code block */}
+              <div
+                style={{
+                  flex: '1 1 300px',
+                  background: '#16130E',
+                  borderRadius: 5,
+                  padding: '18px 20px',
+                  fontFamily: MONO,
+                  fontSize: 13,
+                  lineHeight: 1.75,
+                  color: '#C9C2B2',
+                  overflowX: 'auto',
+                }}
+              >
+                <div
+                  style={{
+                    color: '#69B98D',
+                    fontSize: 11,
+                    letterSpacing: '0.1em',
+                    marginBottom: 10,
+                  }}
+                >
+                  {f.envelope}
+                </div>
+                <pre style={{ margin: 0, whiteSpace: 'pre', color: '#D8D1C1' }}>{f.payload}</pre>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px solid rgba(21,18,14,0.13)' }} />
+      </section>
+
+      {/* ── ARCHITECTURE ────────────────────────────────────────────────────── */}
+      <section
+        id="how"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: 'clamp(40px,5vw,64px)' }}>
+          <div
+            style={{
+              fontFamily: MONO,
+              fontSize: 12.5,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: '#ED4B2A',
+              marginBottom: 20,
+            }}
+          >
+            02 — The gateway
+          </div>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(34px,4.4vw,60px)',
+              margin: '0 0 20px',
+              color: '#15120E',
+              lineHeight: 1.05,
+              maxWidth: '24ch',
+            }}
+          >
+            A trust decision on{' '}
+            <em style={{ fontStyle: 'italic', color: '#ED4B2A' }}>every</em>{' '}
+            response.
+          </h2>
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '54ch',
+              margin: 0,
+            }}
+          >
+            Vouqis terminates the MCP connection on both sides. It reads every
+            JSON-RPC frame in flight, validates the envelope, and refuses to pass
+            a response your agent shouldn&apos;t act on.
+          </p>
+        </div>
+
+        {/* FIG.02 — Architecture rails */}
+        <figure
+          style={{
+            border: '1px solid rgba(21,18,14,0.16)',
+            borderRadius: 8,
+            background: '#F7F4EC',
+            padding: 'clamp(24px,3vw,44px) clamp(20px,3vw,40px)',
+            overflowX: 'auto',
+            marginBottom: 'clamp(40px,4vw,56px)',
+            margin: `0 0 clamp(40px,4vw,56px)`,
+          }}
+        >
+          <div style={{ minWidth: 720 }}>
+            {/* Column headers */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 6,
+                marginBottom: 30,
+                fontFamily: MONO,
+                fontSize: 11,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: '#7A7464',
+              }}
+            >
+              <span>AGENT</span>
+              <span style={{ color: '#ED4B2A', textAlign: 'center' }}>VOUQIS GATEWAY</span>
+              <span style={{ textAlign: 'right' }}>MCP SERVER</span>
+            </div>
+
+            {/* REQUEST rail */}
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 10,
+                letterSpacing: '0.2em',
+                color: '#9A9486',
+                marginBottom: 10,
+                textTransform: 'uppercase',
+              }}
+            >
+              REQUEST →
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                gap: 4,
+                alignItems: 'center',
+                marginBottom: 26,
+              }}
+            >
+              {/* Node: Agent */}
+              <div style={railNode('light')}>
+                <div style={railNodeKey}>AGENT</div>
+                <div style={railNodeVal('light')}>claude-3.7</div>
+              </div>
+              {/* Connector */}
+              <div style={connectorWrapper}>
+                <div style={connectorChip('normal')}>tools/call · query_orders</div>
+                <div style={arrowLine('normal')} />
+              </div>
+              {/* Node: Vouqis */}
+              <div style={railNode('dark')}>
+                <div style={railNodeKey}>VOUQIS</div>
+                <div style={railNodeVal('dark')}>gateway :7070</div>
+              </div>
+              {/* Connector */}
+              <div style={connectorWrapper}>
+                <div style={connectorChip('normal')}>schema ✓ · forwarded</div>
+                <div style={arrowLine('normal')} />
+              </div>
+              {/* Node: MCP */}
+              <div style={railNode('light')}>
+                <div style={railNodeKey}>MCP SERVER</div>
+                <div style={railNodeVal('light')}>acme.dev/db</div>
+              </div>
+            </div>
+
+            {/* RESPONSE rail */}
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 10,
+                letterSpacing: '0.2em',
+                color: '#9A9486',
+                marginBottom: 10,
+                textTransform: 'uppercase',
+              }}
+            >
+              RESPONSE →
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {/* Node: MCP */}
+              <div style={railNode('light')}>
+                <div style={railNodeKey}>MCP SERVER</div>
+                <div style={railNodeVal('light')}>acme.dev/db</div>
+              </div>
+              {/* Connector BAD */}
+              <div style={connectorWrapper}>
+                <div style={connectorChip('bad')}>200 · result: null</div>
+                <div style={arrowLine('bad')} />
+              </div>
+              {/* Node: Vouqis */}
+              <div style={railNode('dark')}>
+                <div style={railNodeKey}>VOUQIS</div>
+                <div style={railNodeVal('dark')}>inspect envelope</div>
+              </div>
+              {/* Connector BAD */}
+              <div style={connectorWrapper}>
+                <div style={connectorChip('bad')}>✕ NULL_RESULT · held</div>
+                <div style={arrowLine('bad')} />
+              </div>
+              {/* Node: Agent */}
+              <div style={railNode('light')}>
+                <div style={railNodeKey}>AGENT</div>
+                <div style={railNodeVal('light')}>blocked</div>
+              </div>
+            </div>
+          </div>
+
+          <figcaption
+            style={{
+              fontFamily: MONO,
+              fontSize: 11.5,
+              color: '#7A7464',
+              marginTop: 26,
+              paddingTop: 16,
+              borderTop: '1px solid rgba(21,18,14,0.12)',
+            }}
+          >
+            FIG.02 — One round trip. The request is validated and forwarded; the
+            response is inspected and{' '}
+            <span style={{ color: '#ED4B2A' }}>held</span> before the agent can
+            act on it.
+          </figcaption>
+        </figure>
+
+        {/* Protocol inspection + checks */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'clamp(28px,4vw,56px)',
+          }}
+        >
+          {/* LEFT — Protocol inspection */}
+          <div style={{ flex: '1 1 420px' }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: '#9A9486',
+                marginBottom: 14,
+              }}
+            >
+              PROTOCOL INSPECTION
+            </div>
+            <div
+              style={{
+                background: '#16130E',
+                borderRadius: 6,
+                padding: '22px 24px',
+                fontFamily: MONO,
+                fontSize: 13,
+                lineHeight: 1.8,
+                color: '#C9C2B2',
+                overflowX: 'auto',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.1em',
+                  color: '#8C8473',
+                  marginBottom: 12,
+                }}
+              >
+                ↩ response frame · jsonrpc 2.0
+              </div>
+              <div style={{ color: '#8C8473' }}>{'{'}</div>
+              <div>
+                {'  '}
+                <span style={{ color: '#9AB4C9' }}>&quot;jsonrpc&quot;</span>
+                {': "2.0",   '}
+                <span style={{ color: '#69B98D' }}>✓ valid</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground/85 mb-2">{r.type}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-[60ch]">
-                  {r.description}
-                </p>
-                <div
-                  className="font-mono text-[0.63rem] text-foreground/38 rounded-sm px-3 py-2.5 max-w-full overflow-x-auto"
-                  style={{ background: 'oklch(1 0 0 / 0.03)', border: '1px solid oklch(1 0 0 / 0.07)' }}
-                >
-                  <span className="text-muted-foreground/30 select-none mr-3">VECTOR</span>
-                  <span className="whitespace-nowrap">{r.vector}</span>
-                </div>
+                {'  '}
+                <span style={{ color: '#9AB4C9' }}>&quot;id&quot;</span>
+                {': 41,      '}
+                <span style={{ color: '#69B98D' }}>✓ id match</span>
+              </div>
+              {/* Highlighted null row */}
+              <div
+                style={{
+                  background: 'color-mix(in srgb, #ED4B2A 18%, transparent)',
+                  margin: '2px -8px',
+                  padding: '2px 8px 2px 18px',
+                  borderRadius: 3,
+                }}
+              >
+                {'  '}
+                <span style={{ color: '#9AB4C9' }}>&quot;result&quot;</span>
+                {': '}
+                <span style={{ color: '#FF6A4D' }}>null</span>
+                {'    '}
+                <span style={{ color: '#FF6A4D' }}>✕ null on 200</span>
+              </div>
+              <div style={{ color: '#8C8473' }}>{'}'}</div>
+              <div
+                style={{
+                  borderTop: '1px dashed rgba(255,255,255,0.12)',
+                  paddingTop: 12,
+                  marginTop: 14,
+                  color: '#FF6A4D',
+                  fontSize: 12,
+                  whiteSpace: 'normal',
+                }}
+              >
+                verdict —{' '}
+                <strong>NULL_RESULT</strong> · held, not forwarded
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* RIGHT — Inline checks */}
+          <div style={{ flex: '1 1 320px' }}>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 11,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: '#9A9486',
+                marginBottom: 14,
+              }}
+            >
+              INLINE CHECKS · PER RESPONSE
+            </div>
+            {CHECKS.map((c) => (
+              <div
+                key={c.k}
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 16,
+                  padding: '13px 0',
+                  borderTop: '1px solid rgba(21,18,14,0.12)',
+                  fontFamily: MONO,
+                  fontSize: 13.5,
+                  lineHeight: 1.45,
+                  color: '#38332A',
+                }}
+              >
+                <span style={{ color: '#ED4B2A', flex: '0 0 auto' }}>{c.k}</span>
+                <span>{c.t}</span>
+              </div>
+            ))}
+            <div style={{ borderTop: '1px solid rgba(21,18,14,0.12)' }} />
+
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 'clamp(20px,2vw,26px)',
+                lineHeight: 1.3,
+                color: '#15120E',
+                marginTop: 22,
+                maxWidth: '26ch',
+              }}
+            >
+              Every request becomes a signal. Every failure becomes structured data.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* ── Credibility ──────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-[52ch]">
-          Built after observing repeated MCP reliability failures in production.
-          113 tests passing across 100+ protocol scenarios.{' '}
-          <a
-            href="https://github.com/Sasisundar2211/Vouqis"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-foreground/65 underline underline-offset-2 decoration-border hover:text-foreground transition-colors"
+      {/* ── TRUST SCORE ─────────────────────────────────────────────────────── */}
+      <section
+        id="trust"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: 'clamp(40px,5vw,60px)' }}>
+          <div
+            style={{
+              fontFamily: MONO,
+              fontSize: 12.5,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: '#ED4B2A',
+              marginBottom: 20,
+            }}
           >
-            Open source.
-          </a>{' '}
-           Founder-led support for design partners.
-        </p>
-      </section>
-
-      {/* ── Design Partner Program ────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <div className="max-w-lg">
-          <h2 className="text-2xl font-semibold mb-3 tracking-tight text-balance">
-            Join the Design Partner Program
+            03 — Trust intelligence
+          </div>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(34px,4.4vw,60px)',
+              margin: '0 0 20px',
+              color: '#15120E',
+              lineHeight: 1.05,
+              maxWidth: '28ch',
+            }}
+          >
+            Every server earns a reliability score.
           </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-            We are looking for teams running MCP-powered agents in production.
-            You get early access and direct-to-founder support. We learn from
-            your failure patterns.
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '48ch',
+              margin: 0,
+            }}
+          >
+            Vouqis builds a reliability history for every MCP server it touches.
+            Scores trend over time, fail classes are tracked, and SLIs surface
+            the real health of your tool infrastructure.
           </p>
-          <div className="rounded-lg border border-foreground/30 bg-foreground/5 p-8 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Design Partner</h3>
-              <span className="text-xs font-mono bg-foreground/20 text-foreground/80 px-2 py-1 rounded">
-                Free during discovery
+        </div>
+
+        {/* Dark scorecard */}
+        <div
+          style={{
+            background: '#16130E',
+            borderRadius: 10,
+            padding: 'clamp(24px,3vw,40px)',
+            color: '#E9E3D5',
+            boxShadow: '0 30px 70px -36px rgba(21,18,14,0.5)',
+          }}
+        >
+          {/* Top bar */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '10px 20px',
+              paddingBottom: 20,
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <span style={{ fontFamily: MONO, fontSize: 14, color: '#E9E3D5', flex: '0 0 auto' }}>
+              mcp.acme.dev/db
+            </span>
+            <span
+              style={{
+                fontFamily: MONO,
+                fontSize: 10.5,
+                letterSpacing: '0.14em',
+                color: '#FF6A4D',
+                border: '1px solid color-mix(in srgb, #ED4B2A 55%, transparent)',
+                borderRadius: 2,
+                padding: '4px 8px',
+              }}
+            >
+              DEGRADED
+            </span>
+            <span style={{ fontFamily: MONO, fontSize: 11, color: '#8C8473' }}>
+              trailing 30-day window · 1.2M requests
+            </span>
+          </div>
+
+          {/* Main content */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 'clamp(28px,4vw,56px)',
+              padding: '28px 0',
+            }}
+          >
+            {/* LEFT — Score */}
+            <div style={{ flex: '1 1 300px' }}>
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: '#8C8473',
+                  marginBottom: 10,
+                }}
+              >
+                RELIABILITY SCORE
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span
+                  style={{
+                    fontFamily: SERIF,
+                    fontSize: 'clamp(64px,8vw,104px)',
+                    lineHeight: 0.8,
+                    color: '#fff',
+                  }}
+                >
+                  72
+                </span>
+                <span style={{ fontFamily: MONO, fontSize: 20, color: '#8C8473' }}>/100</span>
+                <span style={{ fontFamily: MONO, fontSize: 13, color: '#FF6A4D' }}>▼ 11 pts</span>
+              </div>
+
+              {/* Sparkline SVG */}
+              <svg
+                viewBox="0 0 320 70"
+                style={{ width: '100%', height: 64, marginTop: 18, display: 'block' }}
+              >
+                <polyline
+                  fill="none"
+                  stroke="#FF6A4D"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                  points="0,16 12,14 24,20 36,13 48,22 60,18 72,26 84,20 96,29 108,24 120,33 132,27 144,37 156,31 168,41 180,34 192,44 204,38 216,47 228,41 240,51 252,45 264,54 276,48 288,57 300,51 312,60 320,55"
+                />
+                <line
+                  x1="0" y1="62" x2="320" y2="62"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="1"
+                />
+              </svg>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontFamily: MONO,
+                  fontSize: 10,
+                  color: '#6E6657',
+                  marginTop: 4,
+                }}
+              >
+                <span>30d ago · 83</span>
+                <span>today · 72</span>
+              </div>
+            </div>
+
+            {/* RIGHT — Failure breakdown */}
+            <div style={{ flex: '1 1 320px' }}>
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: '#8C8473',
+                  marginBottom: 14,
+                }}
+              >
+                FAILURE CLASS BREAKDOWN
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {FAILURE_CLASSES.map((fc) => (
+                  <div key={fc.name} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: 11.5,
+                        color: '#C9C2B2',
+                        width: 148,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {fc.name}
+                    </span>
+                    <div
+                      style={{
+                        flex: 1,
+                        height: 7,
+                        background: 'rgba(255,255,255,0.07)',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: fc.pct,
+                          height: '100%',
+                          background: fc.color,
+                          transformOrigin: 'left',
+                          animation: 'vq-growX 1.2s cubic-bezier(0.16,1,0.3,1) both',
+                          animationTimeline: 'view()',
+                          animationRange: 'entry 8% cover 36%',
+                        } as React.CSSProperties}
+                      />
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: 11.5,
+                        color: '#8C8473',
+                        width: 36,
+                        textAlign: 'right',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {fc.pct}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SLI grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: 1,
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 5,
+              overflow: 'hidden',
+            }}
+          >
+            {SLIS.map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  background: '#16130E',
+                  padding: '16px 18px',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 10,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: '#8C8473',
+                    marginBottom: 8,
+                  }}
+                >
+                  {s.label}
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 19, color: s.color }}>
+                  {s.value}
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 10.5, color: '#6E6657', marginTop: 4 }}>
+                  {s.target}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Server table */}
+        <div
+          style={{
+            marginTop: 'clamp(28px,3vw,40px)',
+            border: '1px solid rgba(21,18,14,0.16)',
+            borderRadius: 8,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Table header */}
+          <div
+            style={{
+              background: '#EDE8DD',
+              display: 'grid',
+              gridTemplateColumns: '1.6fr 1.2fr 0.5fr 0.9fr',
+              gap: 16,
+              padding: `14px clamp(18px,2.5vw,28px)`,
+              fontFamily: MONO,
+              fontSize: 10.5,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: '#7A7464',
+            }}
+          >
+            <span>MCP SERVER</span>
+            <span>30-DAY TREND</span>
+            <span style={{ textAlign: 'right' }}>SCORE</span>
+            <span style={{ textAlign: 'right' }}>VERDICT</span>
+          </div>
+
+          {/* Table rows */}
+          {SERVER_ROWS.map((r) => (
+            <div
+              key={r.name}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.6fr 1.2fr 0.5fr 0.9fr',
+                gap: 16,
+                alignItems: 'center',
+                padding: `16px clamp(18px,2.5vw,28px)`,
+                borderTop: '1px solid rgba(21,18,14,0.10)',
+              }}
+            >
+              <span style={{ fontFamily: MONO, fontSize: 13, color: '#15120E' }}>{r.name}</span>
+              <span style={{ fontFamily: MONO, fontSize: 15, letterSpacing: '0.04em', color: r.color }}>{r.spark}</span>
+              <span
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 24,
+                  textAlign: 'right',
+                  color: '#15120E',
+                }}
+              >
+                {r.score}
+              </span>
+              <span
+                style={{
+                  fontFamily: MONO,
+                  fontSize: 10.5,
+                  letterSpacing: '0.1em',
+                  textAlign: 'right',
+                  color: r.color,
+                }}
+              >
+                {r.verdict}
               </span>
             </div>
-            <ul className="space-y-3 mb-8">
-              {DESIGN_PARTNER_FEATURES.map((feature, i) => (
-                <li key={i} className="text-sm flex items-start gap-2">
-                  <span className="text-foreground/60 mt-0.5">•</span>
-                  <span className="text-muted-foreground">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <a
-              href="#design-partner"
-              className="inline-flex items-center justify-center w-full h-10 px-4 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-colors"
-            >
-              Apply for Design Partner
-            </a>
-          </div>
-          <p className="text-xs text-muted-foreground/50">
-            Or{' '}
-            <a href="/proxy" className="underline underline-offset-2 decoration-border hover:text-foreground transition-colors">
-              run a one-time MCP reliability audit
-            </a>{' '}
-            — no commitment required.
-          </p>
-        </div>
-      </section>
-
-      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <h2 className="text-2xl font-semibold mb-10 tracking-tight text-balance">
-          Common questions
-        </h2>
-        <div className="max-w-3xl divide-y divide-border/40">
-          {FAQ_ITEMS.map((item, index) => (
-            <div key={index} className="py-7 first:pt-0">
-              <p className="text-sm font-semibold text-foreground/80 mb-3 leading-snug">
-                {item.question}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {item.answer.includes('`')
-                  ? item.answer.split('`').map((part, i) =>
-                      i % 2 === 0 ? (
-                        <span key={i}>{part}</span>
-                      ) : (
-                        <code key={i} className="font-mono text-xs bg-muted/50 px-1.5 py-0.5 rounded">
-                          {part}
-                        </code>
-                      )
-                    )
-                  : item.answer}
-              </p>
-            </div>
           ))}
         </div>
-      </section>
 
-      {/* ── Design Partner + Discovery CTA ──────────────────────────────────── */}
-      <section id="design-partner" className="py-20 border-t border-border/50">
-        <div className="grid md:grid-cols-2 gap-16 items-start">
-          <div>
-            <h2 className="text-xl font-semibold mb-3 tracking-tight">Join the Design Partner Program</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              Route MCP traffic through Vouqis. Shape the product. We&rsquo;ll help you set it up.
-            </p>
-            <EmailCapture />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold mb-3 tracking-tight">
-              Have you seen an MCP failure reach a user?
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              Tell us what happened. This may be more valuable than another signup.
-            </p>
-            <a
-              href="mailto:sasisundhar2211@gmail.com?subject=MCP failure report"
-              className="inline-flex items-center h-10 px-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Share the details →
-            </a>
-          </div>
+        {/* Footnote */}
+        <div style={{ fontFamily: MONO, fontSize: 11.5, color: '#7A7464', marginTop: 16 }}>
+          FIG.03 — Server reliability history, trailing 30 days.{' '}
+          <span style={{ color: '#9A9486' }}>Illustrative; your fleet, your numbers.</span>
         </div>
       </section>
 
-      {/* ── Closing ──────────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border/50">
-        <div className="max-w-[40ch] mb-10">
-          <p className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
-            MCP servers fail silently.
-          </p>
-          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground/50">
-            Vouqis surfaces the evidence.
+      {/* ── DEMO ────────────────────────────────────────────────────────────── */}
+      <section
+        id="demo"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1320,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        <div style={{ marginBottom: 'clamp(40px,5vw,56px)' }}>
+          <div
+            style={{
+              fontFamily: MONO,
+              fontSize: 12.5,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: '#ED4B2A',
+              marginBottom: 20,
+            }}
+          >
+            04 — See it run
+          </div>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(34px,4.4vw,60px)',
+              margin: '0 0 20px',
+              color: '#15120E',
+              lineHeight: 1.05,
+            }}
+          >
+            Watch it catch one.
+          </h2>
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '52ch',
+              margin: 0,
+            }}
+          >
+            One command in front of any MCP server. No SDK, no per-tool wrappers,
+            no code changes.
           </p>
         </div>
-        <a
-          href="https://calendly.com/sasisundar2211"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center h-10 px-5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+
+        <TerminalDemo />
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────────────────────────── */}
+      <section
+        id="cta"
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1100,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+          textAlign: 'left',
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: SERIF,
+            fontWeight: 400,
+            fontSize: 'clamp(40px,6.2vw,90px)',
+            lineHeight: 0.98,
+            letterSpacing: '-0.015em',
+            maxWidth: '15ch',
+            marginBottom: 'clamp(40px,5vw,60px)',
+            color: '#15120E',
+          }}
         >
-          Book a Discovery Call
-        </a>
+          Catch silent failures{' '}
+          <em style={{ fontStyle: 'italic', color: '#ED4B2A' }}>before</em>
+          {' '}your users do.
+        </h2>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 18,
+            marginBottom: 30,
+          }}
+        >
+          <CopyButton size="lg" />
+          <a
+            href="#cta"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 56,
+              padding: '0 26px',
+              background: '#ED4B2A',
+              color: '#FCEFE9',
+              fontFamily: MONO,
+              fontSize: 14,
+              letterSpacing: '0.02em',
+              borderRadius: 3,
+              textDecoration: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Join the design-partner program →
+          </a>
+          <a
+            href="#"
+            className="vq-text-link"
+            style={{
+              fontFamily: MONO,
+              fontSize: 13,
+              color: '#15120E',
+              textDecoration: 'none',
+              borderBottom: '1px solid rgba(21,18,14,0.3)',
+              paddingBottom: 3,
+              transition: 'opacity 150ms ease',
+            }}
+          >
+            read the docs
+          </a>
+        </div>
+
+        <div
+          style={{
+            fontFamily: MONO,
+            fontSize: 12.5,
+            letterSpacing: '0.04em',
+            color: '#6B6557',
+          }}
+        >
+          Free · Open source (AGPL-3.0) · Microseconds of overhead · 10 seconds to try
+        </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border/50 py-7 text-[0.68rem] text-muted-foreground/50 flex items-center justify-between gap-4 flex-wrap">
-        <span className="font-sans font-medium" style={{ letterSpacing: '0.2em', fontSize: '0.65rem' }}>
-          © 2026 VOUQIS
-        </span>
-        <div className="flex items-center gap-6">
-          <a
-            href="https://github.com/Sasisundar2211/Vouqis"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground/80 transition-colors"
+      {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
+      <footer
+        style={{
+          background: '#16130E',
+          color: '#9A9387',
+          padding: 'clamp(56px,6vw,88px) clamp(20px,5vw,72px) 40px',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1500,
+            margin: '0 auto',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 48,
+            justifyContent: 'space-between',
+          }}
+        >
+          {/* Left */}
+          <div style={{ flex: '1 1 280px', maxWidth: '34ch' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: '#ED4B2A',
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: SANS,
+                  fontWeight: 600,
+                  fontSize: 16,
+                  letterSpacing: '0.34em',
+                  color: '#E9E3D5',
+                }}
+              >
+                VOUQIS
+              </span>
+            </div>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 21,
+                lineHeight: 1.35,
+                color: '#C9C2B2',
+                margin: 0,
+              }}
+            >
+              The runtime trust layer for agent infrastructure.
+            </p>
+          </div>
+
+          {/* Right: footer cols */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '48px 64px',
+            }}
           >
-            GitHub
-          </a>
-          <a
-            href="https://github.com/Sasisundar2211/Vouqis/blob/main/PRIVACY.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground/80 transition-colors"
-          >
-            Privacy
-          </a>
-          <a
-            href="mailto:sasisundhar2211@gmail.com"
-            className="hover:text-foreground/80 transition-colors"
-          >
-            sasisundhar2211@gmail.com
-          </a>
+            {FOOTER_COLS.map((col) => (
+              <div key={col.h} style={{ fontFamily: MONO, fontSize: 12.5, lineHeight: 2.2 }}>
+                <div
+                  style={{
+                    color: '#5C564A',
+                    fontSize: 11,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    marginBottom: 8,
+                  }}
+                >
+                  {col.h}
+                </div>
+                {col.items.map((item) => (
+                  <div key={item}>
+                    <a
+                      href="#"
+                      className="vq-text-link"
+                      style={{
+                        color: '#9A9387',
+                        textDecoration: 'none',
+                        transition: 'color 150ms ease',
+                      }}
+                    >
+                      {item}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div
+          style={{
+            maxWidth: 1500,
+            margin: '48px auto 0',
+            paddingTop: 24,
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            fontFamily: MONO,
+            fontSize: 11.5,
+            color: '#5C564A',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px 20px',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>© 2026 Vouqis · AGPL-3.0</span>
+          <span>built for engineers tired of debugging silent agent failures</span>
         </div>
       </footer>
-
-    </div>
+    </>
   )
+}
+
+// ── Architecture rail helpers ────────────────────────────────────────────────
+
+function railNode(variant: 'light' | 'dark'): React.CSSProperties {
+  return {
+    flex: '0 0 auto',
+    width: 150,
+    background: variant === 'dark' ? '#16130E' : '#FFFFFF',
+    border: variant === 'dark' ? '1.5px solid #ED4B2A' : '1px solid rgba(21,18,14,0.16)',
+    borderRadius: 5,
+    padding: '13px 12px',
+    textAlign: 'center',
+  }
+}
+
+const railNodeKey: React.CSSProperties = {
+  fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+  fontSize: 10,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase' as const,
+  color: '#7A7464',
+  marginBottom: 4,
+}
+
+function railNodeVal(variant: 'light' | 'dark'): React.CSSProperties {
+  return {
+    fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+    fontSize: 12,
+    color: variant === 'dark' ? '#E9E3D5' : '#15120E',
+    fontWeight: 500,
+  }
+}
+
+const connectorWrapper: React.CSSProperties = {
+  flex: '1 1 60px',
+  minWidth: 54,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+}
+
+function connectorChip(type: 'normal' | 'bad'): React.CSSProperties {
+  if (type === 'bad') {
+    return {
+      fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+      fontSize: 10,
+      padding: '4px 8px',
+      borderRadius: 3,
+      whiteSpace: 'nowrap' as const,
+      color: '#C23A1E',
+      background: 'color-mix(in srgb, #ED4B2A 12%, #F7F4EC)',
+      border: '1px solid color-mix(in srgb, #ED4B2A 45%, transparent)',
+    }
+  }
+  return {
+    fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+    fontSize: 10,
+    padding: '4px 8px',
+    borderRadius: 3,
+    whiteSpace: 'nowrap' as const,
+    color: '#15120E',
+    background: 'rgba(21,18,14,0.05)',
+    border: '1px solid rgba(21,18,14,0.12)',
+  }
+}
+
+function arrowLine(type: 'normal' | 'bad'): React.CSSProperties {
+  const lineColor = type === 'bad'
+    ? 'color-mix(in srgb, #ED4B2A 55%, transparent)'
+    : 'rgba(21,18,14,0.26)'
+
+  return {
+    width: '100%',
+    height: 1,
+    background: lineColor,
+    position: 'relative' as const,
+  }
 }

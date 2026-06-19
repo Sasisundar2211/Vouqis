@@ -1,29 +1,45 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import Link from 'next/link'
+import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans', display: 'swap' })
-const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' })
+const instrumentSerif = Instrument_Serif({
+  weight: '400',
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  weight: ['400', '500', '600'],
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://vouqis.tech'),
-  title: 'Vouqis — Catch MCP Failures Before Your Users Do',
+  title: 'Vouqis — MCP Reliability Gateway',
   description:
-    'Catch silent MCP failures before your users discover them. Vouqis sits between your AI agent and MCP server, validating every tool call and blocking failures that appear successful but never complete.',
+    'Vouqis catches silent MCP failures — null results, schema drift, timeouts dressed as success — before they ever reach your AI agent.',
   keywords: [
     'MCP', 'Model Context Protocol', 'MCP reliability', 'MCP gateway',
     'MCP proxy', 'AI agents', 'agent reliability', 'silent failures',
     'MCP monitoring', 'AI infrastructure',
   ],
   openGraph: {
-    title: 'Your Agent Said Success. The Action Never Happened.',
-    description:
-      'Catch silent MCP failures before your users do.',
+    title: 'Vouqis — MCP Reliability Gateway',
+    description: 'Catch silent MCP failures before your AI agent acts on them.',
     type: 'website',
     url: 'https://vouqis.tech',
-    images: ['/opengraph-image.png'],
   },
   alternates: {
     canonical: 'https://vouqis.tech',
@@ -32,52 +48,141 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
-        {/* Must run before browser scroll restoration */}
         <script dangerouslySetInnerHTML={{ __html: "history.scrollRestoration='manual';window.scrollTo(0,0)" }} />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground font-sans`}>
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-md focus:bg-foreground focus:text-background focus:text-sm focus:font-medium"
+      <body
+        className={`${instrumentSerif.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}
+      >
+        <a href="#main-content" className="skip-link">Skip to content</a>
+
+        <header
+          style={{
+            position: 'sticky',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            borderBottom: '1px solid rgba(21,18,14,0.10)',
+            background: 'color-mix(in srgb, #EFEAE0 84%, transparent)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
         >
-          Skip to content
-        </a>
-        <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-sm">
-          <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between">
-            <Link
+          <div
+            style={{
+              maxWidth: 1500,
+              margin: '0 auto',
+              padding: '0 clamp(20px, 5vw, 72px)',
+              height: 58,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+            }}
+          >
+            {/* Left: logo */}
+            <a
               href="/"
-              className="font-sans font-medium text-foreground hover:opacity-80 transition-opacity"
-              style={{ letterSpacing: '0.34em', fontSize: '0.8125rem' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                textDecoration: 'none',
+              }}
             >
-              VOUQIS
-            </Link>
-            <div className="flex items-center gap-6">
-              <Link
-                href="/proxy"
-                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors"
+              <span
+                style={{
+                  width: 11,
+                  height: 11,
+                  borderRadius: '50%',
+                  background: '#ED4B2A',
+                  boxShadow: '0 0 0 4px color-mix(in srgb, #ED4B2A 22%, transparent)',
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: 'var(--font-space-grotesk), system-ui, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 17,
+                  letterSpacing: '0.34em',
+                  paddingLeft: '0.34em',
+                  color: '#15120E',
+                }}
               >
-                Audit
-              </Link>
+                VOUQIS
+              </span>
+            </a>
+
+            {/* Center: nav links */}
+            <nav
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 32,
+              }}
+            >
+              {(['problem', 'architecture', 'trust score', 'demo'] as const).map((label) => (
+                <a
+                  key={label}
+                  href={`/#${label === 'trust score' ? 'trust' : label === 'architecture' ? 'how' : label}`}
+                  className="vq-nav-link"
+                  style={{
+                    fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+                    fontSize: 12.5,
+                    letterSpacing: '0.04em',
+                    color: '#5C564A',
+                    textDecoration: 'none',
+                    transition: 'color 150ms ease',
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+
+            {/* Right: buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <a
                 href="https://github.com/Sasisundar2211/Vouqis"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                style={{
+                  fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+                  fontSize: 13,
+                  color: '#3B362C',
+                  textDecoration: 'none',
+                  border: '1px solid rgba(21,18,14,0.18)',
+                  borderRadius: 2,
+                  padding: '9px 13px',
+                  lineHeight: 1,
+                }}
               >
                 GitHub
               </a>
               <a
-                href="#design-partner"
-                className="hidden sm:inline-flex h-8 px-3 items-center rounded-md bg-foreground text-background text-xs font-medium hover:opacity-90 transition-colors"
+                href="#cta"
+                style={{
+                  fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+                  fontSize: 13,
+                  color: '#FCEFE9',
+                  background: '#15120E',
+                  textDecoration: 'none',
+                  borderRadius: 2,
+                  padding: '10px 16px',
+                  lineHeight: 1,
+                }}
               >
-                Join Design Partner Program
+                Get the audit →
               </a>
             </div>
           </div>
         </header>
-        <main id="main-content" className="pt-14">{children}</main>
+
+        <main id="main-content">{children}</main>
+
         <Analytics />
       </body>
     </html>
