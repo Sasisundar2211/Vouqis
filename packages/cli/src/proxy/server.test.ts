@@ -191,6 +191,18 @@ describe('createProxyServer', () => {
     expect(body.error.message).toMatch(/not valid JSON/)
   })
 
+  it('null JSON body → block -32600 (not a JSON object, not -32700)', async () => {
+    const res = await httpReq({
+      url: baseUrl,
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: 'null',
+    })
+    const body = JSON.parse(res.body)
+    expect(body.error.code).toBe(-32600)
+    expect(body.error.message).toMatch(/not a JSON object/)
+  })
+
   it('invalid jsonrpc version → block -32600', async () => {
     const res = await postJson(baseUrl, {jsonrpc: '1.0', method: 'ping', id: 1})
     const body = JSON.parse(res.body)
@@ -245,15 +257,18 @@ describe('createProxyServer', () => {
     expect(res.headers['content-type']).toContain('text/event-stream')
   })
 
-  it('non-JSON upstream response → passed through as-is', async () => {
+  it('non-JSON upstream response → wrapped in JSON-RPC error', async () => {
     mockFetch.mockResolvedValueOnce({
-      status: 200,
-      headers: {get: (k: string) => (k === 'content-type' ? 'text/plain' : null)},
-      text: () => Promise.resolve('plain text result'),
+      status: 502,
+      headers: {get: (k: string) => (k === 'content-type' ? 'text/html' : null)},
+      text: () => Promise.resolve('<html><body>502 Bad Gateway</body></html>'),
       body: null,
     })
     const res = await postJson(baseUrl, VALID_REQUEST)
-    expect(res.body).toBe('plain text result')
+    const body = JSON.parse(res.body)
+    expect(body.error).toBeDefined()
+    expect(body.error.code).toBe(-32603)
+    expect(body.error.message).toMatch(/non-JSON/)
   })
 
   it('null tools/call result → block when block_null_result=true', async () => {

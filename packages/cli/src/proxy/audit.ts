@@ -21,7 +21,8 @@ export class AuditLogger {
   private printToStderr(event: AuditEvent): void {
     const time = event.timestamp.slice(11, 19) // HH:MM:SS
     const decision = this.colorDecision(event.decision)
-    const method = chalk.dim(event.method.padEnd(12))
+    const rawMethod = event.method.length > 14 ? event.method.slice(0, 13) + '…' : event.method
+    const method = chalk.dim(rawMethod.padEnd(14))
     const tool = event.tool ? chalk.white(event.tool.padEnd(24)) : ' '.repeat(24)
     const latency = chalk.dim(`${event.latency_ms}ms`)
     const reason = event.reason ? chalk.dim(`  ← ${event.reason}`) : ''

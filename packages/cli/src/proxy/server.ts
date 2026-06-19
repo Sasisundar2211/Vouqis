@@ -178,16 +178,23 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       let parsedBody: unknown
       try {
         parsedBody = JSON.parse(rawBody.toString())
-        const r = parsedBody as JsonRpcRequest
-        rpcMethod = (r.method as string) ?? 'unknown'
-        rpcId = r.id
-        if (rpcMethod === 'tools/call') {
-          const p = r.params as Record<string, unknown> | null | undefined
-          if (p && typeof p['name'] === 'string') rpcTool = p['name']
-        }
       } catch {
         sendBlock(-32700, 'Gateway: request body is not valid JSON')
         return
+      }
+
+      // Must be an object (not null, array, string, etc.) before we touch properties
+      if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+        sendBlock(-32600, 'Gateway: request body is not a JSON object')
+        return
+      }
+
+      const r = parsedBody as JsonRpcRequest
+      rpcMethod = (r.method as string) ?? 'unknown'
+      rpcId = r.id
+      if (rpcMethod === 'tools/call') {
+        const p = r.params as Record<string, unknown> | null | undefined
+        if (p && typeof p['name'] === 'string') rpcTool = p['name']
       }
 
       // Request validation
@@ -285,10 +292,9 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       try {
         parsedResponse = JSON.parse(responseText)
       } catch {
-        // Not JSON — forward as-is
-        res.writeHead(upstreamRes.status, {...SEC, 'Content-Type': contentType || 'application/json'})
-        res.end(responseText)
-        emit('allow')
+        // Upstream returned non-JSON (e.g. HTML error page) — wrap in a JSON-RPC error
+        // so agents always receive a parseable response from this gateway.
+        sendBlock(-32603, `Gateway: upstream returned non-JSON response (${upstreamRes.status} ${contentType || 'unknown'})`)
         return
       }
 
