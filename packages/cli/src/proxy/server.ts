@@ -40,6 +40,22 @@ async function forwardToUpstream(
   })
 }
 
+// Hop-by-hop headers that must never be forwarded across a proxy boundary.
+const HOP_BY_HOP = new Set([
+  'connection', 'keep-alive', 'transfer-encoding', 'upgrade',
+  'proxy-authenticate', 'proxy-authorization', 'te', 'trailers',
+])
+
+/** Extract upstream response headers, dropping hop-by-hop and ones we always set ourselves. */
+function upstreamResponseHeaders(upstreamRes: Response): Record<string, string> {
+  const out: Record<string, string> = {}
+  upstreamRes.headers.forEach((value, key) => {
+    if (HOP_BY_HOP.has(key.toLowerCase())) return
+    out[key] = value
+  })
+  return out
+}
+
 async function forwardGetToUpstream(
   upstream: UpstreamConfig,
   headers: Record<string, string>,
@@ -132,6 +148,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         const sseRes = await forwardGetToUpstream(upstream, fwdHeaders)
         const ct = sseRes.headers.get('content-type') ?? 'text/event-stream'
         res.writeHead(sseRes.status, {
+          ...upstreamResponseHeaders(sseRes),
           ...SEC,
           'Cache-Control': 'no-cache',  // streaming — override no-store
           'Content-Type': ct,
@@ -263,6 +280,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       // SSE streams: pipe through without buffering
       if (contentType.includes('text/event-stream')) {
         res.writeHead(upstreamRes.status, {
+          ...upstreamResponseHeaders(upstreamRes),
           ...SEC,
           'Cache-Control': 'no-cache',  // streaming — override no-store
           'Content-Type': contentType,
@@ -315,6 +333,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           const rewritten = JSON.stringify(resPolicy.body)
           emit('rewrite', resPolicy.reason)
           res.writeHead(upstreamRes.status, {
+            ...upstreamResponseHeaders(upstreamRes),
             ...SEC,
             'Content-Type': 'application/json',
             'Content-Length': String(Buffer.byteLength(rewritten)),
@@ -327,6 +346,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       emit('allow')
       const outBuf = Buffer.from(responseText)
       res.writeHead(upstreamRes.status, {
+        ...upstreamResponseHeaders(upstreamRes),
         ...SEC,
         'Content-Type': 'application/json',
         'Content-Length': String(outBuf.byteLength),

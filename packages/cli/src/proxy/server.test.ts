@@ -83,11 +83,20 @@ function postJson(url: string, body: unknown) {
   return httpReq({url, method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)})
 }
 
+function mockHeaders(map: Record<string, string>) {
+  return {
+    get: (k: string) => map[k.toLowerCase()] ?? null,
+    forEach: (cb: (value: string, key: string) => void) => {
+      for (const [k, v] of Object.entries(map)) cb(v, k)
+    },
+  }
+}
+
 function jsonUpstream(body: unknown, status = 200) {
   const text = JSON.stringify(body)
   return {
     status,
-    headers: {get: (k: string) => (k === 'content-type' ? 'application/json' : null)},
+    headers: mockHeaders({'content-type': 'application/json'}),
     text: () => Promise.resolve(text),
     body: null,
   }
@@ -97,7 +106,7 @@ function sseUpstream(chunks: string[] = []) {
   let i = 0
   return {
     status: 200,
-    headers: {get: (k: string) => (k === 'content-type' ? 'text/event-stream' : null)},
+    headers: mockHeaders({'content-type': 'text/event-stream'}),
     text: () => Promise.resolve(''),
     body: {
       getReader: () => ({
@@ -260,7 +269,7 @@ describe('createProxyServer', () => {
   it('non-JSON upstream response → wrapped in JSON-RPC error', async () => {
     mockFetch.mockResolvedValueOnce({
       status: 502,
-      headers: {get: (k: string) => (k === 'content-type' ? 'text/html' : null)},
+      headers: mockHeaders({'content-type': 'text/html'}),
       text: () => Promise.resolve('<html><body>502 Bad Gateway</body></html>'),
       body: null,
     })
