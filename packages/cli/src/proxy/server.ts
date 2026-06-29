@@ -4,9 +4,9 @@ import {validateRequest} from '../protocol/validators/jsonrpc-validator.js'
 import {validateResponse} from '../protocol/validators/mcp-validator.js'
 import {buildRateLimiter, TokenBucket} from './ratelimit.js'
 import {ReliabilityLogger} from '../reliability/events.js'
+import {evaluateReliability, type EvaluationOutcome, type EventContext} from '../reliability/pipeline.js'
 import type {JsonRpcRequest} from '../protocol/jsonrpc.js'
 import {IDEMPOTENT_METHODS} from '../protocol/mcp.js'
-import type {PolicyDecision} from '../reliability/policy.js'
 import {distinctId, posthog} from '../analytics.js'
 import {forwardWithRetry} from './retry.js'
 import {forwardGetToUpstream, upstreamResponseHeaders} from './forwarder.js'
@@ -42,31 +42,31 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
     let rpcId: string | number | null | undefined
     let attempts = 1
 
-    const emit = (decision: PolicyDecision, reason?: string) => {
-      const latency_ms = Date.now() - start
-      logger.log({
+    const emit = (outcome: EvaluationOutcome) => {
+      const ctx: EventContext = {
         timestamp: new Date().toISOString(),
         upstream: upstream.url,
         server_id: serverId,
         method: rpcMethod,
         tool: rpcTool,
         requestId: rpcId,
-        decision,
-        latency_ms,
-        reason,
         attempt: attempts,
-      })
+        latency_ms: Date.now() - start,
+      }
+      const {event, policy} = evaluateReliability(ctx, outcome)
+      logger.log(event)
+      const {decision, reason} = policy
       if (decision === 'allow') {
         posthog.capture({
           distinctId,
           event: 'request_allowed',
-          properties: {method: rpcMethod, tool: rpcTool, latency_ms, attempt: attempts, upstream: serverId},
+          properties: {method: rpcMethod, tool: rpcTool, latency_ms: ctx.latency_ms, attempt: attempts, upstream: serverId},
         })
       } else if (decision === 'block') {
         posthog.capture({
           distinctId,
           event: 'request_blocked',
-          properties: {method: rpcMethod, tool: rpcTool, latency_ms, reason, upstream: serverId},
+          properties: {method: rpcMethod, tool: rpcTool, latency_ms: ctx.latency_ms, reason, upstream: serverId},
         })
       } else if (decision === 'retry') {
         posthog.capture({
@@ -83,8 +83,8 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
       }
     }
 
-    const sendBlock = (code: number, message: string) => {
-      emit('block', message)
+    const sendBlock = (code: number, message: string, error?: Error) => {
+      emit({decision: 'block', reason: message, error})
       res.writeHead(200, {...SEC, 'Content-Type': 'application/json'})
       res.end(errorResponse(rpcId, code, message))
     }
@@ -205,17 +205,19 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
           rawBody,
           retryAllowed: IDEMPOTENT_METHODS.has(rpcMethod),
           onRetry(event) {
-            emit('retry', `timeout on attempt ${event.attempt} — retrying in ${event.delayMs}ms`)
+            emit({decision: 'retry', reason: `timeout on attempt ${event.attempt} — retrying in ${event.delayMs}ms`})
             attempts = event.attempt + 1
           },
         })
       } catch (err) {
-        const isTimeout = err instanceof Error && (err as Error).name === 'TimeoutError'
+        const error = err instanceof Error ? err : undefined
+        const isTimeout = error?.name === 'TimeoutError'
         sendBlock(
           isTimeout ? -32000 : -32603,
           isTimeout
             ? `Gateway: upstream timed out after ${upstream.timeout_ms}ms (${upstream.retry + 1} attempt(s))`
-            : `Gateway: upstream unreachable — ${err instanceof Error ? err.message : String(err)}`,
+            : `Gateway: upstream unreachable — ${error?.message ?? String(err)}`,
+          error,
         )
         return
       }
@@ -232,7 +234,7 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
           'Connection': 'keep-alive',
         })
         await pipeStream(upstreamRes.body, res)
-        emit('allow')
+        emit({decision: 'allow'})
         return
       }
 
@@ -261,7 +263,7 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
         }
         if (resPolicy.decision === 'rewrite' && resPolicy.body) {
           const rewritten = JSON.stringify(resPolicy.body)
-          emit('rewrite', resPolicy.reason)
+          emit({decision: 'rewrite', reason: resPolicy.reason})
           res.writeHead(upstreamRes.status, {
             ...upstreamResponseHeaders(upstreamRes),
             ...SEC,
@@ -273,7 +275,7 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
         }
       }
 
-      emit('allow')
+      emit({decision: 'allow'})
       const outBuf = Buffer.from(responseText)
       res.writeHead(upstreamRes.status, {
         ...upstreamResponseHeaders(upstreamRes),
@@ -283,8 +285,9 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
       })
       res.end(outBuf)
     } catch (err) {
+      const error = err instanceof Error ? err : undefined
       posthog.captureException(err, distinctId, {method: rpcMethod, tool: rpcTool, upstream: serverId})
-      sendBlock(-32603, `Gateway internal error: ${err instanceof Error ? err.message : String(err)}`)
+      sendBlock(-32603, `Gateway internal error: ${error?.message ?? String(err)}`, error)
     }
   })
 
