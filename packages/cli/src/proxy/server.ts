@@ -8,8 +8,9 @@ import type {JsonRpcRequest} from '../protocol/jsonrpc.js'
 import {IDEMPOTENT_METHODS} from '../protocol/mcp.js'
 import type {PolicyDecision} from './types.js'
 import {distinctId, posthog} from '../analytics.js'
-
-const RETRY_DELAY_MS = 300
+import {forwardWithRetry} from './retry.js'
+import {forwardGetToUpstream, upstreamResponseHeaders} from './forwarder.js'
+import {pipeStream} from './stream.js'
 
 // Baseline security headers applied to every response from this gateway.
 // HSTS/CSP are omitted intentionally — this is a local HTTP JSON-RPC proxy, not a TLS web app.
@@ -29,43 +30,6 @@ function errorResponse(id: string | number | null | undefined, code: number, mes
   return JSON.stringify({jsonrpc: '2.0', id: id ?? null, error: {code, message}})
 }
 
-async function forwardToUpstream(
-  upstream: UpstreamConfig,
-  headers: Record<string, string>,
-  rawBody: Buffer,
-  timeoutMs: number,
-): Promise<Response> {
-  return fetch(upstream.url, {
-    method: 'POST',
-    headers,
-    body: rawBody,
-    signal: AbortSignal.timeout(timeoutMs),
-  })
-}
-
-// Hop-by-hop headers that must never be forwarded across a proxy boundary.
-const HOP_BY_HOP = new Set([
-  'connection', 'keep-alive', 'transfer-encoding', 'upgrade',
-  'proxy-authenticate', 'proxy-authorization', 'te', 'trailers',
-])
-
-/** Extract upstream response headers, dropping hop-by-hop and ones we always set ourselves. */
-function upstreamResponseHeaders(upstreamRes: Response): Record<string, string> {
-  const out: Record<string, string> = {}
-  upstreamRes.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return
-    out[key] = value
-  })
-  return out
-}
-
-async function forwardGetToUpstream(
-  upstream: UpstreamConfig,
-  headers: Record<string, string>,
-): Promise<Response> {
-  return fetch(upstream.url, {method: 'GET', headers})
-}
-
 export function createProxyServer(config: ProxyConfig, logger: AuditLogger): http.Server {
   const upstream = config.upstreams[0] // MVP: single upstream
   const bucket: TokenBucket | null = buildRateLimiter(upstream.rate_limit_rps)
@@ -76,7 +40,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
     let rpcMethod = 'unknown'
     let rpcTool: string | undefined
     let rpcId: string | number | null | undefined
-    let attempt = 0
+    let attempts = 1
 
     const emit = (decision: PolicyDecision, reason?: string) => {
       const latency_ms = Date.now() - start
@@ -90,13 +54,13 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         decision,
         latency_ms,
         reason,
-        attempt,
+        attempt: attempts,
       })
       if (decision === 'allow') {
         posthog.capture({
           distinctId,
           event: 'request_allowed',
-          properties: {method: rpcMethod, tool: rpcTool, latency_ms, attempt, upstream: serverId},
+          properties: {method: rpcMethod, tool: rpcTool, latency_ms, attempt: attempts, upstream: serverId},
         })
       } else if (decision === 'block') {
         posthog.capture({
@@ -108,7 +72,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         posthog.capture({
           distinctId,
           event: 'request_retried',
-          properties: {method: rpcMethod, tool: rpcTool, attempt, reason, upstream: serverId},
+          properties: {method: rpcMethod, tool: rpcTool, attempt: attempts, reason, upstream: serverId},
         })
       } else if (decision === 'rewrite') {
         posthog.capture({
@@ -146,8 +110,6 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
     }
 
     // GET — SSE stream passthrough (MCP Streamable HTTP transport)
-    // Clients open a GET /sse stream BEFORE sending any JSON-RPC POST.
-    // Trying to JSON.parse an empty GET body is the source of the BLOCK error.
     if (req.method === 'GET') {
       const fwdHeaders: Record<string, string> = {}
       for (const [k, v] of Object.entries(req.headers)) {
@@ -164,20 +126,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           'Content-Type': ct,
           'Connection': 'keep-alive',
         })
-        const reader = sseRes.body?.getReader()
-        if (reader) {
-          try {
-            for (;;) {
-              const {done, value} = await reader.read()
-              if (done) break
-              res.write(value)
-            }
-          } finally {
-            res.end()
-          }
-        } else {
-          res.end()
-        }
+        await pipeStream(sseRes.body, res)
       } catch (err) {
         res.writeHead(502, {...SEC, 'Content-Type': 'application/json'})
         res.end(errorResponse(null, -32603, `Gateway: upstream unreachable — ${err instanceof Error ? err.message : String(err)}`))
@@ -224,12 +173,8 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         if (p && typeof p['name'] === 'string') rpcTool = p['name']
       }
 
-      // Request validation
-      const reqValidation = validateRequest(
-        parsedBody,
-        upstream.policies.max_request_size_kb,
-        rawBody.length,
-      )
+      // Validate request
+      const reqValidation = validateRequest(parsedBody, upstream.policies.max_request_size_kb, rawBody.length)
       if (reqValidation) {
         sendBlock(-32600, `Gateway: ${reqValidation.reason}`)
         return
@@ -241,7 +186,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
         return
       }
 
-      // Forward headers (strip Host, forward everything else)
+      // Build forward headers (strip Host, set content-type and accept)
       const forwardHeaders: Record<string, string> = {
         'content-type': 'application/json',
         'accept': 'application/json, text/event-stream',
@@ -252,35 +197,25 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       }
 
       // Forward to upstream with retry on timeout
-      const maxAttempts = upstream.retry + 1
-      let upstreamRes: Response | null = null
-      let lastError: unknown
-
-      for (attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          upstreamRes = await forwardToUpstream(upstream, forwardHeaders, rawBody, upstream.timeout_ms)
-          break
-        } catch (err) {
-          lastError = err
-          const isTimeout = err instanceof Error && err.name === 'TimeoutError'
-          if (!isTimeout || attempt >= maxAttempts) break
-
-          // Only retry idempotent MCP methods (reads, not mutations)
-          const isIdempotent = IDEMPOTENT_METHODS.has(rpcMethod)
-          if (!isIdempotent) break
-
-          emit('retry', `timeout on attempt ${attempt} — retrying in ${RETRY_DELAY_MS}ms`)
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
-        }
-      }
-
-      if (!upstreamRes) {
-        const isTimeout = lastError instanceof Error && lastError.name === 'TimeoutError'
+      let upstreamRes: Response
+      try {
+        upstreamRes = await forwardWithRetry({
+          upstream,
+          headers: forwardHeaders,
+          rawBody,
+          retryAllowed: IDEMPOTENT_METHODS.has(rpcMethod),
+          onRetry(event) {
+            emit('retry', `timeout on attempt ${event.attempt} — retrying in ${event.delayMs}ms`)
+            attempts = event.attempt + 1
+          },
+        })
+      } catch (err) {
+        const isTimeout = err instanceof Error && (err as Error).name === 'TimeoutError'
         sendBlock(
           isTimeout ? -32000 : -32603,
           isTimeout
-            ? `Gateway: upstream timed out after ${upstream.timeout_ms}ms (${maxAttempts} attempt(s))`
-            : `Gateway: upstream unreachable — ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+            ? `Gateway: upstream timed out after ${upstream.timeout_ms}ms (${upstream.retry + 1} attempt(s))`
+            : `Gateway: upstream unreachable — ${err instanceof Error ? err.message : String(err)}`,
         )
         return
       }
@@ -296,32 +231,17 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           'Content-Type': contentType,
           'Connection': 'keep-alive',
         })
-        const reader = upstreamRes.body?.getReader()
-        if (reader) {
-          try {
-            for (;;) {
-              const {done, value} = await reader.read()
-              if (done) break
-              res.write(value)
-            }
-          } finally {
-            res.end()
-          }
-        } else {
-          res.end()
-        }
+        await pipeStream(upstreamRes.body, res)
         emit('allow')
         return
       }
 
-      // Buffer JSON response
+      // Buffer and validate JSON response
       const responseText = await upstreamRes.text()
       let parsedResponse: unknown
       try {
         parsedResponse = JSON.parse(responseText)
       } catch {
-        // Upstream returned non-JSON (e.g. HTML error page) — wrap in a JSON-RPC error
-        // so agents always receive a parseable response from this gateway.
         sendBlock(-32603, `Gateway: upstream returned non-JSON response (${upstreamRes.status} ${contentType || 'unknown'})`)
         return
       }
