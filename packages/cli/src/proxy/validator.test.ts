@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest'
-import {validateRequest, validateResponse} from './validator.js'
+import {validateRequest} from '../protocol/validators/jsonrpc-validator.js'
+import {validateResponse} from '../protocol/validators/mcp-validator.js'
 
 describe('validateRequest', () => {
   const valid = {jsonrpc: '2.0', method: 'tools/list', id: 1}

@@ -1,22 +1,7 @@
-export interface JsonRpcRequest {
-  jsonrpc?: unknown
-  id?: string | number | null
-  method?: unknown
-  params?: unknown
-}
+import type {JsonRpcResponse} from '../protocol/jsonrpc.js'
 
-export interface JsonRpcError {
-  code: number
-  message: string
-  data?: unknown
-}
-
-export interface JsonRpcResponse {
-  jsonrpc: string
-  id?: string | number | null
-  result?: unknown
-  error?: JsonRpcError
-}
+// Gateway/application types. Protocol types live in src/protocol/.
+// These will migrate to src/reliability/ when that layer is introduced.
 
 export type PolicyDecision = 'allow' | 'block' | 'retry' | 'rewrite'
 

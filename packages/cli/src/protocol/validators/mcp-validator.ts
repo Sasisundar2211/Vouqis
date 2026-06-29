@@ -1,40 +1,5 @@
-import type {JsonRpcRequest, JsonRpcResponse, PolicyResult} from './types.js'
-
-const VALID_JSONRPC = '2.0'
-
-/** Validate an incoming JSON-RPC request. Returns a block result on failure. */
-export function validateRequest(body: unknown, maxSizeKb: number, rawBodyLen: number): PolicyResult | null {
-  if (rawBodyLen > maxSizeKb * 1024) {
-    return {
-      decision: 'block',
-      reason: `request body exceeds ${maxSizeKb} KB limit (got ${(rawBodyLen / 1024).toFixed(1)} KB)`,
-    }
-  }
-
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return {decision: 'block', reason: 'request body is not a JSON object'}
-  }
-
-  const r = body as JsonRpcRequest
-
-  if (r.jsonrpc !== VALID_JSONRPC) {
-    return {
-      decision: 'block',
-      reason: `jsonrpc must be "${VALID_JSONRPC}" — got ${JSON.stringify(r.jsonrpc)}`,
-    }
-  }
-
-  if (typeof r.method !== 'string' || r.method.trim() === '') {
-    return {decision: 'block', reason: 'method is missing or not a string'}
-  }
-
-  // id must be string | number | null (per JSON-RPC spec) — undefined is also acceptable (notification)
-  if (r.id !== undefined && r.id !== null && typeof r.id !== 'string' && typeof r.id !== 'number') {
-    return {decision: 'block', reason: `id must be string, number, or null — got ${typeof r.id}`}
-  }
-
-  return null // valid
-}
+import type {JsonRpcResponse} from '../jsonrpc.js'
+import type {PolicyResult} from '../../proxy/types.js'
 
 /** Validate an upstream MCP response. Returns a policy result describing what to do. */
 export function validateResponse(
@@ -84,11 +49,7 @@ export function validateResponse(
         ...r,
         result: {
           ...result,
-          content: (content as unknown[]).map((item) => {
-            if (!item || typeof item !== 'object') return {type: 'text', text: String(item ?? '')}
-            const obj = item as Record<string, unknown>
-            return obj['type'] ? obj : {...obj, type: 'text'}
-          }),
+          content: normalizeContent(content as unknown[]),
         },
       }
       return {decision: 'rewrite', reason: 'content item(s) missing type field — normalised', body: fixed}
@@ -96,4 +57,12 @@ export function validateResponse(
   }
 
   return null // valid
+}
+
+function normalizeContent(content: unknown[]): unknown[] {
+  return content.map((item) => {
+    if (!item || typeof item !== 'object') return {type: 'text', text: String(item ?? '')}
+    const obj = item as Record<string, unknown>
+    return obj['type'] ? obj : {...obj, type: 'text'}
+  })
 }

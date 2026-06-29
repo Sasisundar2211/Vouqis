@@ -1,9 +1,12 @@
 import * as http from 'node:http'
 import type {ProxyConfig, UpstreamConfig} from './config.js'
-import {validateRequest, validateResponse} from './validator.js'
+import {validateRequest} from '../protocol/validators/jsonrpc-validator.js'
+import {validateResponse} from '../protocol/validators/mcp-validator.js'
 import {buildRateLimiter, TokenBucket} from './ratelimit.js'
 import {AuditLogger} from './audit.js'
-import type {JsonRpcRequest, PolicyDecision} from './types.js'
+import type {JsonRpcRequest} from '../protocol/jsonrpc.js'
+import {IDEMPOTENT_METHODS} from '../protocol/mcp.js'
+import type {PolicyDecision} from './types.js'
 import {distinctId, posthog} from '../analytics.js'
 
 const RETRY_DELAY_MS = 300
@@ -135,6 +138,13 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
       return
     }
 
+    // Health check — responds without forwarding to upstream
+    if (req.method === 'GET' && req.url === '/health') {
+      res.writeHead(200, {...SEC, 'Content-Type': 'application/json'})
+      res.end(JSON.stringify({ok: true}))
+      return
+    }
+
     // GET — SSE stream passthrough (MCP Streamable HTTP transport)
     // Clients open a GET /sse stream BEFORE sending any JSON-RPC POST.
     // Trying to JSON.parse an empty GET body is the source of the BLOCK error.
@@ -256,7 +266,7 @@ export function createProxyServer(config: ProxyConfig, logger: AuditLogger): htt
           if (!isTimeout || attempt >= maxAttempts) break
 
           // Only retry idempotent MCP methods (reads, not mutations)
-          const isIdempotent = ['tools/list', 'tools/call', 'initialize', 'ping'].includes(rpcMethod)
+          const isIdempotent = IDEMPOTENT_METHODS.has(rpcMethod)
           if (!isIdempotent) break
 
           emit('retry', `timeout on attempt ${attempt} — retrying in ${RETRY_DELAY_MS}ms`)
