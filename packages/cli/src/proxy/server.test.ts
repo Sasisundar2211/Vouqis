@@ -3,7 +3,7 @@ import * as http from 'node:http'
 import type {AddressInfo} from 'node:net'
 import {createProxyServer, startServer} from './server.js'
 import type {ProxyConfig} from './config.js'
-import type {AuditLogger} from './audit.js'
+import type {ReliabilityLogger} from '../reliability/events.js'
 
 vi.mock('../analytics.js', () => ({
   distinctId: 'test-id',
@@ -37,7 +37,7 @@ function makeLogger() {
 async function spawnServer(upstreamOverrides: Record<string, unknown> = {}) {
   const config = defaultConfig(upstreamOverrides)
   const logger = makeLogger()
-  const server = createProxyServer(config, logger as unknown as AuditLogger)
+  const server = createProxyServer(config, logger as unknown as ReliabilityLogger)
   await startServer(server, config.listen)
   const {port} = server.address() as AddressInfo
   const baseUrl = `http://127.0.0.1:${port}`
@@ -156,6 +156,14 @@ describe('createProxyServer', () => {
     expect(res.statusCode).toBe(204)
     expect(res.headers['access-control-allow-origin']).toBe('*')
     expect(res.headers['access-control-allow-methods']).toMatch(/POST/)
+  })
+
+  it('GET /health → 200 with ok:true (no upstream call)', async () => {
+    const res = await httpReq({url: `${baseUrl}/health`, method: 'GET'})
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.ok).toBe(true)
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('DELETE → 405 method not allowed', async () => {

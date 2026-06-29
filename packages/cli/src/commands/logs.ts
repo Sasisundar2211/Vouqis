@@ -2,7 +2,7 @@ import {Command, Flags} from '@oclif/core'
 import * as fs from 'node:fs'
 import * as readline from 'node:readline'
 import chalk from 'chalk'
-import type {AuditEvent} from '../proxy/types.js'
+import type {ReliabilityEvent} from '../reliability/events.js'
 import {distinctId, posthog} from '../analytics.js'
 
 const SEP = chalk.hex('#475569')('─'.repeat(50))
@@ -127,7 +127,7 @@ export default class Logs extends Command {
     console.log('')
   }
 
-  private badge(decision: AuditEvent['decision']): string {
+  private badge(decision: ReliabilityEvent['decision']): string {
     switch (decision) {
       case 'block':   return chalk.red('✗ block  ')
       case 'retry':   return chalk.yellow('↺ retry  ')
@@ -136,14 +136,14 @@ export default class Logs extends Command {
     }
   }
 
-  private async readEvents(file: string): Promise<AuditEvent[]> {
-    const events: AuditEvent[] = []
+  private async readEvents(file: string): Promise<ReliabilityEvent[]> {
+    const events: ReliabilityEvent[] = []
     const rl = readline.createInterface({input: fs.createReadStream(file), crlfDelay: Infinity})
     for await (const line of rl) {
       const trimmed = line.trim()
       if (!trimmed) continue
       try {
-        events.push(JSON.parse(trimmed) as AuditEvent)
+        events.push(JSON.parse(trimmed) as ReliabilityEvent)
       } catch {
         // skip malformed lines
       }

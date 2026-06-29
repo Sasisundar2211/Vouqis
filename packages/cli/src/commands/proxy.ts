@@ -2,7 +2,7 @@ import {Args, Command, Flags} from '@oclif/core'
 import * as fs from 'node:fs'
 import chalk from 'chalk'
 import {loadConfigFile, inlineConfig} from '../proxy/config.js'
-import {AuditLogger} from '../proxy/audit.js'
+import {ReliabilityLogger} from '../reliability/events.js'
 import {createProxyServer, startServer} from '../proxy/server.js'
 import {distinctId, posthog} from '../analytics.js'
 
@@ -108,7 +108,7 @@ export default class Proxy extends Command {
     }
 
     const upstream = config.upstreams[0]
-    const logger = new AuditLogger(config.log_file)
+    const logger = new ReliabilityLogger(config.log_file)
     const server = createProxyServer(config, logger)
 
     try {

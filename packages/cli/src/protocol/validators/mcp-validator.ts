@@ -1,5 +1,5 @@
 import type {JsonRpcResponse} from '../jsonrpc.js'
-import type {PolicyResult} from '../../proxy/types.js'
+import type {PolicyResult} from '../../reliability/policy.js'
 
 /** Validate an upstream MCP response. Returns a policy result describing what to do. */
 export function validateResponse(

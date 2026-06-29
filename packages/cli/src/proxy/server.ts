@@ -3,10 +3,10 @@ import type {ProxyConfig, UpstreamConfig} from './config.js'
 import {validateRequest} from '../protocol/validators/jsonrpc-validator.js'
 import {validateResponse} from '../protocol/validators/mcp-validator.js'
 import {buildRateLimiter, TokenBucket} from './ratelimit.js'
-import {AuditLogger} from './audit.js'
+import {ReliabilityLogger} from '../reliability/events.js'
 import type {JsonRpcRequest} from '../protocol/jsonrpc.js'
 import {IDEMPOTENT_METHODS} from '../protocol/mcp.js'
-import type {PolicyDecision} from './types.js'
+import type {PolicyDecision} from '../reliability/policy.js'
 import {distinctId, posthog} from '../analytics.js'
 import {forwardWithRetry} from './retry.js'
 import {forwardGetToUpstream, upstreamResponseHeaders} from './forwarder.js'
@@ -30,7 +30,7 @@ function errorResponse(id: string | number | null | undefined, code: number, mes
   return JSON.stringify({jsonrpc: '2.0', id: id ?? null, error: {code, message}})
 }
 
-export function createProxyServer(config: ProxyConfig, logger: AuditLogger): http.Server {
+export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger): http.Server {
   const upstream = config.upstreams[0] // MVP: single upstream
   const bucket: TokenBucket | null = buildRateLimiter(upstream.rate_limit_rps)
   const serverId = new URL(upstream.url).hostname

@@ -1,5 +1,5 @@
 import type {JsonRpcRequest} from '../jsonrpc.js'
-import type {PolicyResult} from '../../proxy/types.js'
+import type {PolicyResult} from '../../reliability/policy.js'
 
 const VALID_JSONRPC = '2.0'
 

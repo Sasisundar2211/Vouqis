@@ -1,5 +1,5 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest'
-import type {AuditEvent} from './types.js'
+import type {ReliabilityEvent} from './events.js'
 
 const mockWrite = vi.fn()
 const mockEnd = vi.fn()
@@ -18,7 +18,7 @@ vi.mock('chalk', () => {
   return {default: proxy}
 })
 
-function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
+function makeEvent(overrides: Partial<ReliabilityEvent> = {}): ReliabilityEvent {
   return {
     timestamp: '2026-01-01T12:00:00.000Z',
     upstream: 'https://example.com',
@@ -33,30 +33,30 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   }
 }
 
-describe('AuditLogger', () => {
+describe('ReliabilityLogger', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('writes a JSON line for each logged event', async () => {
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     const event = makeEvent()
     logger.log(event)
     expect(mockWrite).toHaveBeenCalledWith(JSON.stringify(event) + '\n')
   })
 
   it('calls stream.end() when closed', async () => {
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     logger.close()
     expect(mockEnd).toHaveBeenCalled()
   })
 
   it('writes to stderr for each event', async () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     logger.log(makeEvent())
     expect(stderrSpy).toHaveBeenCalledOnce()
     stderrSpy.mockRestore()
@@ -68,8 +68,8 @@ describe('AuditLogger', () => {
       output += String(s)
       return true
     })
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     logger.log(makeEvent({tool: 'my_special_tool'}))
     expect(output).toContain('my_special_tool')
     stderrSpy.mockRestore()
@@ -81,16 +81,16 @@ describe('AuditLogger', () => {
       output += String(s)
       return true
     })
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     logger.log(makeEvent({decision: 'block', reason: 'null result detected'}))
     expect(output).toContain('null result detected')
     stderrSpy.mockRestore()
   })
 
   it('logs multiple events independently', async () => {
-    const {AuditLogger} = await import('./audit.js')
-    const logger = new AuditLogger('./test.log')
+    const {ReliabilityLogger} = await import('./events.js')
+    const logger = new ReliabilityLogger('./test.log')
     const e1 = makeEvent({tool: 'tool_a'})
     const e2 = makeEvent({tool: 'tool_b', decision: 'block'})
     logger.log(e1)
