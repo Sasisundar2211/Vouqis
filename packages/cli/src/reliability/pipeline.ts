@@ -30,7 +30,7 @@ export interface ReliabilityResult {
 export function evaluateReliability(ctx: EventContext, outcome: EvaluationOutcome): ReliabilityResult {
   const failure = deriveFailure(outcome)
   const policy = evaluatePolicy(outcome)
-  const event: ReliabilityEvent = {...ctx, decision: policy.decision, reason: policy.reason}
+  const event: ReliabilityEvent = {...ctx, decision: policy.decision, reason: policy.reason, failureClass: failure?.class}
   return {failure, policy, event}
 }
 

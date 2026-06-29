@@ -88,6 +88,74 @@ describe('ReliabilityLogger', () => {
     stderrSpy.mockRestore()
   })
 
+  // Receipt rendering for block decisions
+  describe('failure receipt', () => {
+    it('renders FAILURE header for block decisions', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', reason: 'null result detected'}))
+      expect(output).toContain('FAILURE')
+      stderrSpy.mockRestore()
+    })
+
+    it('includes the server_id in the receipt', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', server_id: 'api.github.com'}))
+      expect(output).toContain('api.github.com')
+      stderrSpy.mockRestore()
+    })
+
+    it('includes the failureClass in the receipt', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', reason: 'tools/call result is null', failureClass: 'schema_violation'}))
+      expect(output).toContain('schema_violation')
+      stderrSpy.mockRestore()
+    })
+
+    it('includes the requestId in the receipt', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', requestId: 99}))
+      expect(output).toContain('99')
+      stderrSpy.mockRestore()
+    })
+
+    it('does not render FAILURE for allow decisions', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'allow'}))
+      expect(output).not.toContain('FAILURE')
+      stderrSpy.mockRestore()
+    })
+  })
+
   it('logs multiple events independently', async () => {
     const {ReliabilityLogger} = await import('./events.js')
     const logger = new ReliabilityLogger('./test.log')

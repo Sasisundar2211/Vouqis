@@ -65,6 +65,22 @@ describe('evaluateReliability', () => {
     })
   })
 
+  it('sets failureClass on the event for classified failures', () => {
+    const result = evaluateReliability(ctx, {decision: 'block', reason: 'jsonrpc must be "2.0"'})
+    expect(result.event.failureClass).toBe('invalid_jsonrpc')
+  })
+
+  it('sets failureClass from transport error', () => {
+    const err = Object.assign(new Error('timed out'), {name: 'TimeoutError'})
+    const result = evaluateReliability(ctx, {decision: 'block', error: err})
+    expect(result.event.failureClass).toBe('timeout')
+  })
+
+  it('leaves failureClass undefined for allow', () => {
+    const result = evaluateReliability(ctx, {decision: 'allow'})
+    expect(result.event.failureClass).toBeUndefined()
+  })
+
   it('policy decision matches outcome decision', () => {
     for (const decision of ['allow', 'block', 'retry', 'rewrite'] as const) {
       expect(evaluateReliability(ctx, {decision}).policy.decision).toBe(decision)
