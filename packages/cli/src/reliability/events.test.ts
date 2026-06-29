@@ -142,6 +142,33 @@ describe('ReliabilityLogger', () => {
       stderrSpy.mockRestore()
     })
 
+    it('includes Inspect Next guidance when failureClass is set', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', failureClass: 'timeout'}))
+      expect(output).toContain('Inspect Next')
+      expect(output).toContain('timeout configuration')
+      stderrSpy.mockRestore()
+    })
+
+    it('omits Inspect Next when failureClass is absent', async () => {
+      let output = ''
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {
+        output += String(s)
+        return true
+      })
+      const {ReliabilityLogger} = await import('./events.js')
+      const logger = new ReliabilityLogger('./test.log')
+      logger.log(makeEvent({decision: 'block', reason: 'generic error'}))
+      expect(output).not.toContain('Inspect Next')
+      stderrSpy.mockRestore()
+    })
+
     it('does not render FAILURE for allow decisions', async () => {
       let output = ''
       const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((s) => {

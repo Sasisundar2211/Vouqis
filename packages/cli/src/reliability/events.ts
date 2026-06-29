@@ -3,6 +3,16 @@ import chalk from 'chalk'
 import type {PolicyDecision} from './policy.js'
 import type {FailureClass} from './failure.js'
 
+const INSPECT_NEXT: Record<FailureClass, string> = {
+  invalid_json:      'Inspect the raw response body for malformed or truncated JSON.',
+  invalid_jsonrpc:   'Verify the JSON-RPC envelope — jsonrpc version, id, and method fields.',
+  schema_violation:  'Validate the tool response against the declared MCP schema.',
+  timeout:           'Check upstream latency and consider raising the timeout configuration.',
+  transport_error:   'Verify network connectivity and upstream server availability.',
+  upstream_error:    'Inspect the upstream HTTP status and response body for details.',
+  unknown:           'Capture the full request and response for manual inspection.',
+}
+
 export interface ReliabilityEvent {
   timestamp: string
   upstream: string
@@ -65,6 +75,9 @@ export class ReliabilityLogger {
       if (event.reason) {
         const short = event.reason.length > 80 ? event.reason.slice(0, 79) + '…' : event.reason
         lines.push(`  ${lbl('Reason')}${chalk.dim(short)}`)
+      }
+      if (event.failureClass) {
+        lines.push(`  ${lbl('Inspect Next')}${chalk.dim(INSPECT_NEXT[event.failureClass])}`)
       }
     }
 
