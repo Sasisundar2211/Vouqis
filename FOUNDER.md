@@ -8,6 +8,12 @@ It is the constitution of the company, not a description of the current product.
 
 ---
 
+## Operating Principle
+
+**Build certainty before building software. Build software before building platforms. Build platforms only after repeated evidence proves they are needed.**
+
+---
+
 ## The Prime Rule
 
 **Never solve tomorrow's workflow before observing today's workflow.**
@@ -304,3 +310,7 @@ Failed hypotheses stay in the file. They are the most valuable entries — they 
 5. The Anti-Roadmap is part of the roadmap. Ideas compete on evidence thresholds, not elegance.
 6. **Research tools optimize for learning. Product features optimize for user value. Never confuse the two.** A research instrument that never ships is a success if it accelerated learning. A product feature that never gets used is a failure regardless of how well it was built.
 7. **Evidence is append-only. Observations never change; interpretations may accumulate.** A document that allows rewriting observations is a document that allows rewriting history.
+
+---
+
+*Reality has veto power over every decision in this document.*
