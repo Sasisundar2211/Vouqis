@@ -30,7 +30,8 @@
     "build": "tsup",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepack": "npm run build && npx oclif manifest"
+    "prepack": "npm run build && npx oclif manifest",
+    "prototype": "npx tsx src/prototype/tui.ts"
   },
   "dependencies": {
     "@oclif/core": "^4",
