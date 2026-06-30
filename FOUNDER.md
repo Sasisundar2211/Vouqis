@@ -245,6 +245,56 @@ If any of these cannot be answered, the evidence threshold has not been met, reg
 
 ---
 
+## Document Triggers
+
+Every document has one trigger — the condition that makes updating it correct. Update a document because reality changed, not because you had a new idea.
+
+| Document | Update When |
+|---|---|
+| `README.md` | The user-facing product changes. |
+| `PRODUCT.md` | The ICP, positioning, or messaging changes. |
+| `CONTEXT.md` | An architectural invariant changes. |
+| `CONTRIBUTING.md` | The engineering standards change. |
+| `FOUNDER.md` | The decision framework fails, or a company-building lesson proves it incomplete. |
+| `EVIDENCE.md` | Every interview, experiment, or production observation — append only. |
+
+`FOUNDER.md` is not a place for new ideas. It is a record of lessons the framework did not originally contain. If it changes, something surprised you.
+
+---
+
+## Evidence is Append-Only
+
+`EVIDENCE.md` is treated like git history. Observations are never rewritten or removed. Interpretations may be revised as evidence accumulates — but only by appending a new entry, never by editing an old one.
+
+The distinction matters: the interpretation of what an engineer did may change as more sessions accumulate. What the engineer actually did does not.
+
+A hypothesis entry looks like this:
+
+```
+## H2 — Receipt Effectiveness
+
+---
+
+2026-07-01  Interview #1
+Observation:     Engineer ignored the receipt and opened upstream logs directly.
+Interpretation:  Insufficient evidence. Possible: receipt not visible enough, or
+                 engineer habit overrides tooling. Needs more sessions.
+
+---
+
+2026-07-03  Interview #2
+Observation:     Engineer read "Inspect Next" and immediately checked the schema.
+Interpretation:  Supports H2. One independent confirmation.
+
+---
+
+Current Status:  1 / 3 confirmations. Gate: CLOSED.
+```
+
+Failed hypotheses stay in the file. They are the most valuable entries — they prevent rebuilding what was already invalidated.
+
+---
+
 ## Core Principles
 
 1. **Never solve tomorrow's workflow before observing today's workflow.**
@@ -253,3 +303,4 @@ If any of these cannot be answered, the evidence threshold has not been met, reg
 4. Every feature must reduce TFCA without reducing Action Accuracy. Vouqis sells confidence.
 5. The Anti-Roadmap is part of the roadmap. Ideas compete on evidence thresholds, not elegance.
 6. **Research tools optimize for learning. Product features optimize for user value. Never confuse the two.** A research instrument that never ships is a success if it accelerated learning. A product feature that never gets used is a failure regardless of how well it was built.
+7. **Evidence is append-only. Observations never change; interpretations may accumulate.** A document that allows rewriting observations is a document that allows rewriting history.
