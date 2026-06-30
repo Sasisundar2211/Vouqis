@@ -37,6 +37,46 @@ The reversibility test: can this be removed in one commit with zero user migrati
 
 ---
 
+## Operating Loop
+
+The complete product cycle. Every pass through the loop produces either evidence or a kill signal — never just elapsed time.
+
+```
+Problem
+  ↓
+/grill-with-docs        sharpen the idea against the codebase
+  ↓
+Prototype               answer questions that can't be settled in conversation
+  ↓
+══════════════════════════════════
+VALIDATION GATE
+  Exit condition: 3 independent confirmations
+  Kill condition: 1 strong disconfirmation (unvalidated features only)
+══════════════════════════════════
+  │                     │
+  ▼                     ▼
+Validated           Invalidated
+  │                     │
+  ▼                     ▼
+EVIDENCE.md         Revise prototype
+  ↓                 or kill assumption
+/grill-with-docs
+  ↓
+/to-prd
+  ↓
+/to-issues
+  ↓
+/implement (fresh session per issue)
+  ↓
+Release
+  ↓
+Observation         → feeds back into the next Problem
+```
+
+**EVIDENCE.md is the bridge artifact.** It lives between the Validation Gate and the next `/grill-with-docs`. It is not a PRD, not interview notes, and not a transcript. It is the distilled answer to: *what did we observe, independently, and what does it mean?* Every `/grill-with-docs` after the first takes EVIDENCE.md as input so that design discussions are grounded in observation, not belief.
+
+---
+
 ## Decision Pipeline
 
 Ideas do not go directly to evidence. Assumptions are cheaper to invalidate than products.
