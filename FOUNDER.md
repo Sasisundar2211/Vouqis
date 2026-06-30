@@ -20,15 +20,18 @@ This rule explains every feature that does not exist yet: no dashboard, no cloud
 
 Every proposed change is classified before it is evaluated. Classification determines the evidence bar.
 
-| Decision Type | Evidence Required | Reversible? | Example |
-|---|---|---|---|
-| Architecture | First principles | Yes | Protocol layer, reliability layer, failure classifier |
-| Reversible UX / Diagnostics | First principles + founder judgment | Yes | Failure Receipt, INSPECT_NEXT guidance |
-| Product Capability | 3 independent confirmations | Usually | (none yet) |
-| Workflow Feature | Repeated observation of the same manual step | Increasingly | Replay |
-| Platform Feature | Strong cross-company evidence + rollback plan defined | No | Cloud, storage, dashboards, public API |
+| Decision Type | Primary User | Evidence Required | Reversible? | Example |
+|---|---|---|---|---|
+| Research Instrument | Founder | Founder judgment | Yes — delete when done | Interview prototype, assumption tests |
+| Architecture | Engineers (indirectly) | First principles | Yes | Protocol layer, reliability layer, failure classifier |
+| Reversible UX / Diagnostics | Engineer | First principles + founder judgment | Yes | Failure Receipt, INSPECT_NEXT guidance |
+| Product Capability | Engineer | 3 independent confirmations | Usually | (none yet) |
+| Workflow Feature | Engineer | Repeated observation of the same manual step | Increasingly | Replay |
+| Platform Feature | Organization | Strong cross-company evidence + rollback plan defined | No | Cloud, storage, dashboards, public API |
 
 **If you cannot classify a proposed feature, it belongs on the Anti-Roadmap until you can.**
+
+Research Instruments are the only category exempt from evidence requirements — they exist to generate evidence. They have no users other than the founder, no stability guarantees, and no backwards compatibility. Deleting a Research Instrument after it has answered its question is a healthy outcome, not a failure. Never promote a Research Instrument to a Product Capability without going through the full assumption-test pipeline first.
 
 The reversibility test: can this be removed in one commit with zero user migration cost? If yes, it is architectural. If teams build workflows around it, it is not.
 
@@ -209,3 +212,4 @@ If any of these cannot be answered, the evidence threshold has not been met, reg
 3. Irreversible decisions require stronger evidence and a defined rollback protocol.
 4. Every feature must reduce TFCA without reducing Action Accuracy. Vouqis sells confidence.
 5. The Anti-Roadmap is part of the roadmap. Ideas compete on evidence thresholds, not elegance.
+6. **Research tools optimize for learning. Product features optimize for user value. Never confuse the two.** A research instrument that never ships is a success if it accelerated learning. A product feature that never gets used is a failure regardless of how well it was built.
