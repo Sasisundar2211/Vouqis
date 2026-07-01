@@ -1,9 +1,41 @@
+# Dependencies
 node_modules/
+
+# Builds
 dist/
-.env
-.env.local
+build/
+out/
+coverage/
+.nyc_output/
+
+# Next.js
+.next/
+
+# Runtime
 *.log
+vouqis-audit.log
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+
+# Temporary / scratch
+tmp/
+scratch/
+
+# Brand assets (binary, not source)
+"Vouqis Brand Package /"
+
 # Claude Code local/session state (don't commit)
 .claude/settings.local.json
 .claude/sessions/
@@ -11,9 +43,11 @@ dist/
 .claude/memory/
 .claude/agent-memory/
 CLAUDE.local.md
+
 # gstack skill library (user-global, not project-specific)
 .claude/skills/*
 !.claude/skills/deploy/
+
 # gstack agent files (not project-specific)
 .claude/agents/ArchitectureReviewer.md
 .claude/agents/CodeReviewer.md
@@ -23,30 +57,48 @@ CLAUDE.local.md
 .claude/agents/TestWriter.md
 .claude/AGENTS.md
 .claude/Claude.md
-.vercel
+
+# gstack runtime
 .gstack/
-scripts/
-rzp-key.csv
-VOUQIS_PRD.md
-TODOS.md
-Voquis_banner.png
-*.db
-vouqis-report.json
-generate_paradigm_pdf.py
-*.pdf
-VOUQIS-TARGETING.md
-agentdb.rvf
-agentdb.rvf.lock
-generate_source_proof.py
+.vercel
+
 # Per-package Claude Code local state (never commit)
 packages/cli/.claude/
 packages/vouqis-dashboard/.claude/
-# Local research and customer discovery artifacts
-.impeccable/
-graphify-out/
-PRODUCT.md
+
+# Agent/vector databases
+*.db
+agentdb.rvf
+agentdb.rvf.lock
+skills-lock.json
+
+# Private founder journal — commit FOUNDER.md and EVIDENCE.md instead
+FOUNDER_NOTES.md
+
+# Legacy research location — superseded by research/ at root
+vouqis/
+
+# Generated artifacts
+vouqis-report.json
+oclif.manifest.json
+
+# One-off scripts
+scripts/
+generate_paradigm_pdf.py
+generate_source_proof.py
+*.pdf
+rzp-key.csv
+
+# Legacy ignores
+TODOS.md
+Voquis_banner.png
+VOUQIS-TARGETING.md
+VOUQIS_PRD.md
+Vouqis-Evidence-Case.md
 linkedin-30-prospects.md
 notion-customer-truths.md
 prospect-list.md
 posthog-setup-report.md
-CLAUDE.md
+config/
+.impeccable/
+graphify-out/
