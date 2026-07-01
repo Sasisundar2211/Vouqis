@@ -12,6 +12,8 @@ export interface EventContext {
   requestId?: string | number | null
   attempt: number
   latency_ms: number
+  http_method?: string
+  http_path?: string
 }
 
 export interface EvaluationOutcome {

@@ -25,6 +25,8 @@ export interface ReliabilityEvent {
   reason?: string
   attempt: number
   failureClass?: FailureClass
+  http_method?: string
+  http_path?: string
 }
 
 export class ReliabilityLogger {
@@ -68,6 +70,10 @@ export class ReliabilityLogger {
 
     lines.push(`  ${lbl('Server')}${val(event.server_id)}`)
     if (event.tool) lines.push(`  ${lbl('Tool')}${val(event.tool)}`)
+    if (event.method === 'unknown' && event.http_method) {
+      lines.push(`  ${lbl('HTTP Method')}${val(event.http_method)}`)
+      if (event.http_path) lines.push(`  ${lbl('Path')}${val(event.http_path)}`)
+    }
 
     if (event.failureClass || event.reason) {
       lines.push('')

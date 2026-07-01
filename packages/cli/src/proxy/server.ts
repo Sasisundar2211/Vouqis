@@ -52,6 +52,8 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
         requestId: rpcId,
         attempt: attempts,
         latency_ms: Date.now() - start,
+        http_method: req.method ?? undefined,
+        http_path: req.url ?? undefined,
       }
       const {event, policy} = evaluateReliability(ctx, outcome)
       logger.log(event)
@@ -146,7 +148,7 @@ export function createProxyServer(config: ProxyConfig, logger: ReliabilityLogger
 
       // Empty body check
       if (rawBody.length === 0) {
-        sendBlock(-32700, 'Gateway: POST body is empty — expected JSON-RPC request')
+        sendBlock(-32700, 'POST body is empty; expected a JSON-RPC request.')
         return
       }
 

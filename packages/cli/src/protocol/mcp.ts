@@ -8,7 +8,8 @@ export const MCP_METHODS = {
   PING:        'ping',
 } as const
 
-// Methods that are safe to retry on timeout — idempotent per MCP spec.
+// Vouqis retry policy: methods treated as retryable on timeout.
+// tools/call is included by policy, not because MCP guarantees idempotency.
 export const IDEMPOTENT_METHODS = new Set<string>([
   MCP_METHODS.TOOLS_LIST,
   MCP_METHODS.TOOLS_CALL,
