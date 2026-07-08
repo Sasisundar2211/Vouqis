@@ -1,3 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
 # Dependencies
 node_modules/
 
@@ -62,9 +71,23 @@ CLAUDE.local.md
 .gstack/
 .vercel
 
+# AI tool runtime state (not project code)
+.claude-flow/
+.understand-anything/
+.agents/
+
+# Company-internal docs — keep in vouqis-company/ repo instead
+research/
+FOUNDER.md
+FOUNDER_NOTES.md
+EVIDENCE.md
+CONTEXT.md
+PRIVACY.md
+
 # Per-package Claude Code local state (never commit)
 packages/cli/.claude/
 packages/vouqis-dashboard/.claude/
+packages/verify/.claude/
 
 # Agent/vector databases
 *.db
@@ -102,3 +125,4 @@ posthog-setup-report.md
 config/
 .impeccable/
 graphify-out/
+.env.local

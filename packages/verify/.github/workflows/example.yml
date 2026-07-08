@@ -1,0 +1,22 @@
+name: AI Change Verification
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write   # required to post PR comments
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # full history needed for git diff against base branch
+
+      - name: Verify AI changes
+        uses: vouqis/vouqis-verify@v0.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # config-path: vouqis.yml   # default; override if yours lives elsewhere

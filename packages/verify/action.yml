@@ -1,0 +1,40 @@
+name: Vouqis Verify
+description: Verify every AI change before it reaches production.
+author: Vouqis
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  github-token:
+    description: GitHub token for posting PR comments
+    required: true
+  config-path:
+    description: Path to vouqis.yml (relative to repo root)
+    required: false
+    default: vouqis.yml
+  python-version:
+    description: Python version to use
+    required: false
+    default: "3.12"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install Vouqis Verify
+      shell: bash
+      run: pip install vouqis-verify --quiet
+
+    - name: Run Vouqis Verify
+      shell: bash
+      run: vouqis verify --config "${{ inputs.config-path }}"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
