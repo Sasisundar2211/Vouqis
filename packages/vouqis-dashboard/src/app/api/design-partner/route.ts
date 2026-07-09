@@ -1,3 +1,4 @@
+import { google } from 'googleapis'
 import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
 
@@ -15,18 +16,24 @@ type ApplicationBody = {
   why_now?: unknown
 }
 
-async function saveToAirtable(fields: Record<string, string>): Promise<void> {
-  const token = process.env.AIRTABLE_TOKEN
-  const baseId = process.env.AIRTABLE_BASE_ID
-  if (!token || !baseId) return
+async function appendToSheet(row: string[]): Promise<void> {
+  const accountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  const sheetId = process.env.GOOGLE_SHEET_ID
+  if (!accountEmail || !privateKey || !sheetId) return
 
-  await fetch(`https://api.airtable.com/v0/${baseId}/Applications`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ fields }),
+  const auth = new google.auth.JWT({
+    email: accountEmail,
+    key: privateKey,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
+
+  const sheets = google.sheets({ version: 'v4', auth })
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId,
+    range: 'Sheet1!A:J',
+    valueInputOption: 'RAW',
+    requestBody: { values: [row] },
   })
 }
 
@@ -49,19 +56,19 @@ export async function POST(request: Request): Promise<Response> {
 
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 
-  // Save to Airtable (non-blocking — email still sends even if Airtable fails)
-  await saveToAirtable({
-    Name:             str(name),
-    Email:            str(email),
-    Company:          str(company),
-    Role:             str(role),
-    'Team Size':      str(team_size),
-    'AI Systems':     str(ai_systems),
-    'Failure Types':  str(failure_types),
-    'Current Approach': str(current_approach),
-    'Why Now':        str(why_now),
-    'Submitted At':   new Date().toISOString(),
-  }).catch(() => {})
+  // Append to Google Sheet (non-blocking — email still sends even if Sheet fails)
+  await appendToSheet([
+    str(name),
+    str(email),
+    str(company),
+    str(role),
+    str(team_size),
+    str(ai_systems),
+    str(failure_types),
+    str(current_approach),
+    str(why_now),
+    new Date().toISOString(),
+  ]).catch(() => {})
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
