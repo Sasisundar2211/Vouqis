@@ -9,7 +9,7 @@ type ApplicationBody = {
   company?: unknown
   role?: unknown
   team_size?: unknown
-  mcp_servers?: unknown
+  ai_systems?: unknown
   failure_types?: unknown
   current_approach?: unknown
   why_now?: unknown
@@ -38,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { name, email, company, role, team_size, mcp_servers, failure_types, current_approach, why_now } = body
+  const { name, email, company, role, team_size, ai_systems, failure_types, current_approach, why_now } = body
 
   if (typeof email !== 'string' || !email.includes('@')) {
     return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
@@ -56,7 +56,7 @@ export async function POST(request: Request): Promise<Response> {
     Company:          str(company),
     Role:             str(role),
     'Team Size':      str(team_size),
-    'MCP Servers':    str(mcp_servers),
+    'AI Systems':     str(ai_systems),
     'Failure Types':  str(failure_types),
     'Current Approach': str(current_approach),
     'Why Now':        str(why_now),
@@ -71,14 +71,14 @@ export async function POST(request: Request): Promise<Response> {
   const resend = new Resend(apiKey)
 
   const text = [
-    'New Design Partner Application',
+    'New Early Access Application',
     '',
     `Name:              ${name}`,
     `Email:             ${email}`,
     `Company:           ${company ?? '—'}`,
     `Role:              ${role ?? '—'}`,
     `Team size:         ${team_size ?? '—'}`,
-    `MCP servers:       ${mcp_servers ?? '—'}`,
+    `AI systems:        ${ai_systems ?? '—'}`,
     `Failure types:     ${failure_types ?? '—'}`,
     `Current approach:  ${current_approach ?? '—'}`,
     `Why now:           ${why_now ?? '—'}`,
@@ -87,7 +87,7 @@ export async function POST(request: Request): Promise<Response> {
   const { error } = await resend.emails.send({
     from: 'Vouqis <onboarding@resend.dev>',
     to: [NOTIFY_EMAIL],
-    subject: `Design partner: ${name} — ${company ?? email}`,
+    subject: `Early access: ${name} — ${company ?? email}`,
     text,
   })
 
