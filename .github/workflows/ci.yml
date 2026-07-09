@@ -26,12 +26,16 @@ jobs:
   dashboard:
     name: dashboard (Node.js)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vouqis-dashboard
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: packages/vouqis-dashboard/package-lock.json
       - run: npm ci
       - run: npm audit --audit-level=high --omit=dev
-      - run: npm run build --workspace=packages/vouqis-dashboard
+      - run: npm run build

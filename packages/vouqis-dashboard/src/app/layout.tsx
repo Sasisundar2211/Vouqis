@@ -27,17 +27,17 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://vouqis.tech'),
-  title: 'Vouqis — MCP Reliability Gateway',
+  title: 'Vouqis — AI Change Verification',
   description:
-    'Vouqis catches silent MCP failures — null results, schema drift, timeouts dressed as success — before they ever reach your AI agent.',
+    'Vouqis runs your evals on every pull request and posts a clear verdict — BLOCK, WARN, or SAFE — before your team merges AI changes.',
   keywords: [
-    'MCP', 'Model Context Protocol', 'MCP reliability', 'MCP gateway',
-    'MCP proxy', 'AI agents', 'agent reliability', 'silent failures',
-    'MCP monitoring', 'AI infrastructure',
+    'AI evaluation', 'pull request', 'LLM testing', 'eval CI',
+    'AI change verification', 'prompt testing', 'GitHub Action',
+    'AI agents', 'eval automation', 'merge verification',
   ],
   openGraph: {
-    title: 'Vouqis — MCP Reliability Gateway',
-    description: 'Catch silent MCP failures before your AI agent acts on them.',
+    title: 'Vouqis — AI Change Verification',
+    description: 'Eval evidence on every AI pull request. Block, warn, or approve before you merge.',
     type: 'website',
     url: 'https://vouqis.tech',
   },
@@ -167,7 +167,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   whiteSpace: 'nowrap',
                 }}
               >
-                Join Design Partners →
+                Get early access →
               </a>
             </div>
           </div>

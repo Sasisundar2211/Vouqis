@@ -13,7 +13,7 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   function handleClick() {
-    navigator.clipboard?.writeText(text ?? 'npm i -g @vouqis/cli').catch(() => {})
+    navigator.clipboard?.writeText(text ?? 'pip install vouqis-verify').catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }
@@ -69,7 +69,7 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
       }}
     >
       <span style={{ color: '#ED4B2A' }}>$</span>
-      <span>npm i -g @vouqis/cli</span>
+      <span>pip install vouqis-verify</span>
       <span
         style={{
           display: 'inline-flex',

@@ -10,18 +10,22 @@ type Line = {
 }
 
 const LINES: Line[] = [
-  { text: '$ vouqis proxy --upstream http://127.0.0.1:3010', color: '#E9E3D5', weight: '500', style: 'normal' },
-  { text: '→ gateway listening on :4444   ·   upstream healthy', color: '#69B98D', weight: '400', style: 'normal' },
+  { text: '$ vouqis verify --config vouqis.yml', color: '#E9E3D5', weight: '500', style: 'normal' },
+  { text: '→ baseline: origin/main', color: '#69B98D', weight: '400', style: 'normal' },
+  { text: '→ changed: 7 files across 3 ai_paths', color: '#69B98D', weight: '400', style: 'normal' },
   { text: ' ', color: '#8C8473', weight: '400', style: 'normal' },
-  { text: '[12:04:01]  tools/call  query_orders  args {"id":"ord_88134"}', color: '#C9C2B2', weight: '400', style: 'normal' },
-  { text: '            request valid · jsonrpc 2.0 · forwarded', color: '#8C8473', weight: '400', style: 'normal' },
-  { text: '[12:04:01]  ← 200 OK  ·  142 ms', color: '#69B98D', weight: '400', style: 'normal' },
-  { text: '            result: null', color: '#FF6A4D', weight: '500', style: 'normal' },
+  { text: '  prompts/          4 files   ████████', color: '#C9C2B2', weight: '400', style: 'normal' },
+  { text: '  evals/            2 files   ████', color: '#C9C2B2', weight: '400', style: 'normal' },
+  { text: '  config/           1 file    ██', color: '#C9C2B2', weight: '400', style: 'normal' },
   { text: ' ', color: '#8C8473', weight: '400', style: 'normal' },
-  { text: '✕  SILENT FAILURE   NULL_RESULT', color: '#FF6A4D', weight: '600', style: 'normal' },
-  { text: '   null result on a success envelope — blocked before the agent', color: '#FF6A4D', weight: '400', style: 'normal' },
+  { text: '→ running: python evals/run.py', color: '#8C8473', weight: '400', style: 'normal' },
+  { text: '  exit 0  ·  score: 0.71  ·  1240 ms', color: '#FF6A4D', weight: '500', style: 'normal' },
   { text: ' ', color: '#8C8473', weight: '400', style: 'normal' },
-  { text: '// without vouqis, the agent answers: "No orders found."', color: '#6E6657', weight: '400', style: 'italic' },
+  { text: '✕  BLOCK MERGE   (High confidence)', color: '#FF6A4D', weight: '600', style: 'normal' },
+  { text: '   eval score 0.71 < threshold 0.80', color: '#FF6A4D', weight: '400', style: 'normal' },
+  { text: ' ', color: '#8C8473', weight: '400', style: 'normal' },
+  { text: '→ posting report to PR #47...  done', color: '#69B98D', weight: '400', style: 'normal' },
+  { text: '// without vouqis: this PR would have merged without eval evidence', color: '#6E6657', weight: '400', style: 'italic' },
 ]
 
 export function TerminalDemo() {
@@ -45,7 +49,7 @@ export function TerminalDemo() {
         if (intervalRef.current) clearInterval(intervalRef.current)
         setRunning(false)
       }
-    }, 460)
+    }, 420)
   }
 
   useEffect(() => {
@@ -109,7 +113,7 @@ export function TerminalDemo() {
               letterSpacing: '0.04em',
             }}
           >
-            vouqis — proxy
+            vouqis — verify
           </span>
         </div>
 
@@ -168,11 +172,11 @@ export function TerminalDemo() {
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <span>
             <span style={{ color: '#FF6A4D' }}>●</span>
-            <span style={{ color: '#6E6657', marginLeft: 8 }}>without vouqis: agent answers silently with bad data</span>
+            <span style={{ color: '#6E6657', marginLeft: 8 }}>without vouqis: PR merged without eval evidence</span>
           </span>
           <span>
             <span style={{ color: '#69B98D' }}>●</span>
-            <span style={{ color: '#6E6657', marginLeft: 8 }}>with vouqis: failure classified and blocked</span>
+            <span style={{ color: '#6E6657', marginLeft: 8 }}>with vouqis: verdict posted to PR before merge</span>
           </span>
         </div>
         <button
