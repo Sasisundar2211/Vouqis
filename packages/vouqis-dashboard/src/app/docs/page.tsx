@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Docs — Vouqis',
-  description: 'Vouqis documentation: installation, quick start, failure classes, CLI reference, and telemetry.',
+  description: 'Vouqis Verify documentation: installation, quick start, verdicts, CLI reference, and configuration.',
 }
 
 const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
@@ -11,45 +11,36 @@ const SANS = 'var(--font-space-grotesk), system-ui, sans-serif'
 
 const NAV = [
   { label: 'Getting Started', id: 'getting-started' },
-  { label: 'Failure Classes',  id: 'failure-classes' },
-  { label: 'CLI Reference',    id: 'cli-reference' },
-  { label: 'Telemetry',        id: 'telemetry' },
+  { label: 'Verdicts',        id: 'verdicts' },
+  { label: 'CLI Reference',   id: 'cli-reference' },
+  { label: 'Configuration',   id: 'configuration' },
 ]
 
-const FAILURE_CLASSES = [
+const VERDICTS = [
   {
-    code: 'NULL_RESULT',
-    title: 'Null Response',
-    desc: 'The MCP tool returned HTTP 200 with a JSON-RPC success envelope, but the result field is null. The agent has no usable data and no indication of failure.',
-    example: '{ "jsonrpc": "2.0", "id": 1, "result": null }',
+    code: 'BLOCK_MERGE',
+    label: 'Block Merge',
+    color: '#FF6A4D',
+    desc: 'The eval score fell below the configured threshold. The PR comment is posted as a failing check — the merge button is blocked until the score improves or the threshold is explicitly overridden.',
   },
   {
-    code: 'SCHEMA_DRIFT',
-    title: 'Schema Violation',
-    desc: 'The response shape does not match the expected output schema for the tool. Required fields are missing, field types have changed, or unexpected fields are present that indicate a server-side breaking change.',
-    example: '{ "jsonrpc": "2.0", "id": 1, "result": { "items": null } }',
+    code: 'MERGE_WITH_WARNING',
+    label: 'Merge With Warning',
+    color: '#C9A96E',
+    desc: 'The eval passed but the score dropped from the baseline. The PR is not blocked, but the comment flags the regression with the delta so the team can decide whether to proceed.',
   },
   {
-    code: 'TIMEOUT_AS_SUCCESS',
-    title: 'Timeout Dressed as Success',
-    desc: 'The tool completed after the configured timeout threshold, but returned HTTP 200 instead of an error. The result may be stale, partial, or based on an operation that was never committed.',
-    example: '{ "jsonrpc": "2.0", "id": 1, "result": { "status": "ok" } }  // latency: 30,041 ms',
-  },
-  {
-    code: 'EMPTY_CONTENT',
-    title: 'Empty Content Array',
-    desc: 'The result field is present but contains an empty content array. The agent interprets this as "no results found" when the actual cause is a tool failure.',
-    example: '{ "jsonrpc": "2.0", "id": 1, "result": { "content": [] } }',
+    code: 'SAFE_TO_MERGE',
+    label: 'Safe to Merge',
+    color: '#69B98D',
+    desc: 'The eval score meets or exceeds the threshold and shows no regression from baseline. The PR comment shows the evidence and marks the check as passed.',
   },
 ]
 
-const CLI_FLAGS = [
-  { flag: '--upstream <url>', desc: 'URL of the MCP server to proxy. Required.' },
-  { flag: '--port <number>',  desc: 'Port for the gateway to listen on. Default: 4444.' },
-  { flag: '--host <host>',    desc: 'Host interface. Default: 127.0.0.1.' },
-  { flag: '--timeout <ms>',   desc: 'Request timeout in milliseconds. Default: 30000.' },
-  { flag: '--log <path>',     desc: 'Path to the NDJSON audit log. Default: vouqis-audit.log.' },
-  { flag: '--version',        desc: 'Print the installed version and exit.' },
+const CLI_COMMANDS = [
+  { cmd: 'vouqis init',   desc: 'Create a vouqis.yml config file in the current directory. Prompts for eval script path and threshold.' },
+  { cmd: 'vouqis verify', desc: 'Detect changed AI paths, run evals, compute the verdict, and post the result to the open PR.' },
+  { cmd: 'vouqis doctor', desc: 'Check that the config file, eval script, and GitHub token are all valid before running in CI.' },
 ]
 
 export default function DocsPage() {
@@ -136,7 +127,7 @@ export default function DocsPage() {
               margin: '0 0 20px',
             }}
           >
-            What is Vouqis?
+            What is Vouqis Verify?
           </h1>
           <p
             style={{
@@ -148,9 +139,9 @@ export default function DocsPage() {
               margin: '0 0 32px',
             }}
           >
-            Vouqis is a reliability gateway that sits between AI agents and MCP servers. It
-            validates every JSON-RPC request and response in real time, detecting silent failures
-            before they reach your agent and cause downstream incidents.
+            Vouqis Verify is a CLI that runs your evals on every pull request that touches AI
+            code — prompts, evals, model config, agent logic — and posts a clear verdict to the
+            PR before your team merges.
           </p>
           <p
             style={{
@@ -162,8 +153,8 @@ export default function DocsPage() {
               margin: '0 0 40px',
             }}
           >
-            One command in front of any MCP server. No SDK, no per-tool wrappers, no code changes
-            in your agent.
+            One GitHub Action step. No SDK changes. No infrastructure to run. Eval evidence on
+            every merge.
           </p>
 
           <h2
@@ -178,7 +169,7 @@ export default function DocsPage() {
           >
             Installation
           </h2>
-          <CodeBlock code="npm install -g @vouqis/cli" />
+          <CodeBlock code="pip install vouqis-verify" />
 
           <h2
             style={{
@@ -192,21 +183,7 @@ export default function DocsPage() {
           >
             Quick Start
           </h2>
-          <CodeBlock code="vouqis proxy --upstream http://127.0.0.1:3010" />
-          <p
-            style={{
-              fontFamily: SANS,
-              fontSize: 14.5,
-              lineHeight: 1.65,
-              color: '#5C564A',
-              maxWidth: '58ch',
-              marginTop: 14,
-            }}
-          >
-            This starts the gateway on <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>127.0.0.1:4444</code>.
-            Point your AI agent at the gateway instead of the MCP server directly. Vouqis intercepts
-            every tool call, validates the response, and blocks anything your agent shouldn&apos;t act on.
-          </p>
+          <CodeBlock code={`vouqis init          # create vouqis.yml\nvouqis doctor        # verify config + GitHub token\nvouqis verify        # run evals and post to PR`} />
 
           <h2
             style={{
@@ -218,7 +195,7 @@ export default function DocsPage() {
               margin: '32px 0 16px',
             }}
           >
-            Architecture
+            How it works
           </h2>
           <div
             style={{
@@ -232,16 +209,18 @@ export default function DocsPage() {
               display: 'inline-block',
             }}
           >
-            <div style={{ color: '#8C8473' }}>AI Agent</div>
+            <div style={{ color: '#8C8473' }}>PR opened or updated</div>
             <div style={{ color: '#4A4540' }}>  ↓</div>
-            <div style={{ color: '#ED4B2A' }}>Vouqis Gateway <span style={{ color: '#4A4540', fontSize: 11 }}>(validates every frame)</span></div>
+            <div style={{ color: '#C9C2B2' }}>Vouqis detects changed AI paths</div>
             <div style={{ color: '#4A4540' }}>  ↓</div>
-            <div style={{ color: '#8C8473' }}>MCP Server</div>
+            <div style={{ color: '#C9C2B2' }}>Your eval script runs against the diff</div>
+            <div style={{ color: '#4A4540' }}>  ↓</div>
+            <div style={{ color: '#ED4B2A' }}>Verdict posted to PR <span style={{ color: '#4A4540', fontSize: 11 }}>(BLOCK / WARN / SAFE)</span></div>
           </div>
         </section>
 
-        {/* Failure Classes */}
-        <section id="failure-classes" style={{ marginBottom: 'clamp(56px,7vw,96px)', paddingTop: 'clamp(40px,5vw,64px)', borderTop: '1px solid rgba(21,18,14,0.12)' }}>
+        {/* Verdicts */}
+        <section id="verdicts" style={{ marginBottom: 'clamp(56px,7vw,96px)', paddingTop: 'clamp(40px,5vw,64px)', borderTop: '1px solid rgba(21,18,14,0.12)' }}>
           <div
             style={{
               fontFamily: MONO,
@@ -252,7 +231,7 @@ export default function DocsPage() {
               marginBottom: 16,
             }}
           >
-            Failure Classes
+            Verdicts
           </div>
           <h2
             style={{
@@ -264,7 +243,7 @@ export default function DocsPage() {
               margin: '0 0 20px',
             }}
           >
-            What Vouqis catches
+            Three outcomes. No ambiguity.
           </h2>
           <p
             style={{
@@ -276,11 +255,12 @@ export default function DocsPage() {
               margin: '0 0 36px',
             }}
           >
-            Every blocked response is classified with a failure code, severity level, tool name, and timestamp. The audit log is NDJSON — grep-able, tail-able, pipe-able.
+            Every Vouqis run produces one of three verdicts. The verdict is posted as a GitHub
+            check status so the merge button reflects the eval result automatically.
           </p>
-          {FAILURE_CLASSES.map((fc) => (
+          {VERDICTS.map((v) => (
             <div
-              key={fc.code}
+              key={v.code}
               style={{
                 padding: 'clamp(20px,2.4vw,28px) 0',
                 borderTop: '1px solid rgba(21,18,14,0.12)',
@@ -292,16 +272,16 @@ export default function DocsPage() {
                     fontFamily: MONO,
                     fontSize: 12,
                     letterSpacing: '0.08em',
-                    color: '#FF6A4D',
-                    background: 'color-mix(in srgb, #FF6A4D 10%, #EFEAE0)',
+                    color: v.color,
+                    background: `color-mix(in srgb, ${v.color} 10%, #EFEAE0)`,
                     padding: '3px 8px',
                     borderRadius: 3,
                   }}
                 >
-                  {fc.code}
+                  {v.code}
                 </code>
                 <span style={{ fontFamily: SANS, fontSize: 16, fontWeight: 600, color: '#15120E' }}>
-                  {fc.title}
+                  {v.label}
                 </span>
               </div>
               <p
@@ -311,12 +291,11 @@ export default function DocsPage() {
                   lineHeight: 1.65,
                   color: '#5C564A',
                   maxWidth: '60ch',
-                  margin: '0 0 14px',
+                  margin: 0,
                 }}
               >
-                {fc.desc}
+                {v.desc}
               </p>
-              <CodeBlock code={fc.example} />
             </div>
           ))}
           <div style={{ borderTop: '1px solid rgba(21,18,14,0.12)' }} />
@@ -346,13 +325,12 @@ export default function DocsPage() {
               margin: '0 0 28px',
             }}
           >
-            vouqis proxy
+            vouqis commands
           </h2>
-          <CodeBlock code="vouqis proxy --upstream <url> [options]" />
-          <div style={{ marginTop: 28 }}>
-            {CLI_FLAGS.map((f, i) => (
+          <div style={{ marginTop: 4 }}>
+            {CLI_COMMANDS.map((c, i) => (
               <div
-                key={f.flag}
+                key={c.cmd}
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
@@ -368,21 +346,21 @@ export default function DocsPage() {
                     fontSize: 12.5,
                     color: '#15120E',
                     flex: '0 0 auto',
-                    minWidth: 220,
+                    minWidth: 180,
                   }}
                 >
-                  {f.flag}
+                  {c.cmd}
                 </code>
                 <span style={{ fontFamily: SANS, fontSize: 14.5, color: '#5C564A', flex: '1 1 200px' }}>
-                  {f.desc}
+                  {c.desc}
                 </span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Telemetry */}
-        <section id="telemetry" style={{ paddingTop: 'clamp(40px,5vw,64px)', borderTop: '1px solid rgba(21,18,14,0.12)' }}>
+        {/* Configuration */}
+        <section id="configuration" style={{ paddingTop: 'clamp(40px,5vw,64px)', borderTop: '1px solid rgba(21,18,14,0.12)' }}>
           <div
             style={{
               fontFamily: MONO,
@@ -393,7 +371,7 @@ export default function DocsPage() {
               marginBottom: 16,
             }}
           >
-            Telemetry
+            Configuration
           </div>
           <h2
             style={{
@@ -405,7 +383,7 @@ export default function DocsPage() {
               margin: '0 0 20px',
             }}
           >
-            Anonymous usage data
+            vouqis.yml
           </h2>
           <p
             style={{
@@ -414,26 +392,28 @@ export default function DocsPage() {
               lineHeight: 1.7,
               color: '#46402F',
               maxWidth: '58ch',
-              margin: '0 0 20px',
+              margin: '0 0 24px',
             }}
           >
-            Vouqis collects anonymous usage telemetry via PostHog to understand which failure
-            classes are most common and how the gateway is being used. We never collect request or
-            response content, full upstream URLs, authentication tokens, or any personally
-            identifiable information.
+            Place <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>vouqis.yml</code> at the
+            repository root. Run <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>vouqis init</code> to
+            generate it interactively.
           </p>
+          <CodeBlock code={`ai_paths:\n  - prompts/\n  - evals/\n  - src/agents/\n\neval:\n  run: python evals/run.py\n  score_key: accuracy\n  threshold: 0.80\n\nreport:\n  post_to_pr: true\n  block_on_fail: true`} />
           <p
             style={{
               fontFamily: SANS,
-              fontSize: 'clamp(15px,1.1vw,17.5px)',
-              lineHeight: 1.7,
-              color: '#46402F',
+              fontSize: 14.5,
+              lineHeight: 1.65,
+              color: '#5C564A',
               maxWidth: '58ch',
-              margin: 0,
+              marginTop: 16,
             }}
           >
-            To opt out, run without the <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>POSTHOG_API_KEY</code> environment
-            variable. The SDK disables itself completely when the key is absent.
+            <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>ai_paths</code> lists the
+            directories Vouqis watches. A PR that touches none of these paths skips the eval
+            entirely. <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>score_key</code> is
+            the key Vouqis reads from your eval output JSON.
           </p>
         </section>
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Changelog — Vouqis',
-  description: 'Version history for Vouqis, the MCP reliability gateway.',
+  description: 'Version history for Vouqis Verify, the AI change verification CLI.',
 }
 
 const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
@@ -25,55 +25,48 @@ type Release = {
 
 const RELEASES: Release[] = [
   {
-    version: 'v0.4.4',
-    date: '2026-05-12',
-    summary: 'Dependency security patches, CI typecheck hardening.',
+    version: 'v0.1.3',
+    date: '2026-07-01',
+    summary: 'doctor command added; baseline comparison now includes previous run score.',
     changes: [
-      { type: 'fix',    text: 'Resolve five Dependabot security alerts across transitive dependencies.' },
-      { type: 'chore',  text: 'Add TypeScript strict-mode check to CI pipeline.' },
-      { type: 'fix',    text: 'Restore scroll position to top on every page load via inline head script.' },
+      { type: 'feat',    text: 'vouqis doctor checks config validity, eval script path, and GitHub token before CI runs.' },
+      { type: 'feat',    text: 'Baseline score from the last passing run is included in the PR comment delta row.' },
+      { type: 'fix',     text: 'vouqis verify now exits non-zero on BLOCK_MERGE verdict so GitHub Actions marks the step as failed.' },
+      { type: 'chore',   text: 'Restore scroll position to top on every page load via inline head script.' },
     ],
   },
   {
-    version: 'v0.4.3',
-    date: '2026-04-28',
-    summary: 'Analytics hardening; PostHog event contract locked.',
+    version: 'v0.1.2',
+    date: '2026-06-18',
+    summary: 'PR comment posting via GitHub API; MERGE_WITH_WARNING verdict introduced.',
     changes: [
-      { type: 'refactor', text: 'PostHog events no longer include upstream URL path or query string.' },
-      { type: 'chore',    text: 'Confirm opt-out behaviour: SDK is a no-op when POSTHOG_API_KEY is unset.' },
-      { type: 'fix',      text: 'Rate-limit refill now correctly resets on the configured interval boundary.' },
+      { type: 'feat',    text: 'Post formatted verdict comment to pull request via GitHub REST API on every verify run.' },
+      { type: 'feat',    text: 'MERGE_WITH_WARNING verdict fires when score passes threshold but regresses from baseline.' },
+      { type: 'feat',    text: 'report.block_on_fail config key controls whether a failing check blocks the merge button.' },
+      { type: 'fix',     text: 'Score key lookup now raises a clear error when score_key is missing from eval output JSON.' },
     ],
   },
   {
-    version: 'v0.4.2',
-    date: '2026-04-11',
-    summary: 'EMPTY_CONTENT failure class added; audit log schema revision.',
+    version: 'v0.1.1',
+    date: '2026-06-05',
+    summary: 'Config validation hardening; ai_paths glob support.',
     changes: [
-      { type: 'feat', text: 'Detect and classify empty content arrays (result.content === []) as EMPTY_CONTENT.' },
-      { type: 'feat', text: 'Audit log now includes severity field: CRITICAL, HIGH, MEDIUM, LOW.' },
-      { type: 'fix',  text: 'OPTIONS pre-flight response now returns explicit CORS header list instead of wildcard.' },
+      { type: 'feat',    text: 'ai_paths entries now support glob patterns (e.g. src/agents/**/*.py).' },
+      { type: 'fix',     text: 'vouqis init validates that the eval script path exists before writing vouqis.yml.' },
+      { type: 'refactor', text: 'Config loading extracted into its own module with typed schema validation.' },
+      { type: 'chore',   text: 'pytest added to CI; config loader and verdict logic covered.' },
     ],
   },
   {
-    version: 'v0.4.1',
-    date: '2026-03-29',
-    summary: 'Retry policy scoped to idempotent MCP methods only.',
+    version: 'v0.1.0',
+    date: '2026-05-22',
+    summary: 'First public release. AI path detection, eval runner, three-verdict engine.',
     changes: [
-      { type: 'fix',      text: 'Retry now fires only for tools/list, tools/call, initialize, and ping.' },
-      { type: 'refactor', text: 'RETRY_DELAY_MS constant extracted; default is 300 ms.' },
-      { type: 'feat',     text: 'Retry events are emitted to the audit log before each attempt.' },
-    ],
-  },
-  {
-    version: 'v0.4.0',
-    date: '2026-03-14',
-    summary: 'First public release. Core proxy, validator, rate limiter, audit logger.',
-    changes: [
-      { type: 'feat', text: 'vouqis proxy command: HTTP gateway listening on 127.0.0.1:4444 by default.' },
-      { type: 'feat', text: 'NULL_RESULT, SCHEMA_DRIFT, TIMEOUT_AS_SUCCESS failure class detection.' },
-      { type: 'feat', text: 'NDJSON audit log at vouqis-audit.log.' },
-      { type: 'feat', text: 'Token-bucket rate limiter with configurable window and max requests.' },
-      { type: 'feat', text: 'Security headers (X-Content-Type-Options, Cache-Control: no-store) on every response.' },
+      { type: 'feat', text: 'vouqis verify detects changed files against ai_paths and skips runs on non-AI PRs.' },
+      { type: 'feat', text: 'Eval runner executes any shell command and reads score from JSON stdout.' },
+      { type: 'feat', text: 'BLOCK_MERGE and SAFE_TO_MERGE verdicts based on configurable threshold.' },
+      { type: 'feat', text: 'vouqis.yml config with ai_paths, eval.run, eval.score_key, eval.threshold.' },
+      { type: 'feat', text: 'vouqis init interactive setup generates vouqis.yml from prompts.' },
     ],
   },
 ]
@@ -130,7 +123,7 @@ export default function ChangelogPage() {
             margin: 0,
           }}
         >
-          Every release of <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>@vouqis/cli</code>.
+          Every release of <code style={{ fontFamily: MONO, fontSize: '0.9em' }}>vouqis-verify</code>.
           Unreleased changes are on{' '}
           <a
             href="https://github.com/Sasisundar2211/Vouqis"

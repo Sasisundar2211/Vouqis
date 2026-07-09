@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Blog — Vouqis',
-  description: 'Writing on MCP reliability, silent failures, and building trustworthy AI agent infrastructure.',
+  description: 'Writing on AI change verification, eval-driven development, and safe AI deployment.',
 }
 
 const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
@@ -11,36 +11,36 @@ const SANS = 'var(--font-space-grotesk), system-ui, sans-serif'
 
 const POSTS = [
   {
-    slug: 'silent-mcp-failures',
-    date: '2026-06-12',
+    slug: 'the-eval-was-never-run',
+    date: '2026-07-01',
     tag: 'Engineering',
-    title: 'The four ways MCP servers fail silently',
+    title: 'The eval was never run',
     excerpt:
-      'A 200 OK response is not a success signal. Here is what actually happens when an MCP tool returns null, an empty array, a malformed payload, or a result after a 30-second timeout — and why your agent cannot tell the difference without a gateway in the path.',
+      'The PR looked fine. The prompt change was small. The model still passed manual review. Then it shipped, and a week later someone noticed the output quality had quietly degraded. This is the failure mode Vouqis exists to prevent — and why "eval on every PR" is not optional once you ship AI.',
   },
   {
-    slug: 'null-result-case-study',
-    date: '2026-05-28',
-    tag: 'Case study',
-    title: 'How a null result cost a team three hours of debugging',
-    excerpt:
-      'A query_orders call returned HTTP 200 with result: null. The agent reported "no orders found." The customer had five pending orders. This is a walkthrough of exactly what happened, what Vouqis would have caught, and how to prevent the same class of incident.',
-  },
-  {
-    slug: 'schema-drift-in-production',
-    date: '2026-05-09',
-    tag: 'Engineering',
-    title: 'Schema drift is the invisible breaking change',
-    excerpt:
-      'When an MCP server changes a field type from string to number, or renames a required key, the HTTP response still returns 200. Your integration tests still pass. Your CI is green. The agent just starts answering questions about customer data with structurally wrong information.',
-  },
-  {
-    slug: 'design-partner-program',
-    date: '2026-04-22',
+    slug: 'why-three-verdicts',
+    date: '2026-06-18',
     tag: 'Product',
-    title: 'Why we run a design-partner program instead of a beta waitlist',
+    title: 'Why BLOCK, WARN, SAFE — and not a score',
     excerpt:
-      'We work with five teams at a time, not five hundred. The difference is depth. Beta waitlists give you adoption numbers. Design-partner programs give you understanding. This is what we learned in the first cohort.',
+      'A score of 0.74 tells you nothing about what to do. A verdict tells you exactly what to do. We spent three weeks debating whether to surface the raw eval number or collapse it to three outcomes. Here is why we chose three outcomes — and why the threshold is the most important config value in vouqis.yml.',
+  },
+  {
+    slug: 'what-counts-as-an-ai-path',
+    date: '2026-06-03',
+    tag: 'Engineering',
+    title: 'What counts as an AI path',
+    excerpt:
+      'The first question teams ask when they set up vouqis.yml is: which directories should go in ai_paths? Prompt files are obvious. Model config is obvious. But what about the Python code that constructs the prompt? The retrieval logic? The system message template? This is our current thinking.',
+  },
+  {
+    slug: 'early-access-what-we-learned',
+    date: '2026-05-22',
+    tag: 'Product',
+    title: 'Early access: what we learned from the first five teams',
+    excerpt:
+      'We ran Vouqis Verify with five teams before writing a single line of marketing copy. Every one of them had merged AI changes without running evals that week. Two had production regressions they traced back to prompt changes. This is what we learned, and what we built differently because of it.',
   },
 ]
 
@@ -77,7 +77,7 @@ export default function BlogPage() {
             margin: '0 0 18px',
           }}
         >
-          Writing on MCP reliability
+          Writing on AI verification
         </h1>
         <p
           style={{

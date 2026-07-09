@@ -7,10 +7,10 @@ const SERIF = 'var(--font-instrument-serif), Georgia, serif'
 const SANS = 'var(--font-space-grotesk), system-ui, sans-serif'
 
 const BENEFITS = [
-  { label: 'Founder support', desc: 'Direct access to the Vouqis team. We debug with you.' },
-  { label: 'Early access', desc: 'Shape the product before it ships. Your failures define the roadmap.' },
+  { label: 'Founder support', desc: 'Direct access to the Vouqis team. We set up vouqis.yml with you.' },
+  { label: 'Early access', desc: 'Shape the product before it ships. Your evals define the roadmap.' },
   { label: 'Direct feedback loop', desc: 'Weekly check-ins during onboarding. No support queue.' },
-  { label: 'Product influence', desc: "If you need a failure class we don't cover, we build it." },
+  { label: 'Product influence', desc: "If your eval setup isn't supported, we build it." },
 ]
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error'
@@ -64,7 +64,7 @@ export default function DesignPartnerPage() {
             marginBottom: 20,
           }}
         >
-          Design partner program
+          Early access program
         </div>
         <h1
           style={{
@@ -78,7 +78,7 @@ export default function DesignPartnerPage() {
             maxWidth: '18ch',
           }}
         >
-          We work with teams that have real MCP failures.
+          We work with teams shipping AI changes every week.
         </h1>
         <p
           style={{
@@ -90,8 +90,8 @@ export default function DesignPartnerPage() {
             margin: 0,
           }}
         >
-          We&apos;re working with a small number of teams running MCP-powered systems
-          in production. If your agents are failing silently today, this is for you.
+          We&apos;re working with a small number of teams shipping AI changes to
+          production. If your evals aren&apos;t running on every PR today, this is for you.
         </p>
       </div>
 
@@ -211,21 +211,21 @@ export default function DesignPartnerPage() {
                 placeholder="e.g. 3, 12, 50+"
               />
               <Field
-                name="mcp_servers"
-                label="Which MCP servers are you running?"
-                placeholder="e.g. Supabase MCP, GitHub MCP, custom internal tools…"
+                name="ai_systems"
+                label="Which AI systems are you changing?"
+                placeholder="e.g. prompts, evals, model config, agent logic…"
                 multiline
               />
               <Field
                 name="failure_types"
-                label="What failures have you seen? (optional)"
-                placeholder="Null responses, schema drift, timeouts, other…"
+                label="What eval failures or regressions have you seen? (optional)"
+                placeholder="Score drops, no evals running, regressions caught late…"
                 multiline
               />
               <Field
                 name="current_approach"
-                label="How are you handling reliability today? (optional)"
-                placeholder="Manual log review, nothing yet, custom wrappers…"
+                label="How are you verifying AI changes today? (optional)"
+                placeholder="Manual review, nothing yet, custom scripts…"
                 multiline
               />
               <Field
