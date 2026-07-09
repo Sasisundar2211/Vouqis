@@ -169,7 +169,7 @@ export default function DocsPage() {
           >
             Installation
           </h2>
-          <CodeBlock code="pip install vouqis-verify" />
+          <CodeBlock code="pip3 install vouqis-verify" />
 
           <h2
             style={{

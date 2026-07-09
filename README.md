@@ -41,7 +41,7 @@ Changed: `prompts/system.txt`
 ## Install
 
 ```bash
-pip install vouqis-verify
+pip3 install vouqis-verify
 ```
 
 ## Quickstart
