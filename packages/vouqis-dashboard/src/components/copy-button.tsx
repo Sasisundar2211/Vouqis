@@ -1,6 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+type OS = 'mac' | 'win'
+
+const INSTALL: Record<OS, string> = {
+  mac: 'pip3 install vouqis-verify',
+  win: 'pip install vouqis-verify',
+}
+
+const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
 
 type CopyButtonProps = {
   size?: 'sm' | 'lg'
@@ -11,14 +20,21 @@ type CopyButtonProps = {
 
 export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
+  const [os, setOs] = useState<OS>('mac')
+
+  useEffect(() => {
+    if (/Win/i.test(navigator.userAgent)) setOs('win')
+  }, [])
+
+  const cmd = text ?? INSTALL[os]
 
   function handleClick() {
-    navigator.clipboard?.writeText(text ?? 'pip3 install vouqis-verify').catch(() => {})
+    navigator.clipboard?.writeText(cmd).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
   }
 
-  // Minimal inline variant when a custom text is passed (proxy page usage)
+  // Minimal inline variant when a custom text is passed
   if (text !== undefined) {
     return (
       <button
@@ -31,7 +47,7 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
           fontSize: 11,
           color: copied ? '#69B98D' : '#8C8473',
           cursor: 'pointer',
-          fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
+          fontFamily: MONO,
           transition: 'all 0.15s ease',
           whiteSpace: 'nowrap',
           outline: 'none',
@@ -48,45 +64,72 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const badgeSize = size === 'lg' ? 44 : 40
 
   return (
-    <button
-      onClick={handleClick}
-      className="vq-btn-dark"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 10,
-        height,
-        padding: `0 6px 0 ${paddingLeft}px`,
-        background: '#15120E',
-        color: '#E9E3D5',
-        border: 'none',
-        borderRadius: 3,
-        cursor: 'pointer',
-        fontFamily: 'var(--font-jetbrains-mono), ui-monospace, monospace',
-        fontSize,
-        transition: 'transform 160ms cubic-bezier(0.23,1,0.32,1), background 150ms ease',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ color: '#ED4B2A' }}>$</span>
-      <span>pip3 install vouqis-verify</span>
-      <span
+    <div>
+      {/* macOS / Windows tab switcher */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+        {(['mac', 'win'] as OS[]).map((o) => (
+          <button
+            key={o}
+            onClick={() => setOs(o)}
+            style={{
+              fontFamily: MONO,
+              fontSize: 11,
+              letterSpacing: '0.04em',
+              padding: '4px 12px',
+              background: os === o ? '#15120E' : 'transparent',
+              color: os === o ? '#E9E3D5' : '#8C8473',
+              border: '1px solid rgba(21,18,14,0.20)',
+              borderRadius: 3,
+              cursor: 'pointer',
+              transition: 'all 120ms ease',
+              outline: 'none',
+            }}
+          >
+            {o === 'mac' ? 'macOS' : 'Windows'}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={handleClick}
+        className="vq-btn-dark"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          width: badgeSize,
-          height: badgeSize,
-          background: 'rgba(255,255,255,0.07)',
-          color: '#B9B2A1',
-          fontSize: 11,
-          letterSpacing: '0.08em',
-          borderRadius: 2,
-          flexShrink: 0,
+          gap: 10,
+          height,
+          padding: `0 6px 0 ${paddingLeft}px`,
+          background: '#15120E',
+          color: '#E9E3D5',
+          border: 'none',
+          borderRadius: 3,
+          cursor: 'pointer',
+          fontFamily: MONO,
+          fontSize,
+          transition: 'transform 160ms cubic-bezier(0.23,1,0.32,1), background 150ms ease',
+          whiteSpace: 'nowrap',
         }}
       >
-        {copied ? 'copied' : 'copy'}
-      </span>
-    </button>
+        <span style={{ color: '#ED4B2A' }}>$</span>
+        <span>{cmd}</span>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: badgeSize,
+            height: badgeSize,
+            background: 'rgba(255,255,255,0.07)',
+            color: '#B9B2A1',
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            borderRadius: 2,
+            flexShrink: 0,
+          }}
+        >
+          {copied ? 'copied' : 'copy'}
+        </span>
+      </button>
+    </div>
   )
 }
