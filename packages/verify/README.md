@@ -41,7 +41,7 @@ Did this report change your merge decision?
 ### 1. Install
 
 ```bash
-pip3 install vouqis-verify
+pipx install vouqis-verify
 ```
 
 ### 2. Initialise

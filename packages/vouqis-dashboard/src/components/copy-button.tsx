@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 type OS = 'mac' | 'win'
 
 const INSTALL: Record<OS, string> = {
-  mac: 'pip3 install vouqis-verify',
+  mac: 'pipx install vouqis-verify',
   win: 'pip install vouqis-verify',
 }
 

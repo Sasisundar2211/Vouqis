@@ -169,7 +169,7 @@ export default function DocsPage() {
           >
             Installation
           </h2>
-          <CodeBlock code={`# macOS / Linux\npip3 install vouqis-verify\n\n# Windows\npip install vouqis-verify`} />
+          <CodeBlock code={`# macOS / Linux (recommended)\npipx install vouqis-verify\n\n# Windows\npip install vouqis-verify`} />
 
           <h2
             style={{
