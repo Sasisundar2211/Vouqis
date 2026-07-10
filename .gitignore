@@ -123,6 +123,9 @@ notion-customer-truths.md
 prospect-list.md
 posthog-setup-report.md
 config/
+!packages/verify/vouqis_verify/config/
 .impeccable/
 graphify-out/
 .env.local
+.env*
+.claude/
