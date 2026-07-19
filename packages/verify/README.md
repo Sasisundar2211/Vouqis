@@ -40,9 +40,18 @@ Did this report change your merge decision?
 
 ### 1. Install
 
+**macOS**
 ```bash
-pipx install vouqis-verify
+brew install pipx && pipx install vouqis-verify
 ```
+
+**Windows** (PowerShell)
+```powershell
+pip install pipx && pipx install vouqis-verify
+```
+
+> Do not use `pip3 install` or `python3 -m pip install` — on modern macOS these fail with a PEP 668 externally-managed-environment error. The commands above work on both platforms.
+> Requires Python 3.11+ and Git.
 
 ### 2. Initialise
 
@@ -175,43 +184,57 @@ timeout_seconds: 300
 
 ## Local testing
 
+**macOS**
 ```bash
-# Install in dev mode
 cd packages/verify
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
-
-# Run tests
 pytest
-
-# Simulate a verify run (without posting a PR comment)
 vouqis verify --no-comment
-
-# Test against a specific base branch
-vouqis verify --base develop --no-comment
 ```
+
+**Windows** (PowerShell)
+```powershell
+cd packages\verify
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+pytest
+vouqis verify --no-comment
+```
+
+> **Windows:** If Activate.ps1 is blocked, run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` once, then retry.
+>
+> **macOS:** If `python3 -m venv` fails, run `brew install python@3.11` first.
 
 ---
 
 ## Supported evaluation frameworks
 
-Vouqis Verify runs any shell command. Examples:
+Vouqis Verify runs any shell command via the OS default shell (`cmd.exe` on Windows, `sh` on macOS/Linux). Examples:
 
 ```yaml
-# pytest
+# pytest (works on both platforms)
 eval_command: pytest tests/eval/ -v
 
-# promptfoo
+# promptfoo (works on both platforms)
 eval_command: promptfoo eval --config promptfooconfig.yaml
 
-# braintrust
+# braintrust (works on both platforms)
 eval_command: braintrust run evals/
 
-# custom script
+# custom shell script — macOS/Linux only
 eval_command: ./scripts/run-evals.sh
 
-# multiple steps
+# custom batch script — Windows only
+eval_command: scripts\run-evals.bat
+
+# multiple steps (works on both platforms)
 eval_command: pytest tests/unit/ && pytest tests/eval/
 ```
+
+> **Windows note:** Shell scripts (`.sh`) require Git Bash or WSL. Use `.bat` files or `pytest` directly for native Windows support.
 
 ---
 

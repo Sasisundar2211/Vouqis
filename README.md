@@ -40,9 +40,17 @@ Changed: `prompts/system.txt`
 
 ## Install
 
+**macOS**
 ```bash
-pipx install vouqis-verify
+brew install pipx && pipx install vouqis-verify
 ```
+
+**Windows** (PowerShell)
+```powershell
+pip install pipx && pipx install vouqis-verify
+```
+
+> Requires Python 3.11+ and Git. Do not use `pip3 install` or `python3 -m pip install` — they will fail on modern macOS with a PEP 668 error. Use the commands above.
 
 ## Quickstart
 

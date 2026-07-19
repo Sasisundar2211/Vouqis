@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 type OS = 'mac' | 'win'
 
 const INSTALL: Record<OS, string> = {
-  mac: 'pipx install vouqis-verify',
-  win: 'pip install vouqis-verify',
+  mac: 'brew install pipx && pipx install vouqis-verify',
+  win: 'pip install pipx && pipx install vouqis-verify',
 }
 
 const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
@@ -21,17 +21,21 @@ type CopyButtonProps = {
 export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
   const [os, setOs] = useState<OS>('mac')
+  const timer = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
     if (/Win/i.test(navigator.userAgent)) setOs('win')
   }, [])
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
   const cmd = text ?? INSTALL[os]
 
   function handleClick() {
     navigator.clipboard?.writeText(cmd).catch(() => {})
     setCopied(true)
-    setTimeout(() => setCopied(false), 1600)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), 1600)
   }
 
   // Minimal inline variant when a custom text is passed
