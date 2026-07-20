@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vouqis-verify"
-version = "0.1.1"
+version = "0.1.2"
 description = "Verify every AI change before it reaches production"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -40,6 +40,13 @@ vouqis = "vouqis_verify.cli:app"
 dev = [
     "pytest>=8",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["vouqis_verify"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"vouqis_verify/config/__init__.py" = "vouqis_verify/config/__init__.py"
+"vouqis_verify/config/schema.py" = "vouqis_verify/config/schema.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
