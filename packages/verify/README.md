@@ -136,6 +136,7 @@ vouqis verify             Run evaluation and generate deployment review
   --repo OWNER/REPO       GitHub repository (set automatically in GitHub Actions)
   --token TOKEN           GitHub token (set automatically in GitHub Actions)
   --no-comment            Skip posting the PR comment
+  --json                  Print structured JSON to stdout (for integrations)
 vouqis doctor             Validate config and environment
   --config PATH           Config file to validate (default: vouqis.yml)
 vouqis --version          Print version and exit
@@ -158,9 +159,12 @@ baseline: main
 #   Only changes to these paths affect the confidence rating.
 #   The eval command runs regardless.
 ai_paths:
-  - prompts/
-  - src/agents/
-  - config/models/
+  - prompts/         # prompt templates
+  - src/agents/      # agent workflow code
+  - evals/           # evaluation suites
+  - models/          # model configuration
+  - rag/             # retrieval / RAG configuration
+  - tools/           # tool integrations
 
 # timeout_seconds: kill the eval command if it runs longer than this
 timeout_seconds: 300

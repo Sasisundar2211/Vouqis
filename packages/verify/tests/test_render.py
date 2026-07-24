@@ -1,3 +1,5 @@
+import json
+
 from vouqis_verify.config.schema import Config
 from vouqis_verify.core.runner import EvalResult
 from vouqis_verify.report.render import build_report
@@ -146,3 +148,34 @@ def test_project_name_in_header():
 def test_no_project_name_plain_header():
     md = build_report(Config(), [], _result(True)).as_markdown()
     assert "## Vouqis Verify\n" in md
+
+
+# ── JSON output (FR-010) ──────────────────────────────────────────────────────
+
+def test_json_is_valid():
+    data = json.loads(build_report(Config(), [], _result(True)).as_json())
+    assert data["verdict"] == "SAFE TO MERGE"
+
+
+def test_json_has_required_keys():
+    data = json.loads(build_report(Config(), [], _result(True)).as_json())
+    for key in ("verdict", "confidence", "why", "changed_files", "eval"):
+        assert key in data
+
+
+def test_json_eval_block():
+    data = json.loads(build_report(Config(), [], _result(True)).as_json())
+    assert data["eval"]["passed"] is True
+    assert data["eval"]["exit_code"] == 0
+    assert data["eval"]["command"] == "pytest"
+
+
+def test_json_block_merge_verdict():
+    data = json.loads(build_report(Config(), [], _result(False)).as_json())
+    assert data["verdict"] == "BLOCK MERGE"
+
+
+def test_json_changed_files_listed():
+    data = json.loads(build_report(Config(), ["prompts/system.txt"], _result(True)).as_json())
+    assert "prompts/system.txt" in data["changed_files"]
+    assert data["verdict"] == "MERGE WITH WARNING"
