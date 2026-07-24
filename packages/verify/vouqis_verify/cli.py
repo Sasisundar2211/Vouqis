@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -62,6 +61,7 @@ def verify(
     repo: Optional[str] = typer.Option(None, "--repo", envvar="GITHUB_REPOSITORY", help="owner/repo"),
     token: Optional[str] = typer.Option(None, "--token", envvar="GITHUB_TOKEN", help="GitHub token"),
     no_comment: bool = typer.Option(False, "--no-comment", help="Skip posting the PR comment"),
+    json_output: bool = typer.Option(False, "--json", help="Print structured JSON to stdout"),
 ) -> None:
     """Run evaluation and generate a deployment review for the current PR."""
     cfg = load_config(config)
@@ -83,7 +83,10 @@ def verify(
 
     # 3. Build report
     report = build_report(cfg, changed, result)
-    console.print(report.as_terminal())
+    if json_output:
+        console.print(report.as_json(), markup=False, highlight=False)
+    else:
+        console.print(report.as_terminal())
 
     # 4. Post PR comment when env is set and --no-comment not given
     if not no_comment and pr and repo and token:

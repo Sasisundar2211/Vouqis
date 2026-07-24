@@ -42,6 +42,44 @@ const EARLY_ACCESS_BENEFITS = [
   'Your PR patterns define the roadmap',
 ]
 
+const PUBLIC_PROOF = [
+  { label: 'GitHub Repository', value: 'Public · MIT', sub: 'open source', href: 'https://github.com/Sasisundar2211/Vouqis' },
+  { label: 'PyPI Package', value: 'vouqis-verify', sub: 'pip installable today', href: 'https://pypi.org/project/vouqis-verify/' },
+  { label: 'GitHub Action', value: 'v0.1.0', sub: 'vouqis/vouqis-verify', href: 'https://github.com/Sasisundar2211/Vouqis' },
+  { label: 'GitHub App', value: 'Available', sub: 'install on any repo', href: 'https://github.com/Sasisundar2211/Vouqis' },
+  { label: 'Test Suite', value: '33 passing', sub: 'automated CI tests', href: 'https://github.com/Sasisundar2211/Vouqis' },
+  { label: 'Working MVP', value: 'Live', sub: 'vouqis.tech', href: 'https://vouqis.tech' },
+]
+
+const FAQ_ITEMS = [
+  {
+    q: "Why aren't evaluations enough?",
+    a: "Evaluations give you a score. They don't tell you which files changed, whether the prompt shifted, or if the retriever config was updated. Vouqis generates that evidence — automatically, on every PR.",
+  },
+  {
+    q: 'How is this different from observability tools?',
+    a: 'Observability watches production. Vouqis runs before merge — in CI, on every PR — so you catch regressions before they ship.',
+  },
+  {
+    q: 'Does Vouqis modify my code?',
+    a: 'No. Vouqis reads your git diff, runs your existing eval command, and posts a comment to the PR. It never modifies files.',
+  },
+  {
+    q: 'What AI changes does Vouqis detect?',
+    a: 'Any files in the paths you configure: prompts, model configs, RAG pipelines, agent definitions, tool integrations, MCP server configs, and eval scripts.',
+  },
+  {
+    q: 'Is this open source?',
+    a: 'Yes. The CLI (vouqis-verify) is MIT-licensed and available on GitHub and PyPI.',
+  },
+  {
+    q: 'How does the GitHub Action work?',
+    a: 'Add one step to your workflow YAML referencing vouqis/vouqis-verify. It detects changed AI files, runs your eval_command, and posts the verdict comment. No SDK. No code changes.',
+  },
+]
+
+const MANUAL_REVIEW_ITEMS = ['prompts', 'traces', 'retrieval', 'tool calls', 'logs', 'examples']
+
 const FOOTER_COLS = [
   {
     h: 'Resources',
@@ -118,34 +156,20 @@ export default function HomePage() {
                 fontSize: 'clamp(46px,6.4vw,94px)',
                 lineHeight: 0.96,
                 letterSpacing: '-0.012em',
-                maxWidth: '14ch',
+                maxWidth: '16ch',
                 margin: '0 0 28px',
                 color: '#15120E',
               }}
             >
-              Verify AI changes{' '}
+              AI evaluations pass.{' '}
               <em
                 style={{
-                  position: 'relative',
                   fontStyle: 'italic',
                   color: '#ED4B2A',
-                  whiteSpace: 'nowrap',
                 }}
               >
-                before
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: '0.08em',
-                    height: 3,
-                    background: '#ED4B2A',
-                    opacity: 0.28,
-                  }}
-                />
-              </em>{' '}
-              they merge.
+                Deployment risk remains.
+              </em>
             </h1>
 
             {/* Body */}
@@ -159,9 +183,9 @@ export default function HomePage() {
                 margin: '0 0 32px',
               }}
             >
-              Vouqis runs your evals on every pull request and posts a clear
-              verdict — BLOCK, WARN, or SAFE — before your team decides to merge.
-              No guessing. No skipped evals. Evidence on every PR.
+              Generate deployment evidence for AI pull requests before merge.
+              Detect changes across prompts, models, RAG pipelines, agents,
+              tool integrations, and MCP servers.
             </p>
 
             {/* CTA row */}
@@ -192,10 +216,12 @@ export default function HomePage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Get early access →
+                Join the Beta →
               </a>
               <a
-                href="/docs"
+                href="https://github.com/Sasisundar2211/Vouqis"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="vq-text-link"
                 style={{
                   fontFamily: MONO,
@@ -208,7 +234,7 @@ export default function HomePage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Read Documentation →
+                View GitHub →
               </a>
             </div>
 
@@ -384,7 +410,7 @@ export default function HomePage() {
                 margin: '0 0 4px',
               }}
             >
-              The PR looked fine.
+              Passing evaluations
             </h2>
             <h2
               style={{
@@ -397,23 +423,52 @@ export default function HomePage() {
                 margin: 0,
               }}
             >
-              The eval was never run.
+              don&apos;t tell you what changed.
             </h2>
           </div>
-          <p
-            style={{
-              fontFamily: SANS,
-              fontSize: 'clamp(16px,1.2vw,18.5px)',
-              lineHeight: 1.65,
-              color: '#5C564A',
-              maxWidth: '42ch',
-              margin: 0,
-            }}
-          >
-            Teams merging AI changes without eval evidence is the default.
-            Prompts shift, configs change, and nobody has a score to point at
-            when production degrades.
-          </p>
+          <div style={{ maxWidth: '42ch' }}>
+            <p
+              style={{
+                fontFamily: SANS,
+                fontSize: 'clamp(16px,1.2vw,18.5px)',
+                lineHeight: 1.65,
+                color: '#5C564A',
+                margin: '0 0 16px',
+              }}
+            >
+              Engineering teams still review all of this before approving AI pull requests:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginBottom: 16 }}>
+              {MANUAL_REVIEW_ITEMS.map((item) => (
+                <span
+                  key={item}
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 12,
+                    color: '#5C564A',
+                    background: 'rgba(21,18,14,0.06)',
+                    border: '1px solid rgba(21,18,14,0.12)',
+                    padding: '4px 10px',
+                    borderRadius: 3,
+                  }}
+                >
+                  ✓ {item}
+                </span>
+              ))}
+            </div>
+            <p
+              style={{
+                fontFamily: SANS,
+                fontSize: 'clamp(16px,1.2vw,18.5px)',
+                lineHeight: 1.65,
+                color: '#15120E',
+                margin: 0,
+                fontWeight: 500,
+              }}
+            >
+              Vouqis Verify generates that deployment evidence automatically.
+            </p>
+          </div>
         </div>
 
         {/* Evidence blocks */}
@@ -468,6 +523,100 @@ export default function HomePage() {
         >
           The code review said LGTM. The diff looked small. Nobody ran the eval.
           Vouqis makes it automatic.
+        </p>
+      </section>
+
+      {/* ── WHY AI PRS ARE DIFFERENT ────────────────────────────────────────── */}
+      <section
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: SERIF,
+            fontWeight: 400,
+            fontSize: 'clamp(34px,4.4vw,60px)',
+            margin: '0 0 clamp(40px,5vw,64px)',
+            color: '#15120E',
+            lineHeight: 1.05,
+            maxWidth: '28ch',
+          }}
+        >
+          Why AI pull requests are different
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1, background: 'rgba(21,18,14,0.10)', border: '1px solid rgba(21,18,14,0.10)', borderRadius: 6, overflow: 'hidden' }}>
+          {[
+            {
+              label: 'Traditional software',
+              steps: ['Tests pass', 'Merge'],
+              accent: '#69B98D',
+            },
+            {
+              label: 'AI software today',
+              steps: ['Tests pass', 'Behavior changes', 'Manual review', 'Merge'],
+              accent: '#FF6A4D',
+              highlight: true,
+            },
+            {
+              label: 'With Vouqis',
+              steps: ['Tests + Deployment Evidence', 'Review Package', 'Merge'],
+              accent: '#69B98D',
+            },
+          ].map((col) => (
+            <div
+              key={col.label}
+              style={{
+                background: col.highlight ? 'color-mix(in srgb, #FF6A4D 5%, #EFEAE0)' : '#EFEAE0',
+                padding: 'clamp(24px,2.5vw,36px)',
+              }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9A9486', marginBottom: 20 }}>
+                {col.label}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {col.steps.map((step, i) => (
+                  <div key={step} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div
+                      style={{
+                        fontFamily: MONO,
+                        fontSize: 13,
+                        color: col.highlight && step === 'Manual review' ? '#FF6A4D' : '#15120E',
+                        background: '#FFFFFF',
+                        border: col.highlight && step === 'Manual review' ? '1px solid rgba(255,106,77,0.4)' : '1px solid rgba(21,18,14,0.12)',
+                        borderRadius: 4,
+                        padding: '10px 14px',
+                      }}
+                    >
+                      {step}
+                    </div>
+                    {i < col.steps.length - 1 && (
+                      <div style={{ fontFamily: MONO, fontSize: 12, color: '#9A9486', paddingLeft: 14 }}>↓</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p
+          style={{
+            fontFamily: SERIF,
+            fontSize: 'clamp(18px,1.8vw,24px)',
+            lineHeight: 1.4,
+            color: '#5C564A',
+            margin: 'clamp(28px,3vw,40px) 0 0',
+            maxWidth: '52ch',
+          }}
+        >
+          The middle column is where AI teams spend their review time today.
+          Vouqis collapses it into one automated step.
         </p>
       </section>
 
@@ -1024,6 +1173,66 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── PUBLIC PROOF ────────────────────────────────────────────────────── */}
+      <section
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1500,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        <div style={{ marginBottom: 'clamp(40px,5vw,60px)' }}>
+          <h2
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 400,
+              fontSize: 'clamp(34px,4.4vw,60px)',
+              margin: '0 0 20px',
+              color: '#15120E',
+              lineHeight: 1.05,
+            }}
+          >
+            Verifiable from day one.
+          </h2>
+          <p
+            style={{
+              fontFamily: SANS,
+              fontSize: 'clamp(16px,1.2vw,18.5px)',
+              lineHeight: 1.6,
+              color: '#5C564A',
+              maxWidth: '52ch',
+              margin: 0,
+            }}
+          >
+            Every claim below is publicly checkable. No waitlist. No deck. No demo request.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1, background: 'rgba(21,18,14,0.10)', border: '1px solid rgba(21,18,14,0.10)', borderRadius: 6, overflow: 'hidden' }}>
+          {PUBLIC_PROOF.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ background: '#EFEAE0', padding: 'clamp(20px,2.5vw,30px)', textDecoration: 'none', display: 'block' }}
+            >
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#9A9486', marginBottom: 10 }}>
+                {item.label}
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: 'clamp(16px,1.8vw,22px)', color: '#15120E', lineHeight: 1.2, marginBottom: 6 }}>
+                {item.value}
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: 11, color: '#7A7464' }}>
+                {item.sub} ↗
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
       {/* ── DEMO ────────────────────────────────────────────────────────────── */}
       <section
         id="demo"
@@ -1067,6 +1276,53 @@ export default function HomePage() {
 
         <div style={{ marginTop: 32 }}>
           <CopyButton size="sm" />
+        </div>
+      </section>
+
+      {/* ── FAQ ─────────────────────────────────────────────────────────────── */}
+      <section
+        style={{
+          ...SECTION_ANIM,
+          padding: 'clamp(72px,9vw,128px) clamp(20px,5vw,72px)',
+          maxWidth: 1100,
+          margin: '0 auto',
+          borderTop: '1px solid rgba(21,18,14,0.12)',
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: SERIF,
+            fontWeight: 400,
+            fontSize: 'clamp(34px,4.4vw,60px)',
+            margin: '0 0 clamp(40px,5vw,60px)',
+            color: '#15120E',
+            lineHeight: 1.05,
+          }}
+        >
+          Common questions
+        </h2>
+
+        <div>
+          {FAQ_ITEMS.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 'clamp(20px,4vw,56px)',
+                padding: 'clamp(24px,3vw,36px) 0',
+                borderTop: '1px solid rgba(21,18,14,0.12)',
+                borderBottom: i === FAQ_ITEMS.length - 1 ? '1px solid rgba(21,18,14,0.12)' : undefined,
+              }}
+            >
+              <p style={{ fontFamily: SERIF, fontSize: 'clamp(17px,1.4vw,21px)', lineHeight: 1.3, color: '#15120E', margin: 0 }}>
+                {item.q}
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: 'clamp(15px,1.1vw,17px)', lineHeight: 1.65, color: '#5C564A', margin: 0 }}>
+                {item.a}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1171,7 +1427,7 @@ export default function HomePage() {
                 borderRadius: 3,
               }}
             >
-              Apply now →
+              Join the Beta →
             </a>
           </div>
         </div>

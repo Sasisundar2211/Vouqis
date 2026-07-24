@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -70,6 +71,21 @@ class Report:
     feedback_url: str
     project_name: Optional[str] = None
     ai_paths: list[str] = field(default_factory=list)
+
+    def as_json(self) -> str:
+        return json.dumps({
+            "verdict": self.verdict,
+            "confidence": self.confidence,
+            "why": self.why,
+            "changed_files": self.changed_files,
+            "project_name": self.project_name,
+            "eval": {
+                "passed": self.result.passed,
+                "exit_code": self.result.exit_code,
+                "duration_ms": self.result.duration_ms,
+                "command": self.result.command,
+            },
+        }, indent=2)
 
     def as_markdown(self) -> str:
         icon = _ICONS[self.verdict]
